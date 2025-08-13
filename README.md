@@ -13,6 +13,7 @@ protection against SQL injection.
 - 📊 **Aggregation Queries**: Support for GROUP BY and aggregation functions
 - 🎯 **Expression System**: Complex expressions with functions and operators
 - 📱 **JSON Field Support**: Query nested JSON/JSONB fields with path syntax
+- 🔍 **Field Type Casting Inference**: Casting based on field definitions and inferred expression types
 - 🏢 **Universal Data Table Support**: Data table configuration for schema-less
   storage
 
@@ -27,11 +28,7 @@ bun add json-to-sql-parser
 ## Quick Start
 
 ```typescript
-import {
-  compileSelectQuery,
-  parseSelectQuery,
-  parseWhereClause,
-} from "json-to-sql-parser";
+import { generateSelectQuery, parseWhereClause } from "json-to-sql-parser";
 
 // Define your database schema
 const config = {
@@ -65,9 +62,8 @@ const query = {
   },
 };
 
-// Parse and compile
-const parsed = parseSelectQuery(query, config);
-const { sql, params } = compileSelectQuery(parsed);
+// Generate SQL directly
+const { sql, params } = generateSelectQuery(query, config);
 
 console.log(sql);
 // SELECT users.id AS "id", users.name AS "name", users.email AS "email" FROM users WHERE users.active = $1
@@ -236,10 +232,7 @@ const condition = {
 Perform GROUP BY operations and aggregations:
 
 ```typescript
-import {
-  compileAggregationQuery,
-  parseAggregationQuery,
-} from "json-to-sql-parser";
+import { generateAggregationQuery } from "json-to-sql-parser";
 
 const aggregationQuery = {
   table: "orders",
@@ -252,8 +245,7 @@ const aggregationQuery = {
   },
 };
 
-const parsed = parseAggregationQuery(aggregationQuery, config);
-const { sql, params } = compileAggregationQuery(parsed);
+const { sql, params } = generateAggregationQuery(aggregationQuery, config);
 ```
 
 ## Expression System
@@ -565,8 +557,7 @@ The parser provides detailed error messages for common issues:
 
 ```typescript
 try {
-  const parsed = parseSelectQuery(query, config);
-  const { sql, params } = compileSelectQuery(parsed);
+  const { sql, params } = generateSelectQuery(query, config);
 } catch (error) {
   console.error("Query parsing failed:", error.message);
 }
