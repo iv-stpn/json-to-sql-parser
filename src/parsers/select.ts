@@ -3,6 +3,7 @@ import type { Config, ParserState, Primitive, Relationship } from "../types";
 import { ExpressionTypeMap } from "../utils/expression-map";
 import { aliasValue, castValue, mergeConditions, parseExpressionObject, parseField } from ".";
 import { parseWhereClause } from "./where";
+import { castMap, type CastType } from "../constants/operators";
 
 function buildDataTableWhereClause(table: string, state: ParserState, whereClause?: string): string {
 	const dataTable = state.config.dataTable;
@@ -15,9 +16,31 @@ function buildDataTableWhereClause(table: string, state: ParserState, whereClaus
 
 function buildJoinClause(table: string, toTable: string, relationship: Relationship, config: Config, alias?: string): string {
 	const toTableName = config.dataTable ? aliasValue(config.dataTable.table, toTable) : toTable;
-	if (relationship.table === table)
-		return `LEFT JOIN ${toTableName} ON ${table}.${relationship.field} = ${alias ?? toTable}.${relationship.toField}`;
-	return `LEFT JOIN ${toTableName} ON ${table}.${relationship.toField} = ${alias ?? toTable}.${relationship.field}`;
+
+	// Get field types for proper casting
+	const getFieldType = (tableName: string, fieldName: string): CastType => {
+		const tableConfig = config.tables[tableName];
+		if (!tableConfig) return null;
+		const fieldConfig = tableConfig.allowedFields.find((field) => field.name === fieldName);
+		return fieldConfig ? castMap[fieldConfig.type] : null;
+	};
+
+	// Helper function to cast field if needed
+	const castField = (tableName: string, fieldName: string): string => {
+		const fieldType = getFieldType(tableName, fieldName);
+		const fieldRef = `${tableName}.${fieldName}`;
+		return castValue(fieldRef, fieldType);
+	};
+
+	if (relationship.table === table) {
+		const leftField = castField(table, relationship.field);
+		const rightField = castField(alias ?? toTable, relationship.toField);
+		return `LEFT JOIN ${toTableName} ON ${leftField} = ${rightField}`;
+	}
+
+	const leftField = castField(table, relationship.toField);
+	const rightField = castField(alias ?? toTable, relationship.field);
+	return `LEFT JOIN ${toTableName} ON ${leftField} = ${rightField}`;
 }
 
 type SelectState = ParserState & { joins: string[]; select: string[]; processedTables: Set<string> };

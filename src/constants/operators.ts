@@ -1,6 +1,6 @@
 import { applyFunction } from "../utils/function-call";
 
-// SQL function and operator definitions for $expr
+// SQL functions and operator definitions for $expr
 export const unaryOperators = ["ABS", "UPPER", "LOWER", "LENGTH", "NOT", "SQRT", "CEIL", "FLOOR", "YEAR"] as const;
 export const variableFunctions = ["COALESCE", "GREATEST", "LEAST", "CONCAT", "SUBSTRING"] as const;
 export const binaryOperators = { ADD: "+", SUBTRACT: "-", MULTIPLY: "*", DIVIDE: "/", MOD: "%", POW: "^", AND: "AND", OR: "OR" };
@@ -56,6 +56,7 @@ export function applyAggregationOperator(field: string, operator: AggregationOpe
 	return applyFunction(operator, [field]);
 }
 
-export const castMap = { string: "TEXT", number: "FLOAT", boolean: "BOOLEAN", object: "JSONB" } as const;
+// Cast types for SQL queries
+export const castMap = { string: "TEXT", number: "FLOAT", boolean: "BOOLEAN", object: "JSONB", uuid: "UUID" } as const;
 export type CastType = (typeof castMap)[keyof typeof castMap] | null;
 export type FieldType = keyof typeof castMap;

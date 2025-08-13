@@ -264,7 +264,7 @@ describe("Select Parser", () => {
 			const result = parseSelectQuery({ rootTable: "users", selection }, testConfig);
 			compileSelectQuery(result); // Call to avoid unused variable
 
-			expect(result.joins).toContain("LEFT JOIN posts ON users.id = posts.user_id");
+			expect(result.joins).toContain("LEFT JOIN posts ON (users.id)::FLOAT = (posts.user_id)::FLOAT");
 			expect(result.select).toContain('users.id AS "id"');
 			expect(result.select).toContain('posts.id AS "posts.id"');
 			expect(result.select).toContain('posts.title AS "posts.title"');
@@ -498,5 +498,98 @@ describe("Error Handling", () => {
 				"Unary operator 'ABS' requires exactly 1 argument, got 2",
 			);
 		});
+	});
+});
+
+describe("UUID Support", () => {
+	it("should handle UUID fields with proper casting in joins", () => {
+		const uuidConfig: Config = {
+			tables: {
+				users: {
+					allowedFields: [
+						{ name: "id", type: "uuid", nullable: false },
+						{ name: "name", type: "string", nullable: false },
+					],
+				},
+				posts: {
+					allowedFields: [
+						{ name: "id", type: "uuid", nullable: false },
+						{ name: "user_id", type: "uuid", nullable: false },
+						{ name: "title", type: "string", nullable: false },
+					],
+				},
+			},
+			variables: {},
+			relationships: [
+				{
+					table: "users",
+					field: "id",
+					toTable: "posts",
+					toField: "user_id",
+					type: "one-to-many",
+				},
+			],
+		};
+
+		const selection = {
+			id: true,
+			name: true,
+			posts: {
+				id: true,
+				title: true,
+			},
+		};
+
+		const result = parseSelectQuery({ rootTable: "users", selection }, uuidConfig);
+
+		expect(result.joins).toContain("LEFT JOIN posts ON (users.id)::UUID = (posts.user_id)::UUID");
+		expect(result.select).toContain('users.id AS "id"');
+		expect(result.select).toContain('users.name AS "name"');
+		expect(result.select).toContain('posts.id AS "posts.id"');
+		expect(result.select).toContain('posts.title AS "posts.title"');
+	});
+
+	it("should handle mixed UUID and other types in joins", () => {
+		const mixedConfig: Config = {
+			tables: {
+				users: {
+					allowedFields: [
+						{ name: "id", type: "uuid", nullable: false },
+						{ name: "name", type: "string", nullable: false },
+					],
+				},
+				orders: {
+					allowedFields: [
+						{ name: "id", type: "number", nullable: false },
+						{ name: "user_id", type: "uuid", nullable: false },
+						{ name: "total", type: "number", nullable: false },
+					],
+				},
+			},
+			variables: {},
+			relationships: [
+				{
+					table: "users",
+					field: "id",
+					toTable: "orders",
+					toField: "user_id",
+					type: "one-to-many",
+				},
+			],
+		};
+
+		const selection = {
+			id: true,
+			name: true,
+			orders: {
+				id: true,
+				total: true,
+			},
+		};
+
+		const result = parseSelectQuery({ rootTable: "users", selection }, mixedConfig);
+
+		// UUID field should be cast to UUID, number field should be cast to FLOAT
+		expect(result.joins).toContain("LEFT JOIN orders ON (users.id)::UUID = (orders.user_id)::UUID");
 	});
 });
