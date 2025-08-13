@@ -18,7 +18,7 @@ jobs:
       should-test: ${{ steps.should-test.outputs.result }}
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Check if this is a version bump commit
         id: version-check
         run: |
@@ -29,7 +29,7 @@ jobs:
           else
             echo "is-version-commit=false" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Check file changes
         id: check-changes
         uses: dorny/paths-filter@v2
@@ -52,7 +52,7 @@ jobs:
               - '.github/workflows/**'
               - '.gitignore'
               - 'LICENSE'
-      
+
       - name: Determine if tests should run
         id: should-test
         run: |
@@ -74,12 +74,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-      
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
@@ -87,19 +87,19 @@ jobs:
           key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lockb') }}
           restore-keys: |
             bun-${{ runner.os }}-
-      
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      
+
       - name: Install template dependencies
         run: bun install --cwd=templates --frozen-lockfile
-      
+
       - name: Lint
         run: bun run lint
-      
+
       - name: Typecheck
         run: bun run typecheck
-      
+
       - name: Build
         run: bun run build
 
@@ -111,12 +111,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-      
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
@@ -124,26 +124,26 @@ jobs:
           key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lockb') }}
           restore-keys: |
             bun-${{ runner.os }}-
-      
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      
+
       - name: Install template dependencies
         run: bun install --cwd=templates --frozen-lockfile
-      
+
       - name: Build CLI
         run: bun run build
-      
+
       - name: Make test scripts executable
         run: chmod +x tests/test-runner.sh
-      
+
       - name: Run comprehensive E2E test suite
         run: |
           echo "Starting unified test suite with 12 comprehensive scenarios..."
           ./tests/test-runner.sh --mode=full
         env:
           CI: true
-      
+
       - name: Upload test artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -153,7 +153,7 @@ jobs:
             /tmp/create-bun-monorepo/
             /tmp/*.log
           retention-days: 3
-      
+
       - name: Test summary
         if: always()
         run: |
@@ -179,9 +179,9 @@ jobs:
     # Skip if tests were skipped due to no code changes
     if: |
       always() &&
-      github.event_name == 'push' && 
+      github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
-      (needs.check-changes.outputs.should-test == 'false' || 
+      (needs.check-changes.outputs.should-test == 'false' ||
        (needs.lint-typecheck.result == 'success' && needs.e2e-tests.result == 'success'))
     permissions:
       contents: write

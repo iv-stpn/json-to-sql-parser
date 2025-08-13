@@ -1,6 +1,11 @@
 {
 	"$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
-	"changelog": ["@changesets/changelog-github", { "repo": "iv-stpn/json-to-sql-parser" }],
+	"changelog": [
+		"@changesets/changelog-github",
+		{
+			"repo": "iv-stpn/json-to-sql-parser"
+		}
+	],
 	"commit": false,
 	"fixed": [],
 	"linked": [],

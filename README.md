@@ -457,25 +457,18 @@ const invalid = {
 
 ### Core Functions
 
-#### `parseSelectQuery(query, config)`
+#### `generateSelectQuery(selectQuery, config)`
 
-Parses a select query specification into an intermediate representation.
+Generate the SQL for a select query based on the select query provided.
 
-#### `compileSelectQuery(parsed)`
+#### `generateAggregationQuery(aggregationQuery, config)`
 
-Compiles parsed query into SQL and parameters.
+Generate the SQL for an aggregation query based on the aggregation query
+provided.
 
 #### `parseWhereClause(condition, config, rootTable)`
 
 Parses a where condition into SQL and parameters.
-
-#### `parseAggregationQuery(query, config)`
-
-Parses an aggregation query specification.
-
-#### `compileAggregationQuery(parsed)`
-
-Compiles parsed aggregation query into SQL and parameters.
 
 ### Query Schemas
 
