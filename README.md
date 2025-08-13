@@ -13,7 +13,8 @@ protection against SQL injection.
 - 📊 **Aggregation Queries**: Support for GROUP BY and aggregation functions
 - 🎯 **Expression System**: Complex expressions with functions and operators
 - 📱 **JSON Field Support**: Query nested JSON/JSONB fields with path syntax
-- 🔍 **Field Type Casting Inference**: Casting based on field definitions and inferred expression types
+- 🔍 **Field Type Casting Inference**: Casting based on field definitions and
+  inferred expression types
 - 🏢 **Universal Data Table Support**: Data table configuration for schema-less
   storage
 
@@ -28,14 +29,14 @@ bun add json-to-sql-parser
 ## Quick Start
 
 ```typescript
-import { generateSelectQuery, parseWhereClause } from "json-to-sql-parser";
+import { generateSelectQuery } from "json-to-sql-parser";
 
 // Define your database schema
 const config = {
   tables: {
     users: {
       allowedFields: [
-        { name: "id", type: "number", nullable: false },
+        { name: "id", type: "uuid", nullable: false },
         { name: "name", type: "string", nullable: false },
         { name: "email", type: "string", nullable: true },
         { name: "active", type: "boolean", nullable: false },

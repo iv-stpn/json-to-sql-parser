@@ -21,7 +21,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 			tables: {
 				users: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "name", type: "string", nullable: false },
 						{ name: "email", type: "string", nullable: true },
 						{ name: "age", type: "number", nullable: true },
@@ -32,25 +32,25 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 				},
 				posts: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "title", type: "string", nullable: false },
 						{ name: "content", type: "string", nullable: false },
-						{ name: "user_id", type: "number", nullable: false },
+						{ name: "user_id", type: "uuid", nullable: false },
 						{ name: "published", type: "boolean", nullable: false },
 						{ name: "tags", type: "object", nullable: true },
 					],
 				},
 				orders: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "amount", type: "number", nullable: false },
 						{ name: "status", type: "string", nullable: false },
-						{ name: "customer_id", type: "number", nullable: false },
+						{ name: "customer_id", type: "uuid", nullable: false },
 					],
 				},
 			},
 			variables: {
-				currentUserId: "1",
+				currentUserId: "550e8400-e29b-41d4-a716-446655440000",
 				adminRole: "admin",
 				minAge: 18,
 				maxAge: 65,
@@ -447,7 +447,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify variable substitution
-				expect(result.sql).toContain("'1'"); // currentUserId
+				expect(result.sql).toContain("'550e8400-e29b-41d4-a716-446655440000'"); // currentUserId
 				expect(result.sql).toContain("18"); // minAge
 				expect(result.sql).toContain("65"); // maxAge
 				expect(result.sql).toContain("1000"); // premiumThreshold
@@ -650,7 +650,10 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 		it("should handle conditions with large parameter lists", async () => {
 			await db.executeInTransaction(async () => {
 				const largeInArray = Array.from({ length: 100 }, (_, i) => `user_${i}`);
-				const anotherLargeArray = Array.from({ length: 50 }, (_, i) => i + 1);
+				const anotherLargeArray = Array.from(
+					{ length: 50 },
+					(_, i) => `550e840${i.toString().padStart(1, "0")}-e29b-41d4-a716-44665544000${(i % 10).toString()}`,
+				);
 
 				const condition: Condition = {
 					$and: [
@@ -716,7 +719,17 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 					$and: [
 						{
 							$or: [
-								{ "users.id": { $in: [1, 2, 3, 4, 5] } },
+								{
+									"users.id": {
+										$in: [
+											"550e8400-e29b-41d4-a716-446655440000",
+											"6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+											"6ba7b811-9dad-11d1-80b4-00c04fd430c8",
+											"7ba7b812-9dad-11d1-80b4-00c04fd430c9",
+											"7ba7b812-9dad-11d1-80b4-00c04fd430ca",
+										],
+									},
+								},
 								{ "users.name": { $in: ["Alice", "Bob", "Charlie"] } },
 								{ "users.active": { $in: [true, false] } },
 							],
@@ -750,7 +763,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify all data types are handled
-				expect(result.params).toContain(1); // number
+				expect(result.params).toContain("550e8400-e29b-41d4-a716-446655440000"); // UUID
 				expect(result.params).toContain("Alice"); // string
 				expect(result.params).toContain(true); // boolean
 				expect(result.params).toContain(85.5); // float

@@ -22,7 +22,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 			tables: {
 				users: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "name", type: "string", nullable: false },
 						{ name: "email", type: "string", nullable: true },
 						{ name: "age", type: "number", nullable: true },
@@ -33,25 +33,25 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 				},
 				posts: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "title", type: "string", nullable: false },
 						{ name: "content", type: "string", nullable: false },
-						{ name: "user_id", type: "number", nullable: false },
+						{ name: "user_id", type: "uuid", nullable: false },
 						{ name: "published", type: "boolean", nullable: false },
 						{ name: "tags", type: "object", nullable: true },
 					],
 				},
 				orders: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "amount", type: "number", nullable: false },
 						{ name: "status", type: "string", nullable: false },
-						{ name: "customer_id", type: "number", nullable: false },
+						{ name: "customer_id", type: "uuid", nullable: false },
 					],
 				},
 			},
 			variables: {
-				currentUserId: "1",
+				currentUserId: "550e8400-e29b-41d4-a716-446655440000",
 				adminRole: "admin",
 				testPattern: "test_%",
 				maxResults: 100,
@@ -73,7 +73,10 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 		it("should handle conditions with 200+ parameters efficiently", async () => {
 			await db.executeInTransaction(async () => {
 				const largeNameArray = Array.from({ length: 50 }, (_, i) => `user_${i}`);
-				const largeIdArray = Array.from({ length: 50 }, (_, i) => i + 1);
+				const largeIdArray = Array.from(
+					{ length: 50 },
+					(_, i) => `550e840${i.toString().padStart(1, "0")}-e29b-41d4-a716-44665544000${i.toString().padStart(1, "0")}`,
+				);
 				const largeStatusArray = Array.from({ length: 20 }, (_, i) => `status_${i}`);
 				const largeAgeArray = Array.from({ length: 30 }, (_, i) => i + 18);
 
@@ -481,7 +484,10 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 							$or: [
 								{
 									"users.id": {
-										$in: Array.from({ length: 100 }, (_, i) => i + 1),
+										$in: Array.from(
+											{ length: 100 },
+											(_, i) => `550e840${i.toString().padStart(1, "0")}-e29b-41d4-a716-44665544000${(i % 10).toString()}`,
+										),
 									},
 								},
 								{
@@ -509,7 +515,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 												ADD: [
 													{
 														$expr: {
-															MULTIPLY: [{ $expr: "users.id" }, { $expr: { COALESCE: [{ $expr: "users.age" }, 25] } }],
+															MULTIPLY: [{ $expr: "users.age" }, { $expr: { COALESCE: [{ $expr: "users.age" }, 25] } }],
 														},
 													},
 													{

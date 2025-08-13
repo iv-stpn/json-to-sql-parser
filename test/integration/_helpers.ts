@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "pg";
+import { getErrorMessage } from "../../src/utils";
 
 type DatabaseConfig = { host: string; port: number; database: string; user: string; password: string };
 type ProcessResult = { code: number | null; signal: string | null; stdout?: string; stderr?: string };
@@ -15,16 +16,10 @@ const config: DatabaseConfig = {
 	password: process.env.POSTGRES_PASSWORD || "testpass",
 };
 
-function runCommand(
-	command: string,
-	args: string[] = [],
-	options: { cwd?: string; silent?: boolean } = {},
-): Promise<ProcessResult> {
+type RunCommandOptions = { cwd?: string; silent?: boolean };
+function runCommand(command: string, args: string[] = [], options: RunCommandOptions = {}): Promise<ProcessResult> {
 	return new Promise((resolve) => {
-		const proc = spawn(command, args, {
-			stdio: options.silent ? "pipe" : "inherit",
-			cwd: options.cwd || process.cwd(),
-		});
+		const proc = spawn(command, args, { stdio: options.silent ? "pipe" : "inherit", cwd: options.cwd || process.cwd() });
 
 		let stdout = "";
 		let stderr = "";
@@ -40,12 +35,7 @@ function runCommand(
 		}
 
 		proc.on("close", (code, signal) => {
-			resolve({
-				code,
-				signal,
-				stdout: options.silent ? stdout : undefined,
-				stderr: options.silent ? stderr : undefined,
-			});
+			resolve({ code, signal, stdout: options.silent ? stdout : undefined, stderr: options.silent ? stderr : undefined });
 		});
 	});
 }
@@ -54,9 +44,7 @@ async function checkDockerPrerequisites(): Promise<void> {
 	// Check if Docker is available
 	try {
 		const dockerResult = await runCommand("docker", ["--version"], { silent: true });
-		if (dockerResult.code !== 0) {
-			throw new Error("Docker is not available");
-		}
+		if (dockerResult.code !== 0) throw new Error("Docker is not available");
 	} catch {
 		throw new Error("Docker is not installed or not running. Please install Docker and ensure it's running.");
 	}
@@ -64,9 +52,7 @@ async function checkDockerPrerequisites(): Promise<void> {
 	// Check if Docker Compose is available
 	try {
 		const composeResult = await runCommand("docker", ["compose", "version"], { silent: true });
-		if (composeResult.code !== 0) {
-			throw new Error("Docker Compose is not available");
-		}
+		if (composeResult.code !== 0) throw new Error("Docker Compose is not available");
 	} catch {
 		throw new Error("Docker Compose is not available. Please ensure Docker Compose is installed.");
 	}
@@ -76,21 +62,17 @@ async function isDockerComposeRunning(): Promise<boolean> {
 	try {
 		// Check if the specific postgres service is running
 		const result = await runCommand("docker", ["compose", "ps", "postgres", "--format", "json"], { silent: true });
-
-		if (result.code !== 0) {
-			return false;
-		}
+		if (result.code !== 0) return false;
 
 		// Parse the JSON output to check if postgres service is running
 		const output = result.stdout || "";
-		if (!output.trim()) {
-			return false;
-		}
+		if (!output.trim()) return false;
 
 		try {
 			const containerInfo = JSON.parse(output);
 			return containerInfo.State === "running";
-		} catch {
+		} catch (error) {
+			console.warn("Failed to parse Docker Compose output:", getErrorMessage(error));
 			// Fallback: check if output contains "running"
 			return output.includes("running");
 		}
@@ -127,6 +109,7 @@ async function ensureDockerComposeUp(): Promise<void> {
 
 async function waitForPostgres(maxAttempts = 30, delayMs = 1000): Promise<void> {
 	console.log("⏳ Waiting for PostgreSQL to be ready...");
+	await new Promise((resolve) => setTimeout(resolve, 2500));
 
 	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 		const client = new Client(config);
@@ -138,7 +121,9 @@ async function waitForPostgres(maxAttempts = 30, delayMs = 1000): Promise<void> 
 
 			console.log(`✅ PostgreSQL is ready! (attempt ${attempt}/${maxAttempts})`);
 			return;
-		} catch {
+		} catch (error) {
+			console.error(`❌ PostgreSQL connection attempt ${attempt}/${maxAttempts} failed:`);
+			console.error(getErrorMessage(error));
 			try {
 				await client.end();
 			} catch {
@@ -146,6 +131,9 @@ async function waitForPostgres(maxAttempts = 30, delayMs = 1000): Promise<void> 
 			}
 
 			if (attempt === maxAttempts) {
+				console.error("📋 Container logs for debugging:");
+				const logs = await getContainerLogs("postgres", 15);
+				console.log(logs);
 				throw new Error(`PostgreSQL not ready after ${maxAttempts} attempts`);
 			}
 
@@ -217,7 +205,10 @@ async function seedDatabase(): Promise<void> {
 
 		console.log("✅ Database seeded successfully!");
 	} catch (error) {
-		console.error("❌ Failed to seed database:", error);
+		console.error("❌ Failed to seed database:", getErrorMessage(error));
+		console.error("📋 Container logs for debugging:");
+		const logs = await getContainerLogs("postgres", 15);
+		console.log(logs);
 		throw error;
 	} finally {
 		await client.end();
@@ -280,7 +271,7 @@ export class DatabaseHelper {
 
 	async connect(): Promise<void> {
 		let attempts = 0;
-		const maxAttempts = 10;
+		const maxAttempts = 5;
 		const delayMs = 1000;
 
 		while (attempts < maxAttempts) {
@@ -291,14 +282,14 @@ export class DatabaseHelper {
 				return;
 			} catch (error) {
 				attempts++;
-				console.log(
-					`Database connection attempt ${attempts}/${maxAttempts} failed:`,
-					error instanceof Error ? error.message : String(error),
-				);
+				console.error(`Database connection attempt ${attempts}/${maxAttempts} failed:`);
+				console.error(getErrorMessage(error));
 
-				if (attempts >= maxAttempts) {
-					throw new Error(`Failed to connect to database after ${maxAttempts} attempts`);
-				}
+				console.error("📋 Container logs for debugging:");
+				const logs = await getContainerLogs("postgres", 15);
+				console.log(logs);
+
+				if (attempts >= maxAttempts) throw new Error(`Failed to connect to database after ${maxAttempts} attempts`);
 
 				// Wait before retrying
 				await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -364,59 +355,15 @@ export class DatabaseHelper {
 			return false;
 		}
 	}
+}
 
-	/**
-	 * Reset database to initial state by truncating and re-seeding
-	 * Only use this in tests that specifically need a clean slate
-	 */
-	async resetDatabase(): Promise<void> {
-		await this.client.query("TRUNCATE users, posts, orders, data_storage RESTART IDENTITY CASCADE");
+async function getContainerLogs(serviceName = "postgres", lines = 50): Promise<string> {
+	try {
+		const result = await runCommand("docker", ["compose", "logs", "--tail", lines.toString(), serviceName], { silent: true });
+		if (result.code === 0 && result.stdout) return result.stdout;
 
-		// Re-insert initial data
-		const initSql = `
-			-- Insert sample data for regular tables
-			INSERT INTO users (name, email, age, active, status, metadata) VALUES
-			('John Doe', 'john@example.com', 30, true, 'premium', '{"department": "engineering", "role": "senior", "settings": {"theme": "dark", "notifications": true}}'),
-			('Jane Smith', 'jane@example.com', 25, true, 'active', '{"department": "marketing", "role": "manager", "settings": {"theme": "light", "notifications": false}}'),
-			('Bob Johnson', 'bob@example.com', 35, false, 'inactive', '{"department": "sales", "role": "representative", "settings": {"theme": "dark", "notifications": true}}'),
-			('Alice Brown', 'alice@example.com', 28, true, 'premium', '{"department": "engineering", "role": "junior", "settings": {"theme": "light", "notifications": true}}'),
-			('Charlie Wilson', null, 32, true, 'active', '{"department": "hr", "role": "coordinator", "settings": {"theme": "dark", "notifications": false}}');
-
-			INSERT INTO posts (title, content, user_id, published, tags) VALUES
-			('Getting Started with PostgreSQL', 'This is a comprehensive guide to PostgreSQL...', 1, true, '["database", "postgresql", "tutorial"]'),
-			('Advanced SQL Queries', 'Learn advanced SQL techniques...', 1, true, '["sql", "advanced", "database"]'),
-			('Marketing Strategies 2024', 'The latest marketing trends...', 2, true, '["marketing", "trends", "2024"]'),
-			('Team Building Activities', 'Effective team building exercises...', 2, false, '["teamwork", "management", "hr"]'),
-			('Sales Techniques', 'How to close more deals...', 3, false, '["sales", "techniques", "business"]');
-
-			INSERT INTO orders (amount, status, customer_id) VALUES
-			(299.99, 'completed', 1),
-			(149.50, 'shipped', 1),
-			(89.99, 'pending', 2),
-			(199.99, 'completed', 2),
-			(59.99, 'cancelled', 3),
-			(399.99, 'completed', 4),
-			(79.99, 'pending', 4),
-			(249.99, 'shipped', 1);
-
-			-- Insert equivalent data into data_storage table
-			INSERT INTO data_storage (table_name, tenant_id, data) VALUES
-			('users', 'current_tenant', '{"id": 1, "name": "John Doe", "email": "john@example.com", "age": 30, "active": true, "status": "premium", "metadata": {"department": "engineering", "role": "senior", "settings": {"theme": "dark", "notifications": true}}}'),
-			('users', 'current_tenant', '{"id": 2, "name": "Jane Smith", "email": "jane@example.com", "age": 25, "active": true, "status": "active", "metadata": {"department": "marketing", "role": "manager", "settings": {"theme": "light", "notifications": false}}}'),
-			('users', 'current_tenant', '{"id": 3, "name": "Bob Johnson", "email": "bob@example.com", "age": 35, "active": false, "status": "inactive", "metadata": {"department": "sales", "role": "representative", "settings": {"theme": "dark", "notifications": true}}}'),
-			('users', 'current_tenant', '{"id": 4, "name": "Alice Brown", "email": "alice@example.com", "age": 28, "active": true, "status": "premium", "metadata": {"department": "engineering", "role": "junior", "settings": {"theme": "light", "notifications": true}}}'),
-			('users', 'current_tenant', '{"id": 5, "name": "Charlie Wilson", "email": null, "age": 32, "active": true, "status": "active", "metadata": {"department": "hr", "role": "coordinator", "settings": {"theme": "dark", "notifications": false}}}'),
-
-			('orders', 'current_tenant', '{"id": 1, "amount": 299.99, "status": "completed", "customer_id": 1}'),
-			('orders', 'current_tenant', '{"id": 2, "amount": 149.50, "status": "shipped", "customer_id": 1}'),
-			('orders', 'current_tenant', '{"id": 3, "amount": 89.99, "status": "pending", "customer_id": 2}'),
-			('orders', 'current_tenant', '{"id": 4, "amount": 199.99, "status": "completed", "customer_id": 2}'),
-			('orders', 'current_tenant', '{"id": 5, "amount": 59.99, "status": "cancelled", "customer_id": 3}'),
-			('orders', 'current_tenant', '{"id": 6, "amount": 399.99, "status": "completed", "customer_id": 4}'),
-			('orders', 'current_tenant', '{"id": 7, "amount": 79.99, "status": "pending", "customer_id": 4}'),
-			('orders', 'current_tenant', '{"id": 8, "amount": 249.99, "status": "shipped", "customer_id": 1}');
-		`;
-
-		await this.client.query(initSql);
+		return result.stderr || "No logs available";
+	} catch (error) {
+		return `Failed to get container logs: ${getErrorMessage(error)}`;
 	}
 }

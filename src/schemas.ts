@@ -15,6 +15,10 @@ export type ExpressionObject =
 	| { $uuid: string } // UUID value
 	| { $cond: ConditionExpression };
 
+function record<T extends z.ZodTypeAny>(type: T): z.ZodRecord<z.ZodString, T> {
+	return z.record(z.string(), type);
+}
+
 export const expressionObjectSchema: z.ZodType<ExpressionObject> = z.lazy(() =>
 	z.union([
 		z.object({
@@ -24,8 +28,11 @@ export const expressionObjectSchema: z.ZodType<ExpressionObject> = z.lazy(() =>
 				else: z.lazy(() => anyExpressionSchema),
 			}),
 		}),
-		z.object({ $expr: z.record(z.string(), z.array(z.lazy(() => anyExpressionSchema))) }), // Function call
+		z.object({ $expr: record(z.array(z.lazy(() => anyExpressionSchema))) }), // Function call
 		z.object({ $expr: z.string() }), // Field reference or context variable
+		z.object({ $timestamp: z.string() }), // Timestamp value
+		z.object({ $date: z.string() }), // Date value
+		z.object({ $uuid: z.string() }), // UUID value
 	]),
 );
 
@@ -37,10 +44,15 @@ export const isExpressionObject = (value: unknown): value is ExpressionObject =>
 export type AnyExpression = ExpressionObject | EqualityValue;
 export const anyExpressionSchema: z.ZodType<AnyExpression> = z.lazy(() => z.union([expressionObjectSchema, equalityValueSchema]));
 
-const $eq = anyExpressionSchema.optional();
-const $in = z.array(anyExpressionSchema).optional();
+const $expr = anyExpressionSchema.optional();
+const comparisonOperators = { $eq: $expr, $ne: $expr, $gt: $expr, $gte: $expr, $lt: $expr, $lte: $expr };
+const stringOperators = { $like: $expr, $ilike: $expr, $regex: $expr };
+
+const $arrayExpr = z.array(anyExpressionSchema).optional();
+const arrayOperators = { $in: $arrayExpr, $nin: $arrayExpr };
+
 const fieldConditionSchema = z.union([
-	z.object({ $eq, $ne: $eq, $gt: $eq, $gte: $eq, $lt: $eq, $lte: $eq, $in, $nin: $in, $like: $eq, $ilike: $eq, $regex: $eq }),
+	z.object({ ...comparisonOperators, ...stringOperators, ...arrayOperators }),
 	anyExpressionSchema,
 ]);
 
@@ -63,9 +75,9 @@ const fieldNameSchema = z.string().refine(isFieldName, "Field name must start wi
 
 export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
 	z.union([
-		z.object({ $and: z.array(conditionSchema) }),
-		z.object({ $or: z.array(conditionSchema) }),
 		z.object({ $not: conditionSchema }),
+		z.object({ $or: z.array(conditionSchema) }),
+		z.object({ $and: z.array(conditionSchema) }),
 		z.object({ $exists: z.object({ table: z.string(), conditions: conditionSchema }) }),
 		z.record(fieldNameSchema, fieldConditionSchema),
 	]),
@@ -77,10 +89,7 @@ export type Selection = { [key: FieldName]: FieldSelection };
 export const fieldSelectionSchema: z.ZodType<FieldSelection> = z.union([
 	z.boolean(),
 	expressionObjectSchema,
-	z.record(
-		z.string(),
-		z.lazy(() => fieldSelectionSchema),
-	),
+	record(z.lazy(() => fieldSelectionSchema)),
 ]);
 
 // Aggregation schemas
@@ -93,9 +102,8 @@ export type Aggregation = { operator: AggregationOperator; field: string | Expre
 export type AggregationQuery = { table: string; groupBy: string[]; aggregatedFields: Record<string, Aggregation> };
 
 // Schema for aggregation query
-export const aggregatedFieldsSchema = z.record(z.string(), aggregatedSchema);
 export const aggregationQuerySchema = z.object({
 	table: z.string(),
 	groupByFields: z.array(z.string()),
-	aggregatedFields: aggregatedFieldsSchema,
+	aggregatedFields: record(aggregatedSchema),
 });

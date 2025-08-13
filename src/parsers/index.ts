@@ -16,8 +16,9 @@ import {
 import type { AnyExpression, Condition, ConditionExpression, EqualityValue, ExpressionObject, FieldCondition } from "../schemas";
 import { isExpressionObject } from "../schemas";
 import type { Field, FieldPath, ParserState, Primitive } from "../types";
-import { isEmpty, isInArray, isNotNull, isValidDate, isValidTimestamp, quote, uuidRegex } from "../utils";
+import { isEmpty, isInArray, isNotNull, quote } from "../utils";
 import { applyFunction } from "../utils/function-call";
+import { isValidDate, isValidTimestamp, uuidRegex } from "../utils/validators";
 
 function parseTableFieldPath(fieldPath: string, rootTable: string) {
 	if (!fieldPath.includes(".")) return { table: rootTable, field: fieldPath };
