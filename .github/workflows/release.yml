@@ -92,7 +92,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install template dependencies
-        run: bun install --cwd=templates --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Lint
         run: bun run lint
@@ -129,7 +129,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install template dependencies
-        run: bun install --cwd=templates --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Build CLI
         run: bun run build

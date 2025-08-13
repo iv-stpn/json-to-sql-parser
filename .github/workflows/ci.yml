@@ -20,7 +20,7 @@ jobs:
       should-e2e: ${{ steps.check-changes.outputs.e2e-files }}
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Check file changes
         id: check-changes
         uses: dorny/paths-filter@v2
@@ -47,12 +47,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-      
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
@@ -60,36 +60,36 @@ jobs:
           key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lockb') }}
           restore-keys: |
             bun-${{ runner.os }}-
-      
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      
+
       - name: Install template dependencies
-        run: bun install --cwd=templates --frozen-lockfile
-      
+        run: bun install --frozen-lockfile
+
       - name: Lint
         run: bun run lint
-      
+
       - name: Typecheck
         run: bun run typecheck
-      
+
       - name: Build
         run: bun run build
 
   comprehensive-tests:
-    name: Comprehensive Tests  
+    name: Comprehensive Tests
     needs: check-changes
     if: needs.check-changes.outputs.should-e2e == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-      
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
@@ -97,19 +97,19 @@ jobs:
           key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lockb') }}
           restore-keys: |
             bun-${{ runner.os }}-
-      
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      
+
       - name: Install template dependencies
-        run: bun install --cwd=templates --frozen-lockfile
-      
+        run: bun install --frozen-lockfile
+
       - name: Build CLI
         run: bun run build
-      
+
       - name: Make test scripts executable
         run: chmod +x tests/test-runner.sh
-      
+
       - name: Run comprehensive test suite
         run: |
           echo "Running comprehensive test suite..."
@@ -117,12 +117,12 @@ jobs:
           # - Project creation (12 scenarios)
           # - Dependency installation & building
           # - Linting & typechecking
-          # - ORM setup & migrations  
+          # - ORM setup & migrations
           # - E2E dev server testing
           ./tests/test-runner.sh --mode=full
         env:
           CI: true
-      
+
       - name: Upload test artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -143,11 +143,11 @@ jobs:
         run: |
           echo "## 🚀 CI Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Check what ran
           lint_ran="${{ needs.check-changes.outputs.should-lint == 'true' }}"
           comprehensive_ran="${{ needs.check-changes.outputs.should-e2e == 'true' }}"
-          
+
           if [[ "$lint_ran" == "false" && "$comprehensive_ran" == "false" ]]; then
             echo "⏭️ All tests skipped - no relevant files changed" >> $GITHUB_STEP_SUMMARY
           else
@@ -156,15 +156,15 @@ jobs:
             else
               echo "**Lint & Typecheck:** ⏭️ Skipped (no JS/TS/config changes)" >> $GITHUB_STEP_SUMMARY
             fi
-            
+
             if [[ "$comprehensive_ran" == "true" ]]; then
               echo "**Comprehensive Tests:** ${{ needs.comprehensive-tests.result == 'success' && '✅ Passed' || needs.comprehensive-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
             else
               echo "**Comprehensive Tests:** ⏭️ Skipped (no template/test/core changes)" >> $GITHUB_STEP_SUMMARY
             fi
-            
+
             echo "" >> $GITHUB_STEP_SUMMARY
-            
+
             # Overall status
             if [[ ("$lint_ran" == "false" || "${{ needs.lint-typecheck.result }}" == "success") && ("$comprehensive_ran" == "false" || "${{ needs.comprehensive-tests.result }}" == "success") ]]; then
               echo "🎉 All relevant checks passed! Ready for review." >> $GITHUB_STEP_SUMMARY
@@ -172,7 +172,7 @@ jobs:
               echo "❌ Some checks failed. Please review the logs above." >> $GITHUB_STEP_SUMMARY
             fi
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Smart Testing:**" >> $GITHUB_STEP_SUMMARY
           echo "- Lint/Typecheck runs when JS/TS files or configs change" >> $GITHUB_STEP_SUMMARY
