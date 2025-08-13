@@ -1,9 +1,9 @@
+import { type CastType, castMap } from "../constants/operators";
 import { type Condition, type FieldSelection, isExpressionObject, type Selection } from "../schemas";
 import type { Config, ParserState, Primitive, Relationship } from "../types";
 import { ExpressionTypeMap } from "../utils/expression-map";
 import { aliasValue, castValue, mergeConditions, parseExpressionObject, parseField } from ".";
 import { parseWhereClause } from "./where";
-import { castMap, type CastType } from "../constants/operators";
 
 function buildDataTableWhereClause(table: string, state: ParserState, whereClause?: string): string {
 	const dataTable = state.config.dataTable;
