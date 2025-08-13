@@ -16,7 +16,7 @@ import {
 import type { AnyExpression, Condition, ConditionExpression, EqualityValue, ExpressionObject, FieldCondition } from "../schemas";
 import { isExpressionObject } from "../schemas";
 import type { Field, FieldPath, ParserState, Primitive } from "../types";
-import { isEmpty, isInArray, isNotNull, quote } from "../utils";
+import { isEmpty, isInArray, isNotNull, isValidDate, isValidTimestamp, quote, uuidRegex } from "../utils";
 import { applyFunction } from "../utils/function-call";
 
 function parseTableFieldPath(fieldPath: string, rootTable: string) {
@@ -132,6 +132,7 @@ function getExpressionCastType(expression: AnyExpression, state: ParserState): C
 export const castValue = (value: string, type: CastType): string => (type ? `(${value})::${type}` : value);
 export const aliasValue = (expression: string, alias: string): string => `${expression} AS "${alias}"`;
 
+// Get the expected cast type for a field when a cast is applied, dealing with JSON access and data tables
 function getExpectedCast(baseCast: CastType, hasJsonAccess: boolean, fieldType: FieldType, state: ParserState): CastType {
 	const hasDataTable = !!state.config.dataTable;
 	if (!baseCast) return hasDataTable ? (fieldType === "string" || fieldType === "object" ? null : castMap[fieldType]) : null;
@@ -171,6 +172,25 @@ function parsePrimitiveValue(value: EqualityValue) {
 }
 
 export function parseExpressionObject(expression: ExpressionObject, state: ParserState): string {
+	if ("$uuid" in expression) {
+		if (!uuidRegex.test(expression.$uuid)) throw new Error(`Invalid UUID format: ${expression.$uuid}`);
+		state.expressions.add(expression, "UUID");
+		return quote(expression.$uuid);
+	}
+
+	if ("$timestamp" in expression) {
+		if (!isValidTimestamp(expression.$timestamp)) throw new Error(`Invalid timestamp format: ${expression.$timestamp}`);
+		const timestamp = expression.$timestamp.replace("T", " ");
+		state.expressions.add(expression, "TIMESTAMP");
+		return `'${timestamp}'::TIMESTAMP`;
+	}
+
+	if ("$date" in expression) {
+		if (!isValidDate(expression.$date)) throw new Error(`Invalid date format: ${expression.$date}`);
+		state.expressions.add(expression, "DATE");
+		return `'${expression.$date}'::DATE`;
+	}
+
 	if ("$expr" in expression) {
 		if (typeof expression.$expr === "string") {
 			const variable = state.config.variables[expression.$expr];

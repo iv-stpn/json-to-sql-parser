@@ -10,6 +10,9 @@ export type ConditionExpression = { if: Condition; then: AnyExpression; else: An
 export type ExpressionObject =
 	| { $expr: string } // Field reference or context variable
 	| { $expr: { [functionName: string]: AnyExpression[] } } // Function call with arguments
+	| { $timestamp: string } // Timestamp value
+	| { $date: string } // Date value
+	| { $uuid: string } // UUID value
 	| { $cond: ConditionExpression };
 
 export const expressionObjectSchema: z.ZodType<ExpressionObject> = z.lazy(() =>
@@ -27,7 +30,9 @@ export const expressionObjectSchema: z.ZodType<ExpressionObject> = z.lazy(() =>
 );
 
 export const isExpressionObject = (value: unknown): value is ExpressionObject =>
-	typeof value === "object" && value !== null && ("$expr" in value || "$cond" in value);
+	typeof value === "object" &&
+	value !== null &&
+	("$expr" in value || "$cond" in value || "$timestamp" in value || "$date" in value || "$uuid" in value);
 
 export type AnyExpression = ExpressionObject | EqualityValue;
 export const anyExpressionSchema: z.ZodType<AnyExpression> = z.lazy(() => z.union([expressionObjectSchema, equalityValueSchema]));
