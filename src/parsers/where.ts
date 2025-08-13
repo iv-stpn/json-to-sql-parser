@@ -1,6 +1,6 @@
-import { ExpressionTypeMap } from "../expression-map";
 import { conditionSchema } from "../schemas";
 import type { Config, Primitive } from "../types";
+import { ExpressionTypeMap } from "../utils/expression-map";
 import { parseCondition } from ".";
 
 export function parseWhereClause(condition: unknown, config: Config, rootTable: string) {

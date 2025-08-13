@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 
 import { beforeEach, describe, expect, it } from "bun:test";
-import { MISSING_AGGREGATION_FIELD } from "../src/errors";
+import { MISSING_AGGREGATION_FIELD } from "../src/constants/errors";
 import type { AggregationQuery } from "../src/parsers/aggregate";
 import { compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
 import type { Config } from "../src/types";

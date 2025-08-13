@@ -1,4 +1,4 @@
-import { applyFunction } from "./utils";
+import { applyFunction } from "../utils/function-call";
 
 // SQL function and operator definitions for $expr
 export const unaryOperators = ["ABS", "UPPER", "LOWER", "LENGTH", "NOT", "SQRT", "CEIL", "FLOOR", "YEAR"] as const;

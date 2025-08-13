@@ -1,13 +1,13 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 
 import { beforeEach, describe, expect, it } from "bun:test";
-import { ExpressionTypeMap } from "../src/expression-map";
 import { parseExpression } from "../src/parsers";
 import { type AggregationQuery, compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
-import { parseWhereClause } from "../src/parsers/conditions";
 import { compileSelectQuery, parseSelectQuery } from "../src/parsers/select";
+import { parseWhereClause } from "../src/parsers/where";
 import type { AnyExpression, Condition } from "../src/schemas";
 import type { Config, ParserState } from "../src/types";
+import { ExpressionTypeMap } from "../src/utils/expression-map";
 
 // Regex patterns for performance
 const SELECT_REGEX = /^SELECT .* FROM users$/;

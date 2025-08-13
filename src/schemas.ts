@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: we use `then` and `else` for conditional expressions */
 import { z } from "zod";
-import { type AggregationOperator, aggregationOperators } from "./operators";
+import { type AggregationOperator, aggregationOperators } from "./constants/operators";
 
 // Primitive value types
 export const equalityValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);

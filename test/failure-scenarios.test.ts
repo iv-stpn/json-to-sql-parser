@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { ExpressionTypeMap } from "../src/expression-map";
 import { parseExpression } from "../src/parsers";
 import { compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
-import { parseWhereClause } from "../src/parsers/conditions";
 import { parseSelectQuery } from "../src/parsers/select";
+import { parseWhereClause } from "../src/parsers/where";
 import type { AnyExpression, Condition } from "../src/schemas";
 import type { Config, ParserState } from "../src/types";
+import { ExpressionTypeMap } from "../src/utils/expression-map";
 
 describe("Expected Failure Tests", () => {
 	let testConfig: Config;

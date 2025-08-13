@@ -2,4 +2,4 @@
 "json-to-sql-parser": patch
 ---
 
-Initial version
+Update README, reorganize code structure

@@ -1,6 +1,6 @@
-import type { CastType } from "./operators";
-import type { ExpressionObject } from "./schemas";
-import { objectKeys } from "./utils";
+import type { CastType } from "../constants/operators";
+import type { ExpressionObject } from "../schemas";
+import { objectKeys } from ".";
 
 export class ExpressionTypeMap {
 	private map: Map<string, CastType>;

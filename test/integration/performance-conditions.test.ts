@@ -2,7 +2,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/parsers/aggregate";
-import { parseWhereClause } from "../../src/parsers/conditions";
+import { parseWhereClause } from "../../src/parsers/where";
 import type { Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";

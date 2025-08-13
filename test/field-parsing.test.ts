@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { ExpressionTypeMap } from "../src/expression-map";
 import { parseFieldPath } from "../src/parsers";
 import type { Config, ParserState } from "../src/types";
+import { ExpressionTypeMap } from "../src/utils/expression-map";
 
 // Regex patterns used in tests
 const JSON_ACCESS_REGEX = /JSON path/;

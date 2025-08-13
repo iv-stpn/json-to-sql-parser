@@ -1,8 +1,8 @@
-import { ExpressionTypeMap } from "../expression-map";
-import { aggregationOperators, applyAggregationOperator } from "../operators";
+import { aggregationOperators, applyAggregationOperator } from "../constants/operators";
 import type { Aggregation, AggregationQuery } from "../schemas";
 import type { Config, ParserState, Primitive } from "../types";
 import { objectEntries } from "../utils";
+import { ExpressionTypeMap } from "../utils/expression-map";
 import { aliasValue, castValue, parseExpression, parseField } from ".";
 
 export type { AggregationQuery } from "../schemas";

@@ -3,13 +3,21 @@ import {
 	INVALID_OPERATOR_VALUE_TYPE_ERROR,
 	JSON_ACCESS_TYPE_ERROR,
 	OPERATOR_TYPE_MISMATCH_ERROR,
-} from "../errors";
-import type { CastType, FieldType } from "../operators";
-import { binaryOperators, castMap, isOperator, operatorReturnTypes, unaryOperators, variableFunctions } from "../operators";
+} from "../constants/errors";
+import type { CastType, FieldType } from "../constants/operators";
+import {
+	binaryOperators,
+	castMap,
+	isOperator,
+	operatorReturnTypes,
+	unaryOperators,
+	variableFunctions,
+} from "../constants/operators";
 import type { AnyExpression, Condition, ConditionExpression, EqualityValue, ExpressionObject, FieldCondition } from "../schemas";
 import { isExpressionObject } from "../schemas";
 import type { Field, FieldPath, ParserState, Primitive } from "../types";
-import { applyFunction, isEmpty, isInArray, isNotNull, quote } from "../utils";
+import { isEmpty, isInArray, isNotNull, quote } from "../utils";
+import { applyFunction } from "../utils/function-call";
 
 function parseTableFieldPath(fieldPath: string, rootTable: string) {
 	if (!fieldPath.includes(".")) return { table: rootTable, field: fieldPath };
