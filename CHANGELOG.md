@@ -1,5 +1,11 @@
 # json-to-sql-parser
 
+## 1.0.2
+
+### Patch Changes
+
+- [`81eae11`](https://github.com/iv-stpn/json-to-sql-parser/commit/81eae11fc2bea2266a55ff39e08fa0d7039e762e) Thanks [@iv-stpn](https://github.com/iv-stpn)! - Add UUID typecasting and typecasting in relationship fields
+
 ## 1.0.1
 
 ### Patch Changes
