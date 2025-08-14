@@ -50,6 +50,106 @@ CREATE TABLE data_storage (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- =============================================================================
+-- COMPLEX RLS STRUCTURE: Teams, Roles, Members, and Projects
+-- =============================================================================
+
+-- Organizations table
+CREATE TABLE organizations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(100) UNIQUE NOT NULL,
+    settings JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Teams within organizations
+CREATE TABLE teams (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(100) NOT NULL,
+    description TEXT,
+    settings JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(organization_id, slug)
+);
+
+-- Roles definition
+CREATE TABLE roles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(100) NOT NULL UNIQUE,
+    permissions JSONB DEFAULT '[]',
+    level INTEGER NOT NULL DEFAULT 0, -- Higher number = more permissions
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Team members with roles
+CREATE TABLE team_members (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    role_id UUID REFERENCES roles(id),
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    active BOOLEAN DEFAULT true,
+    metadata JSONB DEFAULT '{}',
+    UNIQUE(team_id, user_id)
+);
+
+-- Projects with complex access control
+CREATE TABLE projects (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    status VARCHAR(50) DEFAULT 'active',
+    visibility VARCHAR(20) DEFAULT 'team', -- 'private', 'team', 'organization', 'public'
+    owner_id UUID REFERENCES users(id),
+    budget DECIMAL(12,2) DEFAULT 0.00,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    archived_at TIMESTAMP NULL
+);
+
+-- Project access control
+CREATE TABLE project_access (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    role_id UUID REFERENCES roles(id),
+    granted_by UUID REFERENCES users(id),
+    granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NULL,
+    UNIQUE(project_id, user_id)
+);
+
+-- Tasks within projects
+CREATE TABLE tasks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    status VARCHAR(50) DEFAULT 'todo',
+    priority VARCHAR(20) DEFAULT 'medium',
+    assignee_id UUID REFERENCES users(id),
+    reporter_id UUID REFERENCES users(id),
+    estimated_hours DECIMAL(5,2),
+    actual_hours DECIMAL(5,2),
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL
+);
+
+-- No RLS implementation - will be simulated in tests with WHERE clauses
+
+-- =============================================================================
+-- END RLS STRUCTURE
+-- =============================================================================
+
 -- Create indexes for better performance
 CREATE INDEX idx_users_active ON users(active);
 CREATE INDEX idx_users_email ON users(email);
@@ -64,6 +164,28 @@ CREATE INDEX idx_data_storage_table_name ON data_storage(table_name);
 CREATE INDEX idx_data_storage_tenant_id ON data_storage(tenant_id);
 CREATE INDEX idx_data_storage_data ON data_storage USING GIN(data);
 CREATE INDEX idx_data_storage_deleted_at ON data_storage(deleted_at);
+
+-- RLS structure indexes for better performance
+CREATE INDEX idx_organizations_slug ON organizations(slug);
+CREATE INDEX idx_teams_organization_id ON teams(organization_id);
+CREATE INDEX idx_teams_slug ON teams(organization_id, slug);
+CREATE INDEX idx_roles_name ON roles(name);
+CREATE INDEX idx_roles_level ON roles(level);
+CREATE INDEX idx_team_members_team_id ON team_members(team_id);
+CREATE INDEX idx_team_members_user_id ON team_members(user_id);
+CREATE INDEX idx_team_members_active ON team_members(active);
+CREATE INDEX idx_projects_team_id ON projects(team_id);
+CREATE INDEX idx_projects_owner_id ON projects(owner_id);
+CREATE INDEX idx_projects_visibility ON projects(visibility);
+CREATE INDEX idx_projects_status ON projects(status);
+CREATE INDEX idx_projects_archived_at ON projects(archived_at);
+CREATE INDEX idx_project_access_project_id ON project_access(project_id);
+CREATE INDEX idx_project_access_user_id ON project_access(user_id);
+CREATE INDEX idx_project_access_expires_at ON project_access(expires_at);
+CREATE INDEX idx_tasks_project_id ON tasks(project_id);
+CREATE INDEX idx_tasks_assignee_id ON tasks(assignee_id);
+CREATE INDEX idx_tasks_reporter_id ON tasks(reporter_id);
+CREATE INDEX idx_tasks_status ON tasks(status);
 
 -- Insert sample data for regular tables with specific UUIDs
 INSERT INTO users (id, name, email, age, active, status, birth_date, metadata, balance) VALUES
@@ -116,3 +238,81 @@ INSERT INTO data_storage (table_name, tenant_id, data) VALUES
 -- Add some soft-deleted records to test deletion filtering
 INSERT INTO data_storage (table_name, tenant_id, data, deleted_at) VALUES
 ('users', 'current_tenant', '{"id": "82eceb40-0639-453b-ba17-e942b7d6d208", "name": "Deleted User", "email": "deleted@example.com", "age": 45, "active": false, "status": "deleted", "birth_date": "1979-08-25", "created_at": "2024-01-21T10:00:00"}', CURRENT_TIMESTAMP);
+
+-- =============================================================================
+-- SAMPLE DATA FOR RLS STRUCTURE (Teams, Roles, Members, Projects)
+-- =============================================================================
+
+-- Insert roles with different permission levels
+INSERT INTO roles (id, name, permissions, level) VALUES
+('a1a1a1a1-1111-1111-1111-111111111111', 'viewer', '["read"]', 10),
+('a2a2a2a2-2222-2222-2222-222222222222', 'contributor', '["read", "create", "update"]', 30),
+('a3a3a3a3-3333-3333-3333-333333333333', 'maintainer', '["read", "create", "update", "delete"]', 50),
+('a4a4a4a4-4444-4444-4444-444444444444', 'admin', '["read", "create", "update", "delete", "manage_members"]', 80),
+('a5a5a5a5-5555-5555-5555-555555555555', 'owner', '["all"]', 100);
+
+-- Insert organizations
+INSERT INTO organizations (id, name, slug, settings) VALUES
+('b1b1b1b1-1111-1111-1111-111111111111', 'TechCorp', 'techcorp', '{"theme": "corporate", "features": ["advanced_analytics"]}'),
+('b2b2b2b2-2222-2222-2222-222222222222', 'StartupXYZ', 'startupxyz', '{"theme": "modern", "features": ["basic_analytics"]}');
+
+-- Insert teams
+INSERT INTO teams (id, organization_id, name, slug, description, settings) VALUES
+('c1c1c1c1-1111-1111-1111-111111111111', 'b1b1b1b1-1111-1111-1111-111111111111', 'Engineering', 'engineering', 'Software development team', '{"department": "tech"}'),
+('c2c2c2c2-2222-2222-2222-222222222222', 'b1b1b1b1-1111-1111-1111-111111111111', 'Marketing', 'marketing', 'Marketing and growth team', '{"department": "business"}'),
+('c3c3c3c3-3333-3333-3333-333333333333', 'b1b1b1b1-1111-1111-1111-111111111111', 'Sales', 'sales', 'Sales team', '{"department": "business"}'),
+('c4c4c4c4-4444-4444-4444-444444444444', 'b2b2b2b2-2222-2222-2222-222222222222', 'Product', 'product', 'Product development team', '{"department": "tech"}');
+
+-- Insert team members (using existing users)
+INSERT INTO team_members (id, team_id, user_id, role_id, joined_at, active, metadata) VALUES
+-- John Doe - Engineering Admin at TechCorp
+('d1d1d1d1-1111-1111-1111-111111111111', 'c1c1c1c1-1111-1111-1111-111111111111', '550e8400-e29b-41d4-a716-446655440000', 'a4a4a4a4-4444-4444-4444-444444444444', '2024-01-01 09:00:00', true, '{"hire_date": "2024-01-01", "seniority": "senior"}'),
+-- Alice Brown - Engineering Maintainer at TechCorp  
+('d2d2d2d2-2222-2222-2222-222222222222', 'c1c1c1c1-1111-1111-1111-111111111111', '6ba7b812-9dad-11d1-80b4-00c04fd430c8', 'a3a3a3a3-3333-3333-3333-333333333333', '2024-01-02 09:00:00', true, '{"hire_date": "2024-01-02", "seniority": "junior"}'),
+-- Jane Smith - Marketing Admin at TechCorp
+('d3d3d3d3-3333-3333-3333-333333333333', 'c2c2c2c2-2222-2222-2222-222222222222', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'a4a4a4a4-4444-4444-4444-444444444444', '2024-01-03 09:00:00', true, '{"hire_date": "2024-01-03", "seniority": "manager"}'),
+-- Bob Johnson - Sales Contributor at TechCorp (inactive user)
+('d4d4d4d4-4444-4444-4444-444444444444', 'c3c3c3c3-3333-3333-3333-333333333333', '6ba7b811-9dad-11d1-80b4-00c04fd430c8', 'a2a2a2a2-2222-2222-2222-222222222222', '2024-01-04 09:00:00', true, '{"hire_date": "2024-01-04", "seniority": "representative"}'),
+-- Charlie Wilson - Product Owner at StartupXYZ
+('d5d5d5d5-5555-5555-5555-555555555555', 'c4c4c4c4-4444-4444-4444-444444444444', '6ba7b813-9dad-11d1-80b4-00c04fd430c8', 'a5a5a5a5-5555-5555-5555-555555555555', '2024-01-05 09:00:00', true, '{"hire_date": "2024-01-05", "seniority": "coordinator"}'),
+-- Alice Brown also in Product team as Viewer (cross-team membership)
+('d6d6d6d6-6666-6666-6666-666666666666', 'c4c4c4c4-4444-4444-4444-444444444444', '6ba7b812-9dad-11d1-80b4-00c04fd430c8', 'a1a1a1a1-1111-1111-1111-111111111111', '2024-01-06 09:00:00', true, '{"hire_date": "2024-01-06", "cross_team": true}');
+
+-- Insert projects with different visibility levels
+INSERT INTO projects (id, team_id, name, description, status, visibility, owner_id, budget, metadata, archived_at) VALUES
+-- Engineering projects
+('e1e1e1e1-1111-1111-1111-111111111111', 'c1c1c1c1-1111-1111-1111-111111111111', 'Core API Development', 'Main API for the platform', 'active', 'team', '550e8400-e29b-41d4-a716-446655440000', 50000.00, '{"priority": "high", "technology": "node.js"}', NULL),
+('e2e2e2e2-2222-2222-2222-222222222222', 'c1c1c1c1-1111-1111-1111-111111111111', 'Mobile App', 'iOS and Android mobile application', 'active', 'organization', '6ba7b812-9dad-11d1-80b4-00c04fd430c8', 75000.00, '{"priority": "medium", "technology": "react-native"}', NULL),
+('e3e3e3e3-3333-3333-3333-333333333333', 'c1c1c1c1-1111-1111-1111-111111111111', 'Internal Tools', 'Development and testing tools', 'active', 'private', '550e8400-e29b-41d4-a716-446655440000', 15000.00, '{"priority": "low", "technology": "python"}', NULL),
+-- Marketing projects
+('e4e4e4e4-4444-4444-4444-444444444444', 'c2c2c2c2-2222-2222-2222-222222222222', 'Website Redesign', 'Company website overhaul', 'active', 'organization', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 25000.00, '{"priority": "high", "technology": "next.js"}', NULL),
+('e5e5e5e5-5555-5555-5555-555555555555', 'c2c2c2c2-2222-2222-2222-222222222222', 'Marketing Campaign Q1', 'Q1 2024 marketing initiatives', 'completed', 'team', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 40000.00, '{"priority": "medium", "quarter": "Q1"}', NULL),
+-- Product projects
+('e6e6e6e6-6666-6666-6666-666666666666', 'c4c4c4c4-4444-4444-4444-444444444444', 'Product Roadmap', 'Strategic product planning', 'active', 'public', '6ba7b813-9dad-11d1-80b4-00c04fd430c8', 10000.00, '{"priority": "high", "type": "planning"}', NULL),
+-- Archived project
+('e7e7e7e7-7777-7777-7777-777777777777', 'c1c1c1c1-1111-1111-1111-111111111111', 'Legacy System', 'Old system maintenance', 'archived', 'team', '550e8400-e29b-41d4-a716-446655440000', 5000.00, '{"priority": "low", "deprecated": "true"}', '2024-12-01 00:00:00');
+
+-- Insert project access grants (direct project access beyond team membership)
+INSERT INTO project_access (id, project_id, user_id, role_id, granted_by, granted_at, expires_at) VALUES
+-- Give Jane Smith (Marketing) viewer access to Core API project
+('f1f1f1f1-1111-1111-1111-111111111111', 'e1e1e1e1-1111-1111-1111-111111111111', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'a1a1a1a1-1111-1111-1111-111111111111', '550e8400-e29b-41d4-a716-446655440000', '2024-01-10 10:00:00', NULL),
+-- Give Charlie Wilson contributor access to Mobile App project
+('f2f2f2f2-2222-2222-2222-222222222222', 'e2e2e2e2-2222-2222-2222-222222222222', '6ba7b813-9dad-11d1-80b4-00c04fd430c8', 'a2a2a2a2-2222-2222-2222-222222222222', '550e8400-e29b-41d4-a716-446655440000', '2024-01-11 10:00:00', NULL),
+-- Temporary access that has expired
+('f3f3f3f3-3333-3333-3333-333333333333', 'e1e1e1e1-1111-1111-1111-111111111111', '6ba7b811-9dad-11d1-80b4-00c04fd430c8', 'a1a1a1a1-1111-1111-1111-111111111111', '550e8400-e29b-41d4-a716-446655440000', '2024-01-05 10:00:00', '2024-01-15 10:00:00');
+
+-- Insert tasks
+INSERT INTO tasks (id, project_id, title, description, status, priority, assignee_id, reporter_id, estimated_hours, actual_hours, metadata, completed_at) VALUES
+-- Core API tasks
+('a1b1a1b1-1111-1111-1111-111111111111', 'e1e1e1e1-1111-1111-1111-111111111111', 'Setup Authentication System', 'Implement JWT-based authentication', 'in_progress', 'high', '550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440000', 40.0, 25.5, '{"complexity": "high", "epic": "auth"}', NULL),
+('a2b2a2b2-2222-2222-2222-222222222222', 'e1e1e1e1-1111-1111-1111-111111111111', 'Database Schema Design', 'Design and implement core database schema', 'completed', 'high', '6ba7b812-9dad-11d1-80b4-00c04fd430c8', '550e8400-e29b-41d4-a716-446655440000', 20.0, 22.0, '{"complexity": "medium", "epic": "database"}', '2024-01-20 15:30:00'),
+('a3b3a3b3-3333-3333-3333-333333333333', 'e1e1e1e1-1111-1111-1111-111111111111', 'API Documentation', 'Write comprehensive API documentation', 'todo', 'medium', NULL, '550e8400-e29b-41d4-a716-446655440000', 15.0, NULL, '{"complexity": "low", "epic": "docs"}', NULL),
+-- Mobile App tasks
+('a4b4a4b4-4444-4444-4444-444444444444', 'e2e2e2e2-2222-2222-2222-222222222222', 'UI/UX Design', 'Design mobile app interface', 'completed', 'high', '6ba7b812-9dad-11d1-80b4-00c04fd430c8', '6ba7b812-9dad-11d1-80b4-00c04fd430c8', 60.0, 65.0, '{"complexity": "high", "platform": "both"}', '2024-01-25 14:00:00'),
+('a5b5a5b5-5555-5555-5555-555555555555', 'e2e2e2e2-2222-2222-2222-222222222222', 'iOS Implementation', 'Implement iOS native features', 'in_progress', 'high', '6ba7b812-9dad-11d1-80b4-00c04fd430c8', '6ba7b812-9dad-11d1-80b4-00c04fd430c8', 80.0, 45.0, '{"complexity": "high", "platform": "ios"}', NULL),
+-- Website Redesign tasks
+('a6b6a6b6-6666-6666-6666-666666666666', 'e4e4e4e4-4444-4444-4444-444444444444', 'Content Strategy', 'Plan website content and structure', 'completed', 'medium', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 25.0, 28.0, '{"complexity": "medium", "type": "planning"}', '2024-01-18 11:00:00'),
+('a7b7a7b7-7777-7777-7777-777777777777', 'e4e4e4e4-4444-4444-4444-444444444444', 'Homepage Design', 'Design new homepage layout', 'in_progress', 'high', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 35.0, 20.0, '{"complexity": "high", "type": "design"}', NULL),
+-- Product Roadmap tasks
+('a8b8a8b8-8888-8888-8888-888888888888', 'e6e6e6e6-6666-6666-6666-666666666666', 'Market Research', 'Conduct competitive analysis', 'completed', 'high', '6ba7b813-9dad-11d1-80b4-00c04fd430c8', '6ba7b813-9dad-11d1-80b4-00c04fd430c8', 30.0, 32.0, '{"complexity": "medium", "type": "research"}', '2024-01-22 16:00:00'),
+('a9b9a9b9-9999-9999-9999-999999999999', 'e6e6e6e6-6666-6666-6666-666666666666', 'Feature Prioritization', 'Prioritize features for next quarter', 'todo', 'medium', '6ba7b813-9dad-11d1-80b4-00c04fd430c8', '6ba7b813-9dad-11d1-80b4-00c04fd430c8', 20.0, NULL, '{"complexity": "low", "type": "planning"}', NULL);

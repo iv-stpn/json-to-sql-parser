@@ -1,9 +1,9 @@
 import {
+	COMPARISON_TYPE_MISMATCH_ERROR,
+	FUNCTION_TYPE_MISMATCH_ERROR,
 	INVALID_ARGUMENT_COUNT_ERROR,
 	INVALID_OPERATOR_VALUE_TYPE_ERROR,
 	JSON_ACCESS_TYPE_ERROR,
-	COMPARISON_TYPE_MISMATCH_ERROR,
-	FUNCTION_TYPE_MISMATCH_ERROR,
 } from "../constants/errors";
 import { allowedFunctions } from "../constants/functions";
 import type { CastType, FieldType } from "../constants/operators";
