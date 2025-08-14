@@ -29,7 +29,7 @@ bun add json-to-sql-parser
 ## Quick Start
 
 ```typescript
-import { generateSelectQuery } from "json-to-sql-parser";
+import { buildSelectQuery } from "json-to-sql-parser";
 
 // Define your database schema
 const config = {
@@ -64,7 +64,7 @@ const query = {
 };
 
 // Generate SQL directly
-const { sql, params } = generateSelectQuery(query, config);
+const { sql, params } = buildSelectQuery(query, config);
 
 console.log(sql);
 // SELECT users.id AS "id", users.name AS "name", users.email AS "email" FROM users WHERE users.active = $1
@@ -233,7 +233,7 @@ const condition = {
 Perform GROUP BY operations and aggregations:
 
 ```typescript
-import { generateAggregationQuery } from "json-to-sql-parser";
+import { buildAggregationQuery } from "json-to-sql-parser";
 
 const aggregationQuery = {
   table: "orders",
@@ -246,7 +246,7 @@ const aggregationQuery = {
   },
 };
 
-const { sql, params } = generateAggregationQuery(aggregationQuery, config);
+const { sql, params } = buildAggregationQuery(aggregationQuery, config);
 ```
 
 ## Expression System
@@ -450,18 +450,14 @@ const invalid = {
 
 ### Core Functions
 
-#### `generateSelectQuery(selectQuery, config)`
+#### `buildSelectQuery(selectQuery, config)`
 
 Generate the SQL for a select query based on the select query provided.
 
-#### `generateAggregationQuery(aggregationQuery, config)`
+#### `buildAggregationQuery(aggregationQuery, config)`
 
 Generate the SQL for an aggregation query based on the aggregation query
 provided.
-
-#### `parseWhereClause(condition, config, rootTable)`
-
-Parses a where condition into SQL and parameters.
 
 ### Query Schemas
 
@@ -469,7 +465,7 @@ All query inputs are validated using Zod schemas:
 
 - `conditionSchema`: Validates where conditions
 - `aggregationQuerySchema`: Validates aggregation queries
-- `fieldSelectionSchema`: Validates field selections
+- `selectQuerySchema`: Validates select queries
 
 ### Types
 
@@ -558,7 +554,7 @@ The parser provides detailed error messages for common issues:
 
 ```typescript
 try {
-  const { sql, params } = generateSelectQuery(query, config);
+  const { sql, params } = buildSelectQuery(query, config);
 } catch (error) {
   console.error("Query parsing failed:", error.message);
 }

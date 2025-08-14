@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import { compileSelectQuery, parseSelectQuery } from "../src/builders/select";
 import { parseExpression } from "../src/parsers";
-import { compileSelectQuery, parseSelectQuery } from "../src/parsers/select";
 import type { AnyExpression, Condition } from "../src/schemas";
 import type { Config, ParserState } from "../src/types";
 import { ExpressionTypeMap } from "../src/utils/expression-map";

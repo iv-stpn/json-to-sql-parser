@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
-import { compileSelectQuery, parseSelectQuery } from "../src/parsers/select";
+import { compileAggregationQuery, parseAggregationQuery } from "../src/builders/aggregate";
+import { compileSelectQuery, parseSelectQuery } from "../src/builders/select";
 import type { Condition } from "../src/schemas";
 import type { Config } from "../src/types";
 
@@ -23,7 +23,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 			tables: {
 				users: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "name", type: "string", nullable: false },
 						{ name: "email", type: "string", nullable: true },
 						{ name: "age", type: "number", nullable: true },

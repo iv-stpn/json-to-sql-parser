@@ -15,7 +15,7 @@ beforeEach(() => {
 		tables: {
 			users: {
 				allowedFields: [
-					{ name: "id", type: "number", nullable: false },
+					{ name: "id", type: "uuid", nullable: false },
 					{ name: "name", type: "string", nullable: false },
 					{ name: "email", type: "string", nullable: true },
 					{ name: "age", type: "number", nullable: true },
@@ -27,16 +27,16 @@ beforeEach(() => {
 			},
 			posts: {
 				allowedFields: [
-					{ name: "id", type: "number", nullable: false },
+					{ name: "id", type: "uuid", nullable: false },
 					{ name: "title", type: "string", nullable: false },
-					{ name: "user_id", type: "number", nullable: false },
+					{ name: "user_id", type: "uuid", nullable: false },
 					{ name: "published", type: "boolean", nullable: false },
 				],
 			},
 		},
 		variables: {
-			"auth.uid": 123,
-			current_user: 456,
+			"auth.uid": "123",
+			current_user: "456",
 		},
 		relationships: [],
 	};
@@ -83,22 +83,20 @@ describe("Expression Parser Advanced Tests", () => {
 			};
 
 			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.name = CONCAT(users.name, ' (', 123, ')')");
+			expect(result.sql).toBe("users.name = CONCAT(users.name, ' (', '123', ')')");
 		});
-
 		it("should handle function calls with expression arguments", () => {
 			const condition: Condition = {
 				"users.age": {
 					$gt: {
 						$expr: {
-							ADD: [{ $expr: { YEAR: [{ $expr: "users.created_at" }] } }, 5],
+							ADD: [{ $expr: { LENGTH: [{ $expr: "users.name" }] } }, 5],
 						},
 					},
 				},
 			};
-
 			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.age > (YEAR(users.created_at) + 5)");
+			expect(result.sql).toBe("users.age > (LENGTH(users.name) + 5)");
 		});
 	});
 
@@ -225,13 +223,13 @@ describe("Complex logical conditions", () => {
 		it("should handle array operations with expressions", () => {
 			const condition: Condition = {
 				"users.id": {
-					$in: [1, { $expr: "auth.uid" }, { $expr: "current_user" }],
+					$in: ["1", { $expr: "auth.uid" }, { $expr: "current_user" }],
 				},
 			};
 
 			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.id IN ($1, 123, 456)");
-			expect(result.params).toEqual([1]);
+			expect(result.sql).toBe("(users.id)::TEXT IN ($1, '123', '456')");
+			expect(result.params).toEqual(["1"]);
 		});
 	});
 });

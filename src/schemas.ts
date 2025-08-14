@@ -1,10 +1,11 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: we use `then` and `else` for conditional expressions */
 import { z } from "zod";
 import { aggregationOperators } from "./constants/operators";
+import { isFieldName } from "./utils/validators";
 
 // Primitive value types
-export const equalityValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
-export type EqualityValue = z.infer<typeof equalityValueSchema>;
+export const scalarValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+export type ScalarValue = z.infer<typeof scalarValueSchema>;
 
 export type ConditionExpression = { if: Condition; then: AnyExpression; else: AnyExpression };
 export type ExpressionObject =
@@ -32,8 +33,8 @@ export const expressionObjectSchema: z.ZodType<ExpressionObject> = z.lazy(() =>
 	]),
 );
 
-export type AnyExpression = ExpressionObject | EqualityValue;
-export const anyExpressionSchema: z.ZodType<AnyExpression> = z.lazy(() => z.union([expressionObjectSchema, equalityValueSchema]));
+export type AnyExpression = ExpressionObject | ScalarValue;
+export const anyExpressionSchema: z.ZodType<AnyExpression> = z.lazy(() => z.union([expressionObjectSchema, scalarValueSchema]));
 
 const $expr = anyExpressionSchema.optional();
 const comparisonOperators = { $eq: $expr, $ne: $expr, $gt: $expr, $gte: $expr, $lt: $expr, $lte: $expr };
@@ -46,23 +47,19 @@ const fieldConditionSchema = z.union([
 	z.object({ ...comparisonOperators, ...stringOperators, ...arrayOperators }),
 	anyExpressionSchema,
 ]);
-
 export type FieldCondition = z.infer<typeof fieldConditionSchema>;
+
+// Ensures field starts with lowercase letter
+const fieldNameSchema = z.string().refine(isFieldName, "Field name must start with a lowercase letter");
+export type FieldName =
+	`${"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"}${string}`;
+
 export type Condition =
 	| { $and: Condition[] } // Logical AND
 	| { $or: Condition[] } // Logical OR
 	| { $not: Condition } // Logical NOT
 	| { $exists: { table: string; conditions: Condition } } // EXISTS subquery
 	| Record<FieldName, FieldCondition>; // Field conditions
-
-type FieldName =
-	`${"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"}${string}`;
-
-const fieldNameRegex = /^[a-z]/; // Field names must start with a lowercase letter and can contain alphanumeric characters and underscores
-const isFieldName = (field: string): field is FieldName => fieldNameRegex.test(field);
-
-// Ensures field starts with lowercase letter
-const fieldNameSchema = z.string().refine(isFieldName, "Field name must start with a lowercase letter");
 
 export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
 	z.union([
@@ -75,7 +72,6 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
 );
 
 export type FieldSelection = boolean | ExpressionObject | { [key: string]: FieldSelection };
-export type Selection = { [key: FieldName]: FieldSelection };
 
 export const fieldSelectionSchema: z.ZodType<FieldSelection> = z.union([
 	z.boolean(),

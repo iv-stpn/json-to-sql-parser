@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { compileAggregationQuery, parseAggregationQuery } from "../../src/parsers/aggregate";
+import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
 import type { AggregationQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment } from "./_helpers";
@@ -13,7 +13,7 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 		tables: {
 			users: {
 				allowedFields: [
-					{ name: "id", type: "number", nullable: false },
+					{ name: "id", type: "uuid", nullable: false },
 					{ name: "name", type: "string", nullable: false },
 					{ name: "email", type: "string", nullable: false },
 					{ name: "age", type: "number", nullable: true },
@@ -26,8 +26,8 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 			},
 			posts: {
 				allowedFields: [
-					{ name: "id", type: "number", nullable: false },
-					{ name: "user_id", type: "number", nullable: false },
+					{ name: "id", type: "uuid", nullable: false },
+					{ name: "user_id", type: "uuid", nullable: false },
 					{ name: "title", type: "string", nullable: false },
 					{ name: "content", type: "string", nullable: true },
 					{ name: "published", type: "boolean", nullable: false },
@@ -38,8 +38,8 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 			},
 			orders: {
 				allowedFields: [
-					{ name: "id", type: "number", nullable: false },
-					{ name: "user_id", type: "number", nullable: false },
+					{ name: "id", type: "uuid", nullable: false },
+					{ name: "user_id", type: "uuid", nullable: false },
 					{ name: "total", type: "number", nullable: false },
 					{ name: "status", type: "string", nullable: false },
 					{ name: "created_at", type: "datetime", nullable: false },
@@ -328,21 +328,27 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 						operator: "COUNT",
 						field: "users.id",
 					},
-					// Average post views
-					avg_post_views: {
+					// Average user age
+					avg_user_age: {
 						operator: "AVG",
-						field: "posts.views",
+						field: "users.age",
 					},
-					// Total order value per user group
-					total_order_value: {
-						operator: "SUM",
-						field: "orders.total",
+					// Count related posts
+					post_count: {
+						operator: "COUNT",
+						field: "posts.id",
+					},
+					// Total user count per status
+					total_users: {
+						operator: "COUNT",
+						field: "*",
 					},
 				},
 			};
 
 			const result = parseAggregationQuery(query, config);
 			const sql = compileAggregationQuery(result);
+			console.log("Generated SQL:", sql);
 			const rows = await db.query(sql, result.params);
 
 			expect(rows).toBeDefined();

@@ -109,7 +109,7 @@ async function ensureDockerComposeUp(): Promise<void> {
 
 async function waitForPostgres(maxAttempts = 30, delayMs = 1000): Promise<void> {
 	console.log("⏳ Waiting for PostgreSQL to be ready...");
-	await new Promise((resolve) => setTimeout(resolve, 2500));
+	await new Promise((resolve) => setTimeout(resolve, 1500));
 
 	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 		const client = new Client(config);

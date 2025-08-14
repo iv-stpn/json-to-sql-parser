@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 
 import { beforeEach, describe, expect, it } from "bun:test";
-import type { AggregationQuery } from "../src/parsers/aggregate";
-import { compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
+import type { AggregationQuery } from "../src";
+import { compileAggregationQuery, parseAggregationQuery } from "../src/builders/aggregate";
 import type { Config } from "../src/types";
 
 let testConfig: Config;
@@ -12,11 +12,11 @@ beforeEach(() => {
 		tables: {
 			sales: {
 				allowedFields: [
-					{ name: "id", type: "number", nullable: false },
+					{ name: "id", type: "uuid", nullable: false },
 					{ name: "amount", type: "number", nullable: false },
 					{ name: "region", type: "string", nullable: false },
 					{ name: "date", type: "string", nullable: false },
-					{ name: "customer_id", type: "number", nullable: false },
+					{ name: "customer_id", type: "uuid", nullable: false },
 					{ name: "product_data", type: "object", nullable: true },
 				],
 			},
@@ -128,7 +128,7 @@ describe("Aggregation Edge Cases", () => {
 			expect(result.select).toContain("MAX((sales.data->>'amount')::FLOAT) AS \"maximum\"");
 			expect(result.select).toContain("MIN((sales.data->>'amount')::FLOAT) AS \"minimum\"");
 			expect(result.select).toContain('COUNT(*) AS "count"');
-			expect(result.select).toContain("COUNT(DISTINCT (sales.data->>'customer_id')::FLOAT) AS \"unique_customers\"");
+			expect(result.select).toContain("COUNT(DISTINCT (sales.data->>'customer_id')::UUID) AS \"unique_customers\"");
 			expect(result.select).toContain("STRING_AGG(sales.data->>'region', ',') AS \"regions_list\"");
 			expect(result.select).toContain("STDDEV((sales.data->>'amount')::FLOAT) AS \"std_dev\"");
 			expect(result.select).toContain("VARIANCE((sales.data->>'amount')::FLOAT) AS \"variance\"");
@@ -167,7 +167,9 @@ describe("Aggregation Edge Cases", () => {
 				aggregatedFields: {},
 			};
 
-			expect(() => parseAggregationQuery(query, testConfig)).toThrow("Field 'invalid_field' is not allowed for table 'sales'");
+			expect(() => parseAggregationQuery(query, testConfig)).toThrow(
+				"Field 'invalid_field' is not allowed or does not exist for table 'sales'",
+			);
 		});
 
 		it("should validate field exists for aggregation", () => {
@@ -179,7 +181,9 @@ describe("Aggregation Edge Cases", () => {
 				},
 			};
 
-			expect(() => parseAggregationQuery(query, testConfig)).toThrow("Field 'invalid_field' is not allowed for table 'sales'");
+			expect(() => parseAggregationQuery(query, testConfig)).toThrow(
+				"Field 'invalid_field' is not allowed or does not exist for table 'sales'",
+			);
 		});
 
 		it("should validate table reference in field paths", () => {
@@ -226,11 +230,11 @@ describe("Regular table aggregation", () => {
 			tables: {
 				sales: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "amount", type: "number", nullable: false },
 						{ name: "region", type: "string", nullable: false },
 						{ name: "date", type: "string", nullable: false },
-						{ name: "customer_id", type: "number", nullable: false },
+						{ name: "customer_id", type: "uuid", nullable: false },
 						{ name: "product_data", type: "object", nullable: true },
 					],
 				},

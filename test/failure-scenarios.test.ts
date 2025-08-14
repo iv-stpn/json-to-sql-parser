@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import { compileAggregationQuery, parseAggregationQuery } from "../src/builders/aggregate";
+import { parseSelectQuery } from "../src/builders/select";
 import { parseExpression } from "../src/parsers";
-import { compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
-import { parseSelectQuery } from "../src/parsers/select";
 
 import type { AnyExpression, Condition } from "../src/schemas";
 import type { Config, ParserState } from "../src/types";
@@ -17,7 +17,7 @@ describe("Expected Failure Tests", () => {
 			tables: {
 				users: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "name", type: "string", nullable: false },
 						{ name: "email", type: "string", nullable: true },
 						{ name: "age", type: "number", nullable: true },
@@ -57,7 +57,7 @@ describe("Expected Failure Tests", () => {
 					testConfig,
 					"users",
 				);
-			}).toThrow("Field 'nonexistent_field' is not allowed for table 'users'");
+			}).toThrow("Field 'nonexistent_field' is not allowed or does not exist for table 'users'");
 		});
 
 		it("should reject invalid table.field format", () => {
@@ -99,23 +99,17 @@ describe("Expected Failure Tests", () => {
 		});
 
 		it("should reject JSON access on non-object fields", () => {
-			const invalidJsonAccess = [
-				"users.name->invalid", // String field
-				"users.age->invalid", // Number field
-				"users.active->invalid", // Boolean field
-			];
+			expect(() => {
+				extractSelectWhereClause({ "users.name->invalid": { $eq: "value" } }, testConfig, "users");
+			}).toThrow("JSON path access 'name->invalid' is only allowed on JSON fields, but field 'name' is of type 'string'");
 
-			for (const invalidAccess of invalidJsonAccess) {
-				expect(() => {
-					extractSelectWhereClause(
-						{
-							[invalidAccess]: { $eq: "value" },
-						},
-						testConfig,
-						"users",
-					);
-				}).toThrow("JSON path access 'invalid' is only allowed on JSON fields");
-			}
+			expect(() => {
+				extractSelectWhereClause({ "users.age->invalid": { $eq: "value" } }, testConfig, "users");
+			}).toThrow("JSON path access 'age->invalid' is only allowed on JSON fields, but field 'age' is of type 'number'");
+
+			expect(() => {
+				extractSelectWhereClause({ "users.active->invalid": { $eq: "value" } }, testConfig, "users");
+			}).toThrow("JSON path access 'active->invalid' is only allowed on JSON fields, but field 'active' is of type 'boolean'");
 		});
 	});
 

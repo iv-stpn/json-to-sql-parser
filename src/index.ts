@@ -1,22 +1,26 @@
-// Expression parsing
+// Main parsers
+export { buildAggregationQuery } from "./builders/aggregate";
+export { buildSelectQuery } from "./builders/select";
+export { buildWhereClause } from "./builders/where";
+
+// Expression and field parsing
 export { parseExpression, parseFieldPath } from "./parsers";
 
-// Main parsers
-export { generateAggregationQuery } from "./parsers/aggregate";
-export { generateSelectQuery } from "./parsers/select";
+// Schema types
 export type {
 	Aggregation,
 	AggregationQuery,
 	AnyExpression,
 	Condition,
 	ConditionExpression,
-	EqualityValue,
 	ExpressionObject,
 	FieldCondition,
 	FieldSelection,
-	Selection,
+	ScalarValue,
+	SelectQuery,
 } from "./schemas";
-// Schemas for validation
+
+// Schemas
 export {
 	aggregationQuerySchema,
 	anyExpressionSchema,
@@ -24,6 +28,7 @@ export {
 	expressionObjectSchema,
 	fieldSelectionSchema,
 } from "./schemas";
+
 // Types
 export type {
 	Config,

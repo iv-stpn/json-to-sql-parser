@@ -1,11 +1,11 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { compileSelectQuery, parseSelectQuery } from "../../src/parsers/select";
+import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
 
 import type { Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
-import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
 import { extractSelectWhereClause } from "../_helpers";
+import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
 
 describe("Integration Tests - Complex and Deep Conditions", () => {
 	let db: DatabaseHelper;

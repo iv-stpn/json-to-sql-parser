@@ -1,3 +1,17 @@
+import type { FieldName, ScalarValue } from "../schemas";
+import type { Primitive } from "../types";
+
+export const isPrimitiveValue = (value: unknown): value is Primitive =>
+	typeof value === "string" || typeof value === "number" || typeof value === "boolean";
+
+export const isScalarValue = (value: unknown): value is ScalarValue =>
+	typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null;
+
+// SQL validators
+export const fieldNameRegex = /^[a-z][a-z_0-9]*$/;
+export const isFieldName = (field: string): field is FieldName => fieldNameRegex.test(field);
+
+// Common utility functions for validating data types
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const timestampRegex = /^\d{4}-\d{2}-\d{2}(?:T| )\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?$/;
 

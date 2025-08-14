@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { type AggregationQuery, compileAggregationQuery, parseAggregationQuery } from "../../src/parsers/aggregate";
-import { compileSelectQuery, parseSelectQuery } from "../../src/parsers/select";
+import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
+import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
 
-import type { Condition } from "../../src/schemas";
+import type { AggregationQuery, Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
-import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
 import { extractSelectWhereClause } from "../_helpers";
+import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
 
 describe("Integration Tests - Regular Tables", () => {
 	let db: DatabaseHelper;
@@ -22,7 +22,7 @@ describe("Integration Tests - Regular Tables", () => {
 			tables: {
 				users: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "name", type: "string", nullable: false },
 						{ name: "email", type: "string", nullable: true },
 						{ name: "age", type: "number", nullable: true },
@@ -33,20 +33,20 @@ describe("Integration Tests - Regular Tables", () => {
 				},
 				posts: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "title", type: "string", nullable: false },
 						{ name: "content", type: "string", nullable: false },
-						{ name: "user_id", type: "number", nullable: false },
+						{ name: "user_id", type: "uuid", nullable: false },
 						{ name: "published", type: "boolean", nullable: false },
 						{ name: "tags", type: "object", nullable: true },
 					],
 				},
 				orders: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "amount", type: "number", nullable: false },
 						{ name: "status", type: "string", nullable: false },
-						{ name: "customer_id", type: "number", nullable: false },
+						{ name: "customer_id", type: "uuid", nullable: false },
 					],
 				},
 			},

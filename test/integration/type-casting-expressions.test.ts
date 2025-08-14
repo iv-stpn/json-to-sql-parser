@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { generateAggregationQuery, generateSelectQuery } from "../../src";
+import { buildAggregationQuery, buildSelectQuery } from "../../src";
 import type { AggregationQuery, Condition, SelectQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
@@ -101,7 +101,7 @@ describe("Integration Tests - Type Casting and Complex Expressions", () => {
 					condition,
 				};
 
-				const { sql, params } = generateSelectQuery(query, config);
+				const { sql, params } = buildSelectQuery(query, config);
 				const rows = await db.query(sql, params);
 
 				expect(rows).toBeDefined();
@@ -136,7 +136,7 @@ describe("Integration Tests - Type Casting and Complex Expressions", () => {
 					condition,
 				};
 
-				const { sql, params } = generateSelectQuery(query, config);
+				const { sql, params } = buildSelectQuery(query, config);
 				const rows = await db.query(sql, params);
 
 				expect(rows).toBeDefined();
@@ -163,7 +163,7 @@ describe("Integration Tests - Type Casting and Complex Expressions", () => {
 					},
 				};
 
-				const { sql, params } = generateAggregationQuery(aggregation, config);
+				const { sql, params } = buildAggregationQuery(aggregation, config);
 				const rows = await db.query(sql, params);
 
 				expect(rows).toBeDefined();
@@ -192,11 +192,11 @@ describe("Integration Tests - Type Casting and Complex Expressions", () => {
 						},
 					},
 					condition: {
-						"users.name": { $ne: null },
+						"users.name": { $ne: "" },
 					},
 				};
 
-				const { sql, params } = generateSelectQuery(query, config);
+				const { sql, params } = buildSelectQuery(query, config);
 				const rows = await db.query(sql, params);
 
 				expect(rows).toBeDefined();
@@ -229,7 +229,7 @@ describe("Integration Tests - Type Casting and Complex Expressions", () => {
 					},
 				};
 
-				const { sql, params } = generateSelectQuery(query, config);
+				const { sql, params } = buildSelectQuery(query, config);
 				const rows = await db.query(sql, params);
 
 				expect(rows).toBeDefined();
@@ -267,7 +267,7 @@ describe("Integration Tests - Type Casting and Complex Expressions", () => {
 					condition,
 				};
 
-				const { sql, params } = generateSelectQuery(query, config);
+				const { sql, params } = buildSelectQuery(query, config);
 				const rows = await db.query(sql, params);
 
 				expect(rows).toBeDefined();

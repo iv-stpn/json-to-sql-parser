@@ -1,43 +1,14 @@
-import { type CastType, castMap } from "../constants/operators";
-import type { FieldSelection, Selection, SelectQuery } from "../schemas";
-import type { BaseParsedQuery, Config, ParserState, Primitive, Relationship } from "../types";
+import { aliasValue, castValue, isExpressionObject, parseExpressionObject, parseField } from "../parsers";
+import type { FieldName, FieldSelection, SelectQuery } from "../schemas";
+import type { BaseParsedQuery, Config, ParserState, Primitive } from "../types";
 import { ExpressionTypeMap } from "../utils/expression-map";
-import { aliasValue, castValue, isExpressionObject, parseExpressionObject, parseField } from ".";
-import { parseWhereClause } from "./where";
-
-function buildJoinClause(table: string, toTable: string, relationship: Relationship, config: Config, alias?: string): string {
-	const toTableName = config.dataTable ? aliasValue(config.dataTable.table, toTable) : toTable;
-
-	// Get field types for proper casting
-	const getFieldType = (tableName: string, fieldName: string): CastType => {
-		const tableConfig = config.tables[tableName];
-		if (!tableConfig) return null;
-		const fieldConfig = tableConfig.allowedFields.find((field) => field.name === fieldName);
-		return fieldConfig ? castMap[fieldConfig.type] : null;
-	};
-
-	// Helper function to cast field if needed
-	const castField = (tableName: string, fieldName: string): string => {
-		const fieldType = getFieldType(tableName, fieldName);
-		const fieldRef = `${tableName}.${fieldName}`;
-		return castValue(fieldRef, fieldType);
-	};
-
-	if (relationship.table === table) {
-		const leftField = castField(table, relationship.field);
-		const rightField = castField(alias ?? toTable, relationship.toField);
-		return `LEFT JOIN ${toTableName} ON ${leftField} = ${rightField}`;
-	}
-
-	const leftField = castField(table, relationship.toField);
-	const rightField = castField(alias ?? toTable, relationship.field);
-	return `LEFT JOIN ${toTableName} ON ${leftField} = ${rightField}`;
-}
+import { buildJoinClause } from "./joins";
+import { buildWhereClause } from "./where";
 
 type SelectState = ParserState & { joins: string[]; select: string[]; processedTables: Set<string> };
 function processField(fieldName: string, selection: FieldSelection, table: string, state: SelectState): void {
 	if (selection === true) {
-		const { select } = parseField(table, fieldName, state);
+		const { select } = parseField(fieldName, state);
 		state.select.push(aliasValue(castValue(select.field, select.cast), select.alias));
 		return;
 	}
@@ -59,24 +30,21 @@ function processField(fieldName: string, selection: FieldSelection, table: strin
 const isRelationship = (relationshipName: string, table: string, fromTable: string, toTable: string): boolean =>
 	(relationshipName === fromTable && table === toTable) || (relationshipName === toTable && table === fromTable);
 
+type Selection = { [key: FieldName]: FieldSelection };
 function processRelationship(table: string, selection: Selection, fromTable: string, state: SelectState): void {
 	const relationship = state.config.relationships.find(({ table: relationshipTable, toTable }) =>
 		isRelationship(table, relationshipTable, fromTable, toTable),
 	);
 	if (!relationship) throw new Error(`No relationship found between '${fromTable}' and '${table}'`);
 
-	// Generate unique alias if the same table is joined multiple times
-	const alias = state.processedTables.has(table) ? `${table}_${state.processedTables.size}` : undefined;
-
 	// Add join
-	const joinClause = buildJoinClause(fromTable, table, relationship, state.config, alias);
+	const joinClause = buildJoinClause(fromTable, table, relationship, state.config);
 	if (!state.joins.includes(joinClause)) state.joins.push(joinClause);
 
 	// Process nested selection
-	const tableName = alias || table;
-	state.processedTables.add(tableName);
+	state.processedTables.add(table);
 	for (const [fieldName, fieldValue] of Object.entries(selection))
-		processField(`${tableName}.${fieldName}`, fieldValue, table, state);
+		processField(`${table}.${fieldName}`, fieldValue, table, state);
 }
 
 // Result of parsing a SELECT query
@@ -93,11 +61,12 @@ export function parseSelectQuery(selectQuery: SelectQuery, config: Config): Pars
 	// Process the selection starting from the main table
 	const processedTables = new Set([rootTable]);
 	const expressions = new ExpressionTypeMap();
+
 	const state: SelectState = { config, rootTable, params: [], expressions, select: [], joins: [], processedTables };
 	for (const [fieldName, fieldValue] of Object.entries(selection)) processField(fieldName, fieldValue, rootTable, state);
 
 	const from = config.dataTable ? aliasValue(config.dataTable.table, rootTable) : rootTable;
-	const where = parseWhereClause(condition, state);
+	const where = buildWhereClause(condition, state);
 
 	return { select: state.select, from, where, joins: state.joins, params: state.params };
 }
@@ -110,7 +79,7 @@ export function compileSelectQuery(query: ParsedSelectQuery): string {
 	return sql;
 }
 
-export function generateSelectQuery(selectQuery: SelectQuery, config: Config): { sql: string; params: Primitive[] } {
+export function buildSelectQuery(selectQuery: SelectQuery, config: Config): { sql: string; params: Primitive[] } {
 	const parsedQuery = parseSelectQuery(selectQuery, config);
 	const sql = compileSelectQuery(parsedQuery);
 	return { sql, params: parsedQuery.params };

@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { type AggregationQuery, compileAggregationQuery, parseAggregationQuery } from "../../src/parsers/aggregate";
-import { compileSelectQuery, parseSelectQuery } from "../../src/parsers/select";
+import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
+import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
 
-import type { Condition } from "../../src/schemas";
+import type { AggregationQuery, Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
-import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
 import { extractSelectWhereClause } from "../_helpers";
+import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
 
 describe("Integration Tests - Data Table Configuration", () => {
 	let db: DatabaseHelper;
@@ -242,7 +242,9 @@ describe("Integration Tests - Data Table Configuration", () => {
 
 			// The expressions should be different due to data table transformation
 			expect(regularResult.sql).toBe("users.active = $1");
-			expect(dataTableResult.sql).toBe("(users.data->>'active')::BOOLEAN = $1");
+			expect(dataTableResult.sql).toBe(
+				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (users.data->>'active')::BOOLEAN = $1)",
+			);
 			expect(regularResult.params).toEqual(dataTableResult.params);
 
 			// But when building full queries, they differ significantly

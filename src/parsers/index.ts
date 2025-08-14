@@ -13,11 +13,12 @@ import {
 	unaryOperators,
 	variableFunctions,
 } from "../constants/operators";
-import type { AnyExpression, Condition, ConditionExpression, EqualityValue, ExpressionObject, FieldCondition } from "../schemas";
+import { parseJsonAccess } from "../parsers/parse-json-access";
+import type { AnyExpression, Condition, ConditionExpression, ExpressionObject, FieldCondition, ScalarValue } from "../schemas";
 import type { Field, FieldPath, ParserState, Primitive } from "../types";
-import { isEmpty, isInArray, isNotNull, quote } from "../utils";
+import { isInArray, isNotNull, quote } from "../utils";
 import { applyFunction } from "../utils/function-call";
-import { isValidDate, isValidTimestamp, uuidRegex } from "../utils/validators";
+import { fieldNameRegex, isPrimitiveValue, isScalarValue, isValidDate, isValidTimestamp, uuidRegex } from "../utils/validators";
 
 export const isExpressionObject = (value: unknown): value is ExpressionObject =>
 	typeof value === "object" &&
@@ -34,47 +35,30 @@ function parseTableFieldPath(fieldPath: string, rootTable: string) {
 	return { table, field };
 }
 
-const fieldPathRegex =
-	/^(?:(?!_+$)[A-Za-z_][A-Za-z_0-9]*|'((?:(?!->)[^'])+)')(?:->(?:(?!_+$)[A-Za-z_][A-Za-z_0-9]*|'((?:(?!->)[^'])+)'))*$/;
-
-type ParseTableFieldParams = { field: string; state: ParserState; targetTable?: string; ensureTable?: boolean };
-export function parseFieldPath({ field, targetTable, state }: ParseTableFieldParams): FieldPath {
+type ParseTableFieldParams = { field: string; state: ParserState };
+export function parseFieldPath({ field, state }: ParseTableFieldParams): FieldPath {
 	const { table, field: fieldPath } = parseTableFieldPath(field, state.rootTable);
 
 	const tableConfig = state.config.tables[table];
 	if (!tableConfig) throw new Error(`Table '${table}' is not allowed or does not exist`);
 
-	// Ensure table and field are valid
-	if (targetTable && table !== targetTable) throw new Error(`Field '${field}' must reference table '${targetTable}'`);
-
-	if (!fieldPathRegex.test(fieldPath))
-		throw new Error(
-			`Invalid field path '${fieldPath}' in table '${table}': must be of the form field, field->jsonPath or field->'jsonPath'`,
-		);
-
 	const arrowIdx = fieldPath.indexOf("->");
 	const fieldName = arrowIdx === -1 ? fieldPath : fieldPath.substring(0, arrowIdx);
 
+	if (!fieldNameRegex.test(fieldName)) throw new Error(`Invalid field name '${fieldName}' in table '${table}'`);
+
 	const fieldConfig = tableConfig.allowedFields.find((allowedField) => allowedField.name === fieldName);
-	if (!fieldConfig) throw new Error(`Field '${fieldName}' is not allowed for table '${table}'`);
+	if (!fieldConfig) throw new Error(`Field '${fieldName}' is not allowed or does not exist for table '${table}'`);
 
-	if (arrowIdx === -1) return { table, field: fieldPath, fieldConfig, jsonPathSegments: [] }; // No JSON path, return as is
+	// No JSON path, return as is
+	if (arrowIdx === -1) return { table, field: fieldPath, fieldConfig, jsonPathSegments: [], jsonExtractText: false };
 
-	// Ensure JSON path is valid
-	const jsonPart = fieldPath.substring(arrowIdx + 2);
-	if (fieldConfig.type !== "object") throw new Error(JSON_ACCESS_TYPE_ERROR(jsonPart, fieldName, fieldConfig.type));
+	if (fieldConfig.type !== "object") throw new Error(JSON_ACCESS_TYPE_ERROR(fieldPath, fieldName, fieldConfig.type));
 
-	const jsonPathSegments = jsonPart.split("->").map((segment) => segment.replaceAll(/^'+|'+$/g, ""));
-	if (jsonPathSegments.some(isEmpty))
-		throw new Error(`Invalid JSON path '${jsonPart}' in field '${field}'. JSON path parts must be non-empty.`);
-
-	return { table, field: fieldName, fieldConfig, jsonPathSegments }; // Return parsed field path with JSON parts
+	// Parse JSON access
+	const { jsonPathSegments, jsonExtractText } = parseJsonAccess(fieldPath.substring(arrowIdx));
+	return { table, field: fieldName, fieldConfig, jsonPathSegments, jsonExtractText }; // Return parsed field path with JSON parts
 }
-
-const isPrimitiveValue = (value: unknown): value is Primitive =>
-	typeof value === "string" || typeof value === "number" || typeof value === "boolean";
-
-const isNullableEqualityValue = (value: unknown): value is EqualityValue => value === null || isPrimitiveValue(value);
 
 // Parse SQL functions and operators in expressions
 function parseExpressionFunction(exprObj: { [functionName: string]: AnyExpression[] }, state: ParserState): string {
@@ -145,11 +129,11 @@ function getExpectedCast(baseCast: CastType, hasJsonAccess: boolean, fieldType: 
 	return baseCast === castMap[fieldType] ? null : baseCast;
 }
 
-type SelectFieldParams = { fieldPath: FieldPath; state: ParserState; table?: string; cast?: CastType; jsonExtractText?: boolean };
-function selectField({ fieldPath, state, table, cast = null, jsonExtractText }: SelectFieldParams) {
+type SelectFieldParams = { fieldPath: FieldPath; state: ParserState; cast?: CastType; jsonExtractText?: boolean };
+function selectField({ fieldPath, state, cast = null, jsonExtractText }: SelectFieldParams) {
 	const { fieldConfig, field: fieldName } = fieldPath;
 
-	const tableName = table || fieldPath.table || state.rootTable;
+	const tableName = fieldPath.table || state.rootTable;
 
 	const dataTable = state.config.dataTable;
 
@@ -164,12 +148,12 @@ function selectField({ fieldPath, state, table, cast = null, jsonExtractText }: 
 	return { alias: jsonPathAlias(relativePath, fieldPath.jsonPathSegments), cast: expectedCast, field: path };
 }
 
-export function parseField(table: string, field: string, state: ParserState, cast?: CastType, jsonExtractText?: boolean) {
-	const fieldPath = parseFieldPath({ field, targetTable: table, state });
-	return { select: selectField({ fieldPath, table, state, cast, jsonExtractText }), fieldPath };
+export function parseField(field: string, state: ParserState, cast?: CastType, jsonExtractText?: boolean) {
+	const fieldPath = parseFieldPath({ field, state });
+	return { select: selectField({ fieldPath, state, cast, jsonExtractText }), fieldPath };
 }
 
-function parsePrimitiveValue(value: EqualityValue) {
+function parsePrimitiveValue(value: ScalarValue) {
 	if (typeof value === "string") return quote(value);
 	if (typeof value === "number") return value.toString();
 	if (typeof value === "boolean") return value ? "TRUE" : "FALSE";
@@ -205,7 +189,7 @@ export function parseExpressionObject(expression: ExpressionObject, state: Parse
 				return parsePrimitiveValue(variable);
 			}
 
-			const { select, fieldPath } = parseField(state.rootTable, expression.$expr, state);
+			const { select, fieldPath } = parseField(expression.$expr, state);
 			state.expressions.add(expression, castMap[fieldPath.fieldConfig.type]);
 			return castValue(select.field, select.cast);
 		}
@@ -245,8 +229,8 @@ export const mergeConditions = (parsedConditions: string[], context: string): st
 	return `(${parsedConditions.join(" AND ")})`;
 };
 
-export function parseCondition(condition: Condition, state: ParserState, table?: string): string {
-	const parseSubCondition = (subCondition: Condition): string => parseCondition(subCondition, state, table);
+export function parseCondition(condition: Condition, state: ParserState): string {
+	const parseSubCondition = (subCondition: Condition): string => parseCondition(subCondition, state);
 
 	// Handle logical operators
 	if ("$and" in condition)
@@ -261,20 +245,19 @@ export function parseCondition(condition: Condition, state: ParserState, table?:
 	// Handle EXISTS subquery
 	if ("$exists" in condition) {
 		const { table, conditions } = condition.$exists;
-		const subQueryCondition = parseCondition(conditions, state, table); // Parse the subquery conditions
+		const subQueryCondition = parseCondition(conditions, state); // Parse the subquery conditions
 		return `EXISTS (SELECT 1 FROM ${table} WHERE ${subQueryCondition})`;
 	}
 
 	// Handle field conditions
 	const conditions: string[] = [];
 	for (const [field, fieldConditionExpression] of Object.entries(condition)) {
-		const fieldPath = parseFieldPath({ field, targetTable: table ?? state.rootTable, state });
-		// const { select, fieldPath } = parseField(table ?? state.rootTable, field, state, true);
+		const fieldPath = parseFieldPath({ field, state });
 		const fieldConfig = fieldPath.fieldConfig;
 
 		const fieldConditions = parseFieldConditions(fieldConditionExpression, state, fieldConfig);
 
-		const select = selectField({ fieldPath, state, table, cast: fieldConditions.castType, jsonExtractText: true });
+		const select = selectField({ fieldPath, state, cast: fieldConditions.castType, jsonExtractText: true });
 		const fieldName = castValue(select.field, select.cast);
 
 		const clause = mergeConditions(
@@ -348,7 +331,7 @@ function parseStringCondition(
 type ParseFieldConditions = { conditions: string[]; castType: CastType };
 function parseFieldConditions(condition: FieldCondition, state: ParserState, field: Field): ParseFieldConditions {
 	// Treat expression as an equality condition if no operator is provided
-	if (isNullableEqualityValue(condition) || isExpressionObject(condition)) {
+	if (isScalarValue(condition) || isExpressionObject(condition)) {
 		const fieldCondition = parseComparisonCondition(condition, state, "=", field);
 		return { conditions: [fieldCondition.condition], castType: fieldCondition.castType };
 	}

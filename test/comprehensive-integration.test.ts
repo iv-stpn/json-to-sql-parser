@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
-import { compileSelectQuery, parseSelectQuery } from "../src/parsers/select";
+import { compileAggregationQuery, parseAggregationQuery } from "../src/builders/aggregate";
+import { compileSelectQuery, parseSelectQuery } from "../src/builders/select";
 
 import type { Condition } from "../src/schemas";
 import type { Config } from "../src/types";
@@ -14,7 +14,7 @@ describe("Comprehensive Integration Tests", () => {
 			tables: {
 				users: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "name", type: "string", nullable: false },
 						{ name: "email", type: "string", nullable: true },
 						{ name: "age", type: "number", nullable: true },
@@ -28,30 +28,30 @@ describe("Comprehensive Integration Tests", () => {
 				},
 				posts: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "title", type: "string", nullable: false },
 						{ name: "content", type: "string", nullable: false },
-						{ name: "user_id", type: "number", nullable: false },
+						{ name: "user_id", type: "uuid", nullable: false },
 						{ name: "published", type: "boolean", nullable: false },
 						{ name: "tags", type: "object", nullable: true },
 						{ name: "view_count", type: "number", nullable: true },
 						{ name: "created_at", type: "string", nullable: false },
-						{ name: "category_id", type: "number", nullable: true },
+						{ name: "category_id", type: "uuid", nullable: true },
 					],
 				},
 				categories: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "name", type: "string", nullable: false },
 						{ name: "description", type: "string", nullable: true },
-						{ name: "parent_id", type: "number", nullable: true },
+						{ name: "parent_id", type: "uuid", nullable: true },
 					],
 				},
 				comments: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
-						{ name: "post_id", type: "number", nullable: false },
-						{ name: "user_id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
+						{ name: "post_id", type: "uuid", nullable: false },
+						{ name: "user_id", type: "uuid", nullable: false },
 						{ name: "content", type: "string", nullable: false },
 						{ name: "created_at", type: "string", nullable: false },
 						{ name: "is_approved", type: "boolean", nullable: false },
@@ -59,8 +59,8 @@ describe("Comprehensive Integration Tests", () => {
 				},
 				orders: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
-						{ name: "user_id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
+						{ name: "user_id", type: "uuid", nullable: false },
 						{ name: "total_amount", type: "number", nullable: false },
 						{ name: "status", type: "string", nullable: false },
 						{ name: "created_at", type: "string", nullable: false },
@@ -69,8 +69,8 @@ describe("Comprehensive Integration Tests", () => {
 				},
 			},
 			variables: {
-				"auth.uid": 123,
-				current_user: 456,
+				"auth.uid": "123",
+				current_user: "456",
 				admin_user: 1,
 				max_age: 100,
 				min_balance: 0,
@@ -486,7 +486,7 @@ describe("Comprehensive Integration Tests", () => {
 
 			const result = extractSelectWhereClause(condition, testConfig, "users");
 
-			expect(result.sql).toContain("users.id = 123");
+			expect(result.sql).toContain("(users.id)::TEXT = '123'");
 			expect(result.sql).toContain("users.age < 100");
 			expect(result.sql).toContain("users.balance >= 0");
 			expect(result.sql).toContain("users.status = 'active'");

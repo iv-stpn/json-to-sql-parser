@@ -1,6 +1,6 @@
+import { mergeConditions, parseCondition } from "../parsers";
 import { conditionSchema } from "../schemas";
 import type { ParserState } from "../types";
-import { mergeConditions, parseCondition } from ".";
 
 export function buildDataTableWhereClause(state: ParserState, whereClause?: string): string {
 	const dataTable = state.config.dataTable;
@@ -12,7 +12,7 @@ export function buildDataTableWhereClause(state: ParserState, whereClause?: stri
 	return mergeConditions([baseCondition, ...whereConditions], "data table conditions");
 }
 
-export function parseWhereClause(condition: unknown, state: ParserState) {
+export function buildWhereClause(condition: unknown, state: ParserState) {
 	if (!condition) {
 		// If no condition is provided, ensure we have a valid WHERE clause for schema-less data tables
 		if (state.config.dataTable) return buildDataTableWhereClause(state);

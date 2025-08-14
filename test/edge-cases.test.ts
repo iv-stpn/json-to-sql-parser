@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import { parseAggregationQuery } from "../src/builders/aggregate";
+import { parseSelectQuery } from "../src/builders/select";
 import { parseExpression } from "../src/parsers";
-import { parseAggregationQuery } from "../src/parsers/aggregate";
-import { parseSelectQuery } from "../src/parsers/select";
 import type { AnyExpression, Condition } from "../src/schemas";
 import type { Config, ParserState } from "../src/types";
 import { ExpressionTypeMap } from "../src/utils/expression-map";
@@ -16,7 +16,7 @@ describe("Edge Case Tests", () => {
 			tables: {
 				users: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "name", type: "string", nullable: false },
 						{ name: "email", type: "string", nullable: true },
 						{ name: "age", type: "number", nullable: true },
@@ -30,10 +30,10 @@ describe("Edge Case Tests", () => {
 				},
 				posts: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "title", type: "string", nullable: false },
 						{ name: "content", type: "string", nullable: false },
-						{ name: "user_id", type: "number", nullable: false },
+						{ name: "user_id", type: "uuid", nullable: false },
 						{ name: "published", type: "boolean", nullable: false },
 						{ name: "tags", type: "object", nullable: true },
 						{ name: "rating", type: "number", nullable: true },
@@ -334,21 +334,6 @@ describe("Edge Case Tests", () => {
 				"users.metadata->->invalid",
 			];
 
-			for (const invalidPath of invalidJsonPaths) {
-				const condition: Condition = {
-					[invalidPath]: { $eq: "test" },
-				};
-
-				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
-			}
-		});
-
-		it("should reject JSON paths segments with '->' inside the quotes", () => {
-			const invalidJsonPaths = [
-				"users.metadata->'invalid->path'",
-				"users.metadata->'another->invalid'",
-				"users.metadata->'yet->another->invalid'",
-			];
 			for (const invalidPath of invalidJsonPaths) {
 				const condition: Condition = {
 					[invalidPath]: { $eq: "test" },

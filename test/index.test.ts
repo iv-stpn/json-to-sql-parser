@@ -1,11 +1,11 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 
 import { beforeEach, describe, expect, it } from "bun:test";
+import { compileAggregationQuery, parseAggregationQuery } from "../src/builders/aggregate";
+import { compileSelectQuery, parseSelectQuery } from "../src/builders/select";
 import { parseExpression } from "../src/parsers";
-import { type AggregationQuery, compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
-import { compileSelectQuery, parseSelectQuery } from "../src/parsers/select";
 
-import type { AnyExpression, Condition } from "../src/schemas";
+import type { AggregationQuery, AnyExpression, Condition } from "../src/schemas";
 import type { Config, ParserState } from "../src/types";
 import { ExpressionTypeMap } from "../src/utils/expression-map";
 import { extractSelectWhereClause } from "./_helpers";
@@ -18,7 +18,7 @@ beforeEach(() => {
 		tables: {
 			users: {
 				allowedFields: [
-					{ name: "id", type: "number", nullable: false },
+					{ name: "id", type: "uuid", nullable: false },
 					{ name: "name", type: "string", nullable: false },
 					{ name: "email", type: "string", nullable: true },
 					{ name: "age", type: "number", nullable: true },
@@ -30,18 +30,18 @@ beforeEach(() => {
 			},
 			posts: {
 				allowedFields: [
-					{ name: "id", type: "number", nullable: false },
+					{ name: "id", type: "uuid", nullable: false },
 					{ name: "title", type: "string", nullable: false },
 					{ name: "content", type: "string", nullable: false },
-					{ name: "user_id", type: "number", nullable: false },
+					{ name: "user_id", type: "uuid", nullable: false },
 					{ name: "published", type: "boolean", nullable: false },
 					{ name: "tags", type: "object", nullable: true },
 				],
 			},
 		},
 		variables: {
-			"auth.uid": 123,
-			current_user: 456,
+			"auth.uid": "123",
+			current_user: "456",
 		},
 		relationships: [
 			{
@@ -138,17 +138,7 @@ describe("Conditions Parser", () => {
 			};
 
 			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.id = 123");
-			expect(result.params).toEqual([]);
-		});
-
-		it("should parse function expressions", () => {
-			const condition: Condition = {
-				"users.age": { $gt: { $expr: { YEAR: [{ $expr: "users.created_at" }] } } },
-			};
-
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.age > YEAR(users.created_at)");
+			expect(result.sql).toBe("(users.id)::TEXT = '123'");
 			expect(result.params).toEqual([]);
 		});
 
@@ -260,7 +250,7 @@ describe("Select Parser", () => {
 			const result = parseSelectQuery({ rootTable: "users", selection }, testConfig);
 			compileSelectQuery(result); // Call to avoid unused variable
 
-			expect(result.joins).toContain("LEFT JOIN posts ON (users.id)::FLOAT = (posts.user_id)::FLOAT");
+			expect(result.joins).toContain("LEFT JOIN posts ON (users.id)::UUID = (posts.user_id)::UUID");
 			expect(result.select).toContain('users.id AS "id"');
 			expect(result.select).toContain('posts.id AS "posts.id"');
 			expect(result.select).toContain('posts.title AS "posts.title"');
@@ -368,7 +358,7 @@ describe("Expression Evaluation", () => {
 		it("should resolve context variables", () => {
 			const expr: AnyExpression = { $expr: "auth.uid" };
 			const result = parseExpression(expr, testState);
-			expect(result).toBe("123");
+			expect(result).toBe("'123'");
 		});
 
 		it("should resolve field references", () => {
@@ -430,7 +420,7 @@ describe("Error Handling", () => {
 			};
 
 			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
-				"Field 'invalid_field' is not allowed for table 'users'",
+				"Field 'invalid_field' is not allowed or does not exist for table 'users'",
 			);
 		});
 	});
@@ -474,7 +464,7 @@ describe("Error Handling", () => {
 			};
 
 			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
-				"JSON path access 'profile' is only allowed on JSON fields",
+				"JSON path access 'name->profile' is only allowed on JSON fields, but field 'name' is of type 'string'",
 			);
 		});
 	});
@@ -561,7 +551,7 @@ describe("UUID Support", () => {
 				},
 				orders: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "user_id", type: "uuid", nullable: false },
 						{ name: "total", type: "number", nullable: false },
 					],

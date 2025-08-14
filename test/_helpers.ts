@@ -1,6 +1,6 @@
 import type { Condition, Config } from "../src";
-import { parseAggregationQuery } from "../src/parsers/aggregate";
-import { parseSelectQuery } from "../src/parsers/select";
+import { parseAggregationQuery } from "../src/builders/aggregate";
+import { parseSelectQuery } from "../src/builders/select";
 
 export function extractSelectWhereClause(
 	condition: Condition,

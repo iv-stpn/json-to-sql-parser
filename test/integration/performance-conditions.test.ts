@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { compileAggregationQuery, parseAggregationQuery } from "../../src/parsers/aggregate";
-import { parseSelectQuery } from "../../src/parsers/select";
+import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
+import { parseSelectQuery } from "../../src/builders/select";
 import type { Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";

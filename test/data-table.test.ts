@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import { compileAggregationQuery, parseAggregationQuery } from "../src/builders/aggregate";
+import { compileSelectQuery, parseSelectQuery } from "../src/builders/select";
 import { parseExpression } from "../src/parsers";
-import { type AggregationQuery, compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
-import { compileSelectQuery, parseSelectQuery } from "../src/parsers/select";
 
-import type { Condition } from "../src/schemas";
+import type { AggregationQuery, Condition } from "../src/schemas";
 import type { Config, ParserState } from "../src/types";
 import { ExpressionTypeMap } from "../src/utils/expression-map";
 import { extractSelectWhereClause } from "./_helpers";
@@ -18,7 +18,7 @@ describe("Data Table Configuration Tests", () => {
 			tables: {
 				users: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "name", type: "string", nullable: false },
 						{ name: "email", type: "string", nullable: true },
 						{ name: "age", type: "number", nullable: true },
@@ -28,19 +28,19 @@ describe("Data Table Configuration Tests", () => {
 				},
 				posts: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "title", type: "string", nullable: false },
 						{ name: "content", type: "string", nullable: false },
-						{ name: "user_id", type: "number", nullable: false },
+						{ name: "user_id", type: "uuid", nullable: false },
 						{ name: "published", type: "boolean", nullable: false },
 					],
 				},
 				orders: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "amount", type: "number", nullable: false },
 						{ name: "status", type: "string", nullable: false },
-						{ name: "customer_id", type: "number", nullable: false },
+						{ name: "customer_id", type: "uuid", nullable: false },
 					],
 				},
 			},
@@ -59,7 +59,7 @@ describe("Data Table Configuration Tests", () => {
 			tables: {
 				users: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "name", type: "string", nullable: false },
 						{ name: "email", type: "string", nullable: true },
 						{ name: "age", type: "number", nullable: true },
@@ -69,19 +69,19 @@ describe("Data Table Configuration Tests", () => {
 				},
 				posts: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "title", type: "string", nullable: false },
 						{ name: "content", type: "string", nullable: false },
-						{ name: "user_id", type: "number", nullable: false },
+						{ name: "user_id", type: "uuid", nullable: false },
 						{ name: "published", type: "boolean", nullable: false },
 					],
 				},
 				orders: {
 					allowedFields: [
-						{ name: "id", type: "number", nullable: false },
+						{ name: "id", type: "uuid", nullable: false },
 						{ name: "amount", type: "number", nullable: false },
 						{ name: "status", type: "string", nullable: false },
-						{ name: "customer_id", type: "number", nullable: false },
+						{ name: "customer_id", type: "uuid", nullable: false },
 					],
 				},
 			},
@@ -197,7 +197,7 @@ describe("Data Table Configuration Tests", () => {
 			const result = parseSelectQuery({ rootTable: "users", selection }, dataTableConfig);
 			const sql = compileSelectQuery(result);
 			expect(sql).toBe(
-				"SELECT (users.data->>'id')::FLOAT AS \"id\", users.data->>'name' AS \"name\", users.data->>'email' AS \"email\" FROM data_storage AS \"users\" WHERE (users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL)",
+				"SELECT (users.data->>'id')::UUID AS \"id\", users.data->>'name' AS \"name\", users.data->>'email' AS \"email\" FROM data_storage AS \"users\" WHERE (users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL)",
 			);
 		});
 	});
@@ -217,7 +217,7 @@ describe("Data Table Configuration Tests", () => {
 			const result = parseSelectQuery({ rootTable: "users", selection, condition }, dataTableConfig);
 			const sql = compileSelectQuery(result);
 			expect(sql).toBe(
-				"SELECT (users.data->>'id')::FLOAT AS \"id\", users.data->>'name' AS \"name\" FROM data_storage AS \"users\" WHERE (users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (users.data->>'active')::BOOLEAN = $1)",
+				"SELECT (users.data->>'id')::UUID AS \"id\", users.data->>'name' AS \"name\" FROM data_storage AS \"users\" WHERE (users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (users.data->>'active')::BOOLEAN = $1)",
 			);
 			expect(result.params).toEqual([true]);
 		});
@@ -245,7 +245,7 @@ describe("Data Table Configuration Tests", () => {
 			const result = parseAggregationQuery(aggregationQuery, dataTableConfig);
 			const sql = compileAggregationQuery(result);
 			expect(sql).toBe(
-				"SELECT orders.data->>'status' AS \"status\", SUM((orders.data->>'amount')::FLOAT) AS \"total_amount\", COUNT((orders.data->>'id')::FLOAT) AS \"order_count\" FROM data_storage AS \"orders\" GROUP BY orders.data->>'status'",
+				"SELECT orders.data->>'status' AS \"status\", SUM((orders.data->>'amount')::FLOAT) AS \"total_amount\", COUNT(orders.data->>'id') AS \"order_count\" FROM data_storage AS \"orders\" WHERE (orders.table_name = 'orders' AND orders.tenant_id = 'current_tenant' AND orders.deleted_at IS NULL) GROUP BY orders.data->>'status'",
 			);
 		});
 	});
@@ -272,7 +272,7 @@ describe("Data Table Configuration Tests", () => {
 			const result = parseAggregationQuery(jsonAggregationQuery, dataTableConfig);
 			const sql = compileAggregationQuery(result);
 			expect(sql).toBe(
-				"SELECT users.data->'metadata'->>'department' AS \"metadata->department\", AVG((users.data->>'age')::FLOAT) AS \"avg_age\", COUNT(*) AS \"user_count\" FROM data_storage AS \"users\" GROUP BY users.data->'metadata'->>'department'",
+				"SELECT users.data->'metadata'->>'department' AS \"metadata->department\", AVG((users.data->>'age')::FLOAT) AS \"avg_age\", COUNT(*) AS \"user_count\" FROM data_storage AS \"users\" WHERE (users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL) GROUP BY users.data->'metadata'->>'department'",
 			);
 		});
 	});
@@ -348,7 +348,7 @@ describe("Data Table Configuration Tests", () => {
 		it("should parse nested condition with data table", () => {
 			const result = extractSelectWhereClause(nestedCondition, dataTableConfig, "users");
 			expect(result.sql).toBe(
-				"(((users.data->>'active')::BOOLEAN = $1 AND (users.data->>'age')::FLOAT >= $2) OR (users.data->>'name' LIKE $3 AND users.data->>'email' IS NOT NULL))",
+				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (((users.data->>'active')::BOOLEAN = $1 AND (users.data->>'age')::FLOAT >= $2) OR (users.data->>'name' LIKE $3 AND users.data->>'email' IS NOT NULL)))",
 			);
 			expect(result.params).toEqual([true, 18, "Admin%"]);
 		});

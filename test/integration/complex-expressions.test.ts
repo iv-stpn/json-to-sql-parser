@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { generateSelectQuery } from "../../src";
+import { buildSelectQuery } from "../../src";
 import type { Condition, SelectQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment } from "./_helpers";
@@ -86,7 +86,7 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 				},
 			};
 
-			const result = generateSelectQuery(query, config);
+			const result = buildSelectQuery(query, config);
 			const rows = await db.query(result.sql, result.params);
 
 			expect(rows).toBeDefined();
@@ -119,7 +119,7 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 				},
 			};
 
-			const result = generateSelectQuery(query, config);
+			const result = buildSelectQuery(query, config);
 			const rows = await db.query(result.sql, result.params);
 
 			expect(rows).toBeDefined();
@@ -143,7 +143,7 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 				},
 			};
 
-			const result = generateSelectQuery(query, config);
+			const result = buildSelectQuery(query, config);
 			const rows = await db.query(result.sql, result.params);
 
 			expect(rows).toBeDefined();
@@ -165,11 +165,14 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 
 			const query: SelectQuery = {
 				rootTable: "users",
-				selection: { count: { $expr: { COUNT: ["*"] } } },
+				selection: {
+					name: true,
+					metadata: true,
+				},
 				condition,
 			};
 
-			const { sql, params } = generateSelectQuery(query, config);
+			const { sql, params } = buildSelectQuery(query, config);
 			const rows = await db.query(sql, params);
 
 			expect(rows).toBeDefined();
@@ -212,7 +215,7 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 				},
 			};
 
-			const result = generateSelectQuery(query, config);
+			const result = buildSelectQuery(query, config);
 			const rows = await db.query(result.sql, result.params);
 
 			expect(rows).toBeDefined();
@@ -251,7 +254,7 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 				},
 			};
 
-			const result = generateSelectQuery(query, config);
+			const result = buildSelectQuery(query, config);
 			const rows = await db.query(result.sql, result.params);
 
 			expect(rows).toBeDefined();
@@ -284,11 +287,15 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 
 			const query: SelectQuery = {
 				rootTable: "users",
-				selection: { count: { $expr: { COUNT: ["*"] } } },
+				selection: {
+					name: true,
+					age: true,
+					status: true,
+				},
 				condition,
 			};
 
-			const { sql, params } = generateSelectQuery(query, config);
+			const { sql, params } = buildSelectQuery(query, config);
 			const rows = await db.query(sql, params);
 
 			expect(rows).toBeDefined();
@@ -308,11 +315,15 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 
 			const query: SelectQuery = {
 				rootTable: "users",
-				selection: { count: { $expr: { COUNT: ["*"] } } },
+				selection: {
+					name: true,
+					age: true,
+					status: true,
+				},
 				condition,
 			};
 
-			const { sql, params } = generateSelectQuery(query, config);
+			const { sql, params } = buildSelectQuery(query, config);
 			const rows = await db.query(sql, params);
 
 			expect(rows).toBeDefined();
@@ -339,7 +350,7 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 				},
 			};
 
-			const result = generateSelectQuery(query, config);
+			const result = buildSelectQuery(query, config);
 			const rows = await db.query(result.sql, result.params);
 
 			expect(rows).toBeDefined();
