@@ -329,12 +329,12 @@ The expression system supports various functions and operations:
 // Utility functions
 {
   $expr: {
-    COALESCE: [{ $expr: "users.nickname" }, { $expr: "users.name" }];
+    COALESCE_STRING: [{ $expr: "users.nickname" }, { $expr: "users.name" }];
   }
 }
 {
   $expr: {
-    GREATEST: [{ $expr: "users.score1" }, { $expr: "users.score2" }];
+    GREATEST_NUMBER: [{ $expr: "users.score1" }, { $expr: "users.score2" }];
   }
 }
 ```
@@ -488,7 +488,7 @@ const query = {
     name: true,
     total_posts: {
       $expr: {
-        COALESCE: [
+        COALESCE_NUMBER: [
           { $expr: "post_count.count" },
           0,
         ],

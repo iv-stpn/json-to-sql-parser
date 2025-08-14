@@ -2,21 +2,16 @@ import {
 	INVALID_ARGUMENT_COUNT_ERROR,
 	INVALID_OPERATOR_VALUE_TYPE_ERROR,
 	JSON_ACCESS_TYPE_ERROR,
-	OPERATOR_TYPE_MISMATCH_ERROR,
+	COMPARISON_TYPE_MISMATCH_ERROR,
+	FUNCTION_TYPE_MISMATCH_ERROR,
 } from "../constants/errors";
+import { allowedFunctions } from "../constants/functions";
 import type { CastType, FieldType } from "../constants/operators";
-import {
-	binaryOperators,
-	castMap,
-	isOperator,
-	operatorReturnTypes,
-	unaryOperators,
-	variableFunctions,
-} from "../constants/operators";
+import { castMap } from "../constants/operators";
 import { parseJsonAccess } from "../parsers/parse-json-access";
 import type { AnyExpression, Condition, ConditionExpression, ExpressionObject, FieldCondition, ScalarValue } from "../schemas";
 import type { Field, FieldPath, ParserState, Primitive } from "../types";
-import { isInArray, isNotNull, quote } from "../utils";
+import { isNotNull, quote } from "../utils";
 import { applyFunction } from "../utils/function-call";
 import { fieldNameRegex, isPrimitiveValue, isScalarValue, isValidDate, isValidTimestamp, uuidRegex } from "../utils/validators";
 
@@ -35,6 +30,8 @@ function parseTableFieldPath(fieldPath: string, rootTable: string) {
 	return { table, field };
 }
 
+const fieldNamePartRegex = new RegExp(`^${fieldNameRegex}$`);
+
 type ParseTableFieldParams = { field: string; state: ParserState };
 export function parseFieldPath({ field, state }: ParseTableFieldParams): FieldPath {
 	const { table, field: fieldPath } = parseTableFieldPath(field, state.rootTable);
@@ -45,13 +42,13 @@ export function parseFieldPath({ field, state }: ParseTableFieldParams): FieldPa
 	const arrowIdx = fieldPath.indexOf("->");
 	const fieldName = arrowIdx === -1 ? fieldPath : fieldPath.substring(0, arrowIdx);
 
-	if (!fieldNameRegex.test(fieldName)) throw new Error(`Invalid field name '${fieldName}' in table '${table}'`);
+	if (!fieldNamePartRegex.test(fieldName)) throw new Error(`Invalid field name '${fieldName}' in table '${table}'`);
 
 	const fieldConfig = tableConfig.allowedFields.find((allowedField) => allowedField.name === fieldName);
 	if (!fieldConfig) throw new Error(`Field '${fieldName}' is not allowed or does not exist for table '${table}'`);
 
 	// No JSON path, return as is
-	if (arrowIdx === -1) return { table, field: fieldPath, fieldConfig, jsonPathSegments: [], jsonExtractText: false };
+	if (arrowIdx === -1) return { table, field: fieldPath, fieldConfig, jsonPathSegments: [] };
 
 	if (fieldConfig.type !== "object") throw new Error(JSON_ACCESS_TYPE_ERROR(fieldPath, fieldName, fieldConfig.type));
 
@@ -65,31 +62,39 @@ function parseExpressionFunction(exprObj: { [functionName: string]: AnyExpressio
 	const entries = Object.entries(exprObj);
 	if (entries.length !== 1) throw new Error("$expr must contain exactly one function");
 
-	const [operator, args] = entries[0]!;
-	if (!operator) throw new Error("Function name cannot be empty");
-	if (!isOperator(operator)) throw new Error(`Unknown function or operator: ${operator}`);
+	const entry = entries[0];
+	if (!entry) throw new Error("Function name cannot be empty");
 
-	state.expressions.add({ $expr: exprObj }, operatorReturnTypes[operator]);
+	const [operator, args] = entry;
 
-	// Handle unary operators
-	if (isInArray(unaryOperators, operator)) {
-		const arg = args[0];
-		if (args.length !== 1 || arg === undefined) throw new Error(INVALID_ARGUMENT_COUNT_ERROR("Unary", operator, args.length));
-		return applyFunction(operator, [parseExpression(arg, state)]);
-	}
+	const functionDefinition = allowedFunctions.find(({ name }) => name === operator);
+	if (!functionDefinition) throw new Error(`Unknown function or operator: "${operator}"`);
 
-	if (isInArray(variableFunctions, operator)) {
-		// Handle variable functions
-		if (args.length === 0) throw new Error(INVALID_ARGUMENT_COUNT_ERROR("Variable", operator, args.length));
-		const resolvedArgs = args.map((arg) => parseExpression(arg, state));
-		return applyFunction(operator, resolvedArgs);
-	}
+	const { argumentTypes, name, toSQL, returnType, variadic } = functionDefinition;
+	if (argumentTypes.length > args.length || (argumentTypes.length < args.length && !variadic))
+		throw new Error(INVALID_ARGUMENT_COUNT_ERROR(functionDefinition, args.length));
 
-	// Handle binary operators
-	const [arg1, arg2] = args;
-	if (args.length !== 2 || arg1 === undefined || arg2 === undefined)
-		throw new Error(INVALID_ARGUMENT_COUNT_ERROR("Binary", operator, args.length));
-	return `(${parseExpression(arg1!, state)} ${binaryOperators[operator]} ${parseExpression(arg2!, state)})`;
+	const resolvedArguments = args.map((arg, index) => {
+		const expectedType = index >= argumentTypes.length ? argumentTypes.at(-1) : argumentTypes[index];
+		if (!expectedType) throw new Error(`No argument type defined for function '${name}' at index ${index}`);
+
+		const expression = parseExpression(arg, state);
+
+		if (expectedType === "ANY") return expression;
+		const actualType = getExpressionCastType(arg, state);
+
+		if (actualType !== expectedType && actualType !== null) {
+			if (expectedType === "TEXT") return castValue(expression, "TEXT"); // Every type can be cast to TEXT, automatically cast in this case
+			if (expectedType === "FLOAT" && (actualType === "TIMESTAMP" || actualType === "DATE"))
+				return `(EXTRACT(EPOCH FROM ${expression}))`; // Special case for TIMESTAMP and DATE to FLOAT conversion (casted as seconds since epoch)
+			throw new Error(FUNCTION_TYPE_MISMATCH_ERROR(operator, expectedType, actualType));
+		}
+
+		return expression;
+	});
+
+	state.expressions.add({ $expr: exprObj }, returnType);
+	return toSQL ? toSQL(resolvedArguments) : applyFunction(name, resolvedArguments);
 }
 
 function jsonAccess(path: string, jsonPathSegments: string[], jsonExtractText = true): string {
@@ -150,7 +155,10 @@ function selectField({ fieldPath, state, cast = null, jsonExtractText }: SelectF
 
 export function parseField(field: string, state: ParserState, cast?: CastType, jsonExtractText?: boolean) {
 	const fieldPath = parseFieldPath({ field, state });
-	return { select: selectField({ fieldPath, state, cast, jsonExtractText }), fieldPath };
+	return {
+		select: selectField({ fieldPath, state, cast, jsonExtractText: jsonExtractText ?? fieldPath.jsonExtractText }),
+		fieldPath,
+	};
 }
 
 function parsePrimitiveValue(value: ScalarValue) {
@@ -283,9 +291,10 @@ function parseComparisonCondition(value: AnyExpression, state: ParserState, oper
 	}
 
 	if (value !== null) {
+		const castType = getPrimitiveCastType(value);
 		if (field.type !== typeof value && field.type !== "object")
-			throw new Error(OPERATOR_TYPE_MISMATCH_ERROR(operator, field.name, field.type, typeof value));
-		return { condition: `${operator} ${parametrize(value, state)}`, castType: getPrimitiveCastType(value) };
+			throw new Error(COMPARISON_TYPE_MISMATCH_ERROR(operator, field.name, castMap[field.type], castType));
+		return { condition: `${operator} ${parametrize(value, state)}`, castType };
 	}
 
 	if (field && !field.nullable) throw new Error(`Field '${field.name}' is not nullable, and cannot be compared with NULL`);
@@ -321,10 +330,10 @@ function parseStringCondition(
 ): ParseFieldCondition {
 	if (value === null) throw new Error(`Operator '${operator}' cannot be used with NULL value`);
 	if (isExpressionObject(value))
-		return { condition: `${operator} (${parseExpressionObject(value, state)}::TEXT)`, castType: "TEXT" };
+		return { condition: `${operator} ${castValue(parseExpressionObject(value, state), "TEXT")}`, castType: "TEXT" };
 	if (typeof value !== "string") throw new Error(INVALID_OPERATOR_VALUE_TYPE_ERROR(operator, "string"));
 	if (field && field.type !== "string" && field.type !== "object")
-		throw new Error(`Field type mismatch for ${operator} operation on '${field.name}': expected string, got ${field.type}`);
+		throw new Error(COMPARISON_TYPE_MISMATCH_ERROR(operator, field.name, castMap[field.type], "TEXT"));
 	return { condition: `${operator} ${parametrize(value, state)}`, castType: "TEXT" };
 }
 

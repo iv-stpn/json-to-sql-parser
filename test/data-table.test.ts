@@ -298,12 +298,12 @@ describe("Data Table Configuration Tests", () => {
 
 		it("should evaluate function with context variable without data table", () => {
 			const result = parseExpression({ $expr: { CONCAT: [{ $expr: "currentUserId" }, " user"] } }, regularState);
-			expect(result).toBe("CONCAT(123, ' user')");
+			expect(result).toBe("CONCAT((123)::TEXT, ' user')");
 		});
 
 		it("should evaluate function with context variable with data table", () => {
 			const result = parseExpression({ $expr: { CONCAT: [{ $expr: "currentUserId" }, " user"] } }, dataTableState);
-			expect(result).toBe("CONCAT(123, ' user')");
+			expect(result).toBe("CONCAT((123)::TEXT, ' user')");
 		});
 	});
 

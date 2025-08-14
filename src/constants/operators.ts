@@ -1,46 +1,6 @@
 import { applyFunction } from "../utils/function-call";
 
-// SQL functions and operator definitions for $expr
-export const unaryOperators = ["ABS", "UPPER", "LOWER", "LENGTH", "NOT", "SQRT", "CEIL", "FLOOR"] as const;
-export const variableFunctions = ["COALESCE", "GREATEST", "LEAST", "CONCAT", "SUBSTRING"] as const;
-export const binaryOperators = {
-	ADD: "+",
-	SUBTRACT: "-",
-	MULTIPLY: "*",
-	DIVIDE: "/",
-	MOD: "%",
-	POW: "^",
-	AND: "AND",
-	OR: "OR",
-} as const;
-
-type Operator = (typeof unaryOperators)[number] | (typeof variableFunctions)[number] | keyof typeof binaryOperators;
-
-export const operatorReturnTypes: Record<Operator, CastType> = {
-	ABS: "FLOAT",
-	UPPER: "TEXT",
-	LOWER: "TEXT",
-	LENGTH: "FLOAT",
-	SQRT: "FLOAT",
-	CEIL: "FLOAT",
-	FLOOR: "FLOAT",
-	NOT: "BOOLEAN",
-	ADD: "FLOAT",
-	SUBTRACT: "FLOAT",
-	MULTIPLY: "FLOAT",
-	DIVIDE: "FLOAT",
-	MOD: "FLOAT",
-	POW: "FLOAT",
-	AND: "BOOLEAN",
-	OR: "BOOLEAN",
-	COALESCE: "TEXT",
-	GREATEST: "TEXT",
-	LEAST: "TEXT",
-	CONCAT: "TEXT",
-	SUBSTRING: "TEXT",
-};
-
-export const isOperator = (value: string): value is Operator => value in operatorReturnTypes;
+// TODO: add arguments for aggregation functions
 
 // Aggregation operators for SQL queries
 export const aggregationOperators = [
@@ -74,5 +34,7 @@ export const castMap = {
 	datetime: "TIMESTAMP",
 	uuid: "UUID",
 } as const;
+export const castTypes = Object.values(castMap);
+
 export type CastType = (typeof castMap)[keyof typeof castMap] | null;
 export type FieldType = keyof typeof castMap;

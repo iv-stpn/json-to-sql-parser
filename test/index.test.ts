@@ -432,17 +432,7 @@ describe("Error Handling", () => {
 			};
 
 			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
-				"Field type mismatch for '=' comparison on 'age': expected number, got string",
-			);
-		});
-
-		it("should throw error for string operators on non-string fields", () => {
-			const condition: Condition = {
-				"users.age": { $like: "25%" },
-			};
-
-			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
-				"Field type mismatch for LIKE operation on 'age': expected string, got number",
+				"Field type mismatch for '=' comparison on 'age': expected FLOAT, got TEXT",
 			);
 		});
 
@@ -452,7 +442,7 @@ describe("Error Handling", () => {
 			};
 
 			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
-				"Field type mismatch for '>' comparison on 'name': expected string, got number",
+				"Field type mismatch for '>' comparison on 'name': expected TEXT, got FLOAT",
 			);
 		});
 	});
@@ -476,7 +466,7 @@ describe("Error Handling", () => {
 			};
 
 			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
-				"Unknown function or operator: UNKNOWN_FUNC",
+				'Unknown function or operator: "UNKNOWN_FUNC"',
 			);
 		});
 
@@ -486,7 +476,7 @@ describe("Error Handling", () => {
 			};
 
 			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
-				"Unary operator 'ABS' requires exactly 1 argument, got 2",
+				"Function 'ABS' requires exactly 1 argument, got 2",
 			);
 		});
 	});

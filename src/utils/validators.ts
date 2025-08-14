@@ -1,3 +1,4 @@
+import { fieldPathRegex } from "../parsers/parse-json-access";
 import type { FieldName, ScalarValue } from "../schemas";
 import type { Primitive } from "../types";
 
@@ -8,8 +9,10 @@ export const isScalarValue = (value: unknown): value is ScalarValue =>
 	typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null;
 
 // SQL validators
-export const fieldNameRegex = /^[a-z][a-z_0-9]*$/;
-export const isFieldName = (field: string): field is FieldName => fieldNameRegex.test(field);
+export const tableNameRegex = `[a-z][a-z_]+`;
+export const fieldNameRegex = `[a-z][a-z_0-9]*`;
+export const fieldRegex = new RegExp(`^(?:${tableNameRegex}\\.)?${fieldNameRegex}(?:${fieldPathRegex})?$`);
+export const isField = (field: string): field is FieldName => fieldRegex.test(field);
 
 // Common utility functions for validating data types
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;

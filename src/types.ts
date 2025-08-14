@@ -6,7 +6,7 @@ export type FieldPath = {
 	table: string;
 	field: string;
 	jsonPathSegments: string[];
-	jsonExtractText: boolean;
+	jsonExtractText?: boolean;
 	fieldConfig: Field;
 };
 

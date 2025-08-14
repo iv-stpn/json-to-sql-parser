@@ -152,7 +152,7 @@ describe("Expression Parser Advanced Tests", () => {
 				},
 			};
 
-			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow("Function name cannot be empty");
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow('Unknown function or operator: ""');
 		});
 	});
 

@@ -1,4 +1,4 @@
-function removeAllWrappingParens(expression: string): string {
+export function removeAllWrappingParens(expression: string): string {
 	expression = expression.trim();
 
 	while (expression.startsWith("(") && expression.endsWith(")")) {

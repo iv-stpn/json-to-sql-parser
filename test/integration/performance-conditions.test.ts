@@ -200,8 +200,8 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 					$and: [
 						{
 							$or: [
-								{ "users.metadata->profile->personal->firstName": { $like: "John%" } },
-								{ "users.metadata->profile->personal->lastName": { $like: "Smith%" } },
+								{ "users.metadata->profile->personal->'firstName'": { $like: "John%" } },
+								{ "users.metadata->profile->personal->'lastName'": { $like: "Smith%" } },
 								{ "users.metadata->profile->contact->email->primary": { $like: "%@company.com" } },
 								{ "users.metadata->profile->contact->phone->mobile": { $like: "+1%" } },
 							],
@@ -520,14 +520,14 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 												ADD: [
 													{
 														$expr: {
-															MULTIPLY: [{ $expr: "users.age" }, { $expr: { COALESCE: [{ $expr: "users.age" }, 25] } }],
+															MULTIPLY: [{ $expr: "users.age" }, { $expr: { COALESCE_NUMBER: [{ $expr: "users.age" }, 25] } }],
 														},
 													},
 													{
 														$expr: {
 															DIVIDE: [
 																{ $expr: { LENGTH: [{ $expr: "users.name" }] } },
-																{ $expr: { GREATEST: [1, { $expr: "scoreThreshold" }] } },
+																{ $expr: { GREATEST_NUMBER: [1, { $expr: "scoreThreshold" }] } },
 															],
 														},
 													},

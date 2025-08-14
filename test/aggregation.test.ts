@@ -82,13 +82,7 @@ describe("Aggregation Edge Cases", () => {
 							$expr: {
 								MULTIPLY: [
 									{ $expr: "sales.amount" },
-									{
-										$cond: {
-											if: { "sales.region": { $eq: "premium" } },
-											then: 1.2,
-											else: 1.0,
-										},
-									},
+									{ $cond: { if: { "sales.region": { $eq: "premium" } }, then: 1.2, else: 1.0 } },
 								],
 							},
 						},

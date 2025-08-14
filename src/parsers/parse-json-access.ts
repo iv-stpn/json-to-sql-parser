@@ -2,13 +2,14 @@ import { INVALID_JSON_ACCESS_ERROR } from "../constants/errors";
 
 const segmentCharacter = "[0-9a-z_]";
 const segmentRegex = `(?:(?:'[^']+'|${segmentCharacter}+))`;
+export const fieldPathRegex = `->(?:>${segmentRegex}|${segmentRegex}(?:->${segmentRegex})*(?:->>${segmentRegex})?)`;
 
-const fieldPathRegex = new RegExp(`^->(?:>${segmentRegex}|${segmentRegex}(?:->${segmentRegex})*(?:->>${segmentRegex})?)$`);
+const jsonAccessRegex = new RegExp(`^${fieldPathRegex}$`);
 const segmentCharacterRegex = new RegExp(segmentCharacter);
 
-export function parseJsonAccess(jsonAccess: string): { jsonPathSegments: string[]; jsonExtractText: boolean } {
+export function parseJsonAccess(jsonAccess: string): { jsonPathSegments: string[]; jsonExtractText?: true } {
 	// Validate the input matches the expected pattern
-	if (!fieldPathRegex.test(jsonAccess)) throw new Error(INVALID_JSON_ACCESS_ERROR(jsonAccess, "format"));
+	if (!jsonAccessRegex.test(jsonAccess)) throw new Error(INVALID_JSON_ACCESS_ERROR(jsonAccess, "format"));
 
 	const segments: string[] = [];
 
@@ -77,5 +78,5 @@ export function parseJsonAccess(jsonAccess: string): { jsonPathSegments: string[
 
 	// Add the final segment if there is one
 	if (currentSegment) segments.push(currentSegment);
-	return { jsonPathSegments: segments, jsonExtractText };
+	return { jsonPathSegments: segments, jsonExtractText: jsonExtractText || undefined };
 }

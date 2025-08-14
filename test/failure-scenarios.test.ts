@@ -169,14 +169,14 @@ describe("Expected Failure Tests", () => {
 					$expr: { UPPER: [] }, // No arguments
 				};
 				parseExpression(expr, testState);
-			}).toThrow("Unary operator 'UPPER' requires exactly 1 argument");
+			}).toThrow("Function 'UPPER' requires exactly 1 argument, got 0");
 
 			expect(() => {
 				const expr: AnyExpression = {
 					$expr: { UPPER: ["arg1", "arg2"] }, // Too many arguments
 				};
 				parseExpression(expr, testState);
-			}).toThrow("Unary operator 'UPPER' requires exactly 1 argument");
+			}).toThrow("Function 'UPPER' requires exactly 1 argument, got 2");
 
 			// Binary functions with wrong argument count
 			expect(() => {
@@ -184,36 +184,30 @@ describe("Expected Failure Tests", () => {
 					$expr: { ADD: ["only_one"] }, // Not enough arguments
 				};
 				parseExpression(expr, testState);
-			}).toThrow("Binary operator 'ADD' requires exactly 2 arguments");
+			}).toThrow("Function 'ADD' requires exactly 2 arguments, got 1");
 
 			expect(() => {
 				const expr: AnyExpression = {
 					$expr: { ADD: ["arg1", "arg2", "arg3"] }, // Too many arguments
 				};
 				parseExpression(expr, testState);
-			}).toThrow("Binary operator 'ADD' requires exactly 2 arguments");
+			}).toThrow("Function 'ADD' requires exactly 2 arguments, got 3");
 		});
 
 		it("should reject variable functions with no arguments", () => {
 			expect(() => {
 				const expr: AnyExpression = {
-					$expr: { COALESCE: [] },
+					$expr: { COALESCE_STRING: [] },
 				};
 				parseExpression(expr, testState);
-			}).toThrow("Variable operator 'COALESCE' requires at least 1 argument");
+			}).toThrow("Function 'COALESCE_STRING' requires at least 2 arguments, got 0");
 		});
 	});
 
 	describe("Invalid Query Structures", () => {
 		it("should reject empty AND conditions", () => {
 			expect(() => {
-				extractSelectWhereClause(
-					{
-						$and: [],
-					},
-					testConfig,
-					"users",
-				);
+				extractSelectWhereClause({ $and: [] }, testConfig, "users");
 			}).toThrow("No conditions provided for $and condition");
 		});
 

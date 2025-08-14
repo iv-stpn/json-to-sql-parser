@@ -8,7 +8,7 @@ export { parseExpression, parseFieldPath } from "./parsers";
 
 // Schema types
 export type {
-	Aggregation,
+	AggregatedField as Aggregation,
 	AggregationQuery,
 	AnyExpression,
 	Condition,

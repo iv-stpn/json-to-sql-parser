@@ -1,6 +1,6 @@
 import { aggregationOperators, applyAggregationOperator } from "../constants/operators";
 import { aliasValue, castValue, parseExpression, parseField } from "../parsers";
-import type { Aggregation, AggregationQuery } from "../schemas";
+import type { AggregatedField, AggregationQuery } from "../schemas";
 import type { BaseParsedQuery, Config, ParserState, Primitive } from "../types";
 import { objectEntries } from "../utils";
 import { ExpressionTypeMap } from "../utils/expression-map";
@@ -33,7 +33,7 @@ function processJoins(fields: string[], rootTable: string, state: AggregationSta
 	}
 }
 
-function parseAggregationField(aggregation: Aggregation, state: ParserState): string {
+function parseAggregationField(aggregation: AggregatedField, state: ParserState): string {
 	if (typeof aggregation.field === "string") {
 		const { select } = parseField(aggregation.field, state);
 		// For COUNT operations, we don't need to cast the field
@@ -44,7 +44,7 @@ function parseAggregationField(aggregation: Aggregation, state: ParserState): st
 	return parseExpression(aggregation.field, state);
 }
 
-function parseAggregation(alias: string, aggregation: Aggregation, state: ParserState): string {
+function parseAggregation(alias: string, aggregation: AggregatedField, state: ParserState): string {
 	const { operator, field } = aggregation;
 	if (field === "*") {
 		if (operator !== "COUNT") throw new Error(`Operator '${operator}' cannot be used with '*'. Only COUNT(*) is supported.`);

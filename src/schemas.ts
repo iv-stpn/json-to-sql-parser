@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: we use `then` and `else` for conditional expressions */
 import { z } from "zod";
 import { aggregationOperators } from "./constants/operators";
-import { isFieldName } from "./utils/validators";
+import { isField } from "./utils/validators";
 
 // Primitive value types
 export const scalarValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
@@ -43,14 +43,16 @@ const stringOperators = { $like: $expr, $ilike: $expr, $regex: $expr };
 const $arrayExpr = z.array(anyExpressionSchema).optional();
 const arrayOperators = { $in: $arrayExpr, $nin: $arrayExpr };
 
+// All conditions that can be applied to a field (multiple conditions can be combined)
 const fieldConditionSchema = z.union([
 	z.object({ ...comparisonOperators, ...stringOperators, ...arrayOperators }),
 	anyExpressionSchema,
 ]);
+
 export type FieldCondition = z.infer<typeof fieldConditionSchema>;
 
 // Ensures field starts with lowercase letter
-const fieldNameSchema = z.string().refine(isFieldName, "Field name must start with a lowercase letter");
+const fieldNameSchema = z.string().refine(isField, "Field name must be a valid identifier");
 export type FieldName =
 	`${"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"}${string}`;
 
@@ -63,10 +65,10 @@ export type Condition =
 
 export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
 	z.union([
-		z.object({ $not: conditionSchema }),
-		z.object({ $or: z.array(conditionSchema) }),
-		z.object({ $and: z.array(conditionSchema) }),
-		z.object({ $exists: z.object({ table: z.string(), conditions: conditionSchema }) }),
+		z.object({ $and: z.array(z.lazy(() => conditionSchema)) }),
+		z.object({ $or: z.array(z.lazy(() => conditionSchema)) }),
+		z.object({ $not: z.lazy(() => conditionSchema) }),
+		z.object({ $exists: z.object({ table: z.string(), conditions: z.lazy(() => conditionSchema) }) }),
 		z.record(fieldNameSchema, fieldConditionSchema),
 	]),
 );
@@ -75,7 +77,7 @@ export type FieldSelection = boolean | ExpressionObject | { [key: string]: Field
 
 export const fieldSelectionSchema: z.ZodType<FieldSelection> = z.union([
 	z.boolean(),
-	expressionObjectSchema,
+	z.lazy(() => expressionObjectSchema),
 	z.record(
 		z.string(),
 		z.lazy(() => fieldSelectionSchema),
@@ -91,19 +93,19 @@ export const selectQuerySchema = z.object({
 export type SelectQuery = z.infer<typeof selectQuerySchema>;
 
 // Aggregation schemas
-export const aggregatedSchema = z.object({
+export const aggregatedFieldSchema = z.object({
 	operator: z.enum(aggregationOperators),
 	field: z.union([z.string(), expressionObjectSchema]),
 });
 
-export type Aggregation = z.infer<typeof aggregatedSchema>;
+export type AggregatedField = z.infer<typeof aggregatedFieldSchema>;
 
 // Schema for aggregation query
 export const aggregationQuerySchema = z.object({
 	table: z.string(),
 	groupBy: z.array(z.string()),
 	condition: conditionSchema.optional(),
-	aggregatedFields: z.record(z.string(), aggregatedSchema).optional(),
+	aggregatedFields: z.record(z.string(), aggregatedFieldSchema).optional(),
 });
 
 export type AggregationQuery = z.infer<typeof aggregationQuerySchema>;

@@ -233,7 +233,7 @@ describe("Integration Tests - Edge Cases and Comprehensive Type Inference", () =
 			expect(result.sql).toContain("->");
 		});
 
-		it("should handle JSON array operations", async () => {
+		it("should handle JSON null checking operations", async () => {
 			const condition: Condition = {
 				$and: [
 					{

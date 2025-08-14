@@ -216,13 +216,13 @@ describe("Comprehensive Integration Tests", () => {
 					rootTable: "users",
 					selection: {
 						id: true,
-						full_name: { $expr: { CONCAT: ["users.name", " (", "users.email", ")"] } },
-						age_group: { $expr: { CONCAT: ["age_", "users.age"] } },
-						normalized_email: { $expr: { LOWER: ["users.email"] } },
+						full_name: { $expr: { CONCAT: [{ $expr: "users.name" }, " (", { $expr: "users.email" }, ")"] } },
+						age_group: { $expr: { CONCAT: ["age_", { $expr: "users.age" }] } },
+						normalized_email: { $expr: { LOWER: [{ $expr: "users.email" }] } },
 						posts: {
 							title: true,
-							title_length: { $expr: { LENGTH: ["posts.title"] } },
-							view_ratio: { $expr: { DIVIDE: ["posts.view_count", 100] } },
+							title_length: { $expr: { LENGTH: [{ $expr: "posts.title" }] } },
+							view_ratio: { $expr: { DIVIDE: [{ $expr: "posts.view_count" }, 100] } },
 						},
 					},
 				},
@@ -338,7 +338,7 @@ describe("Comprehensive Integration Tests", () => {
 						total_balance: { operator: "SUM", field: "balance" },
 						max_age: {
 							operator: "MAX",
-							field: { $expr: { COALESCE: [{ $expr: "users.age" }, 0] } },
+							field: { $expr: { COALESCE_NUMBER: [{ $expr: "users.age" }, 0] } },
 						},
 					},
 				},
@@ -501,7 +501,7 @@ describe("Comprehensive Integration Tests", () => {
 						"users.balance": {
 							$gt: {
 								$expr: {
-									MULTIPLY: [{ $expr: { ADD: ["users.age", 10] } }, 100],
+									MULTIPLY: [{ $expr: { ADD: [{ $expr: "users.age" }, 10] } }, 100],
 								},
 							},
 						},
@@ -569,7 +569,7 @@ describe("Comprehensive Integration Tests", () => {
 				"users.balance": {
 					$gt: {
 						$expr: {
-							COALESCE: [{ $expr: "min_balance" }, { $expr: { MULTIPLY: ["users.age", 10] } }, 0],
+							COALESCE_NUMBER: [{ $expr: "min_balance" }, { $expr: { MULTIPLY: [{ $expr: "users.age" }, 10] } }, 0],
 						},
 					},
 				},

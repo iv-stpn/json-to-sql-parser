@@ -237,25 +237,10 @@ describe("Edge Case Tests", () => {
 	});
 
 	describe("Complex Expression Edge Cases", () => {
-		// biome-ignore lint/performance/useTopLevelRegex: no need for performance optimization here
-		const mathRegex = /\([0-9\s+\-*/%^]+\)/;
-
 		it("should handle deeply nested function calls", () => {
 			const nestedExpression: AnyExpression = {
 				$expr: {
-					UPPER: [
-						{
-							$expr: {
-								LOWER: [
-									{
-										$expr: {
-											CONCAT: ["users.name", " - ", "users.status"],
-										},
-									},
-								],
-							},
-						},
-					],
+					UPPER: [{ $expr: { LOWER: [{ $expr: { CONCAT: ["users.name", " - ", "users.status"] } }] } }],
 				},
 			};
 
@@ -266,30 +251,33 @@ describe("Edge Case Tests", () => {
 		});
 
 		it("should handle mathematical expressions with edge cases", () => {
-			const mathExpressions: AnyExpression[] = [
-				{ $expr: { ADD: [0, 0] } },
-				{ $expr: { SUBTRACT: [0, 0] } },
-				{ $expr: { MULTIPLY: [0, 1] } },
-				{ $expr: { DIVIDE: [1, 1] } },
-				{ $expr: { MOD: [10, 3] } },
-				{ $expr: { POW: [2, 0] } },
-			];
+			const addResult = parseExpression({ $expr: { ADD: [0, 0] } }, testState);
+			expect(addResult).toMatch("0 + 0");
 
-			for (const mathExpr of mathExpressions) {
-				const result = parseExpression(mathExpr, testState);
-				expect(result).toMatch(mathRegex);
-			}
+			const subtractResult = parseExpression({ $expr: { SUBTRACT: [0, 0] } }, testState);
+			expect(subtractResult).toMatch("0 - 0");
+
+			const multiplyResult = parseExpression({ $expr: { MULTIPLY: [0, 1] } }, testState);
+			expect(multiplyResult).toMatch("0 * 1");
+
+			const divideResult = parseExpression({ $expr: { DIVIDE: [1, 1] } }, testState);
+			expect(divideResult).toMatch("1 / 1");
+
+			const modResult = parseExpression({ $expr: { MOD: [10, 3] } }, testState);
+			expect(modResult).toMatch("10 % 3");
+
+			const powResult = parseExpression({ $expr: { POW: [2, 0] } }, testState);
+			expect(powResult).toMatch("2 ^ 0");
 		});
 
 		it("should handle division by zero attempts", () => {
 			const divisionByZero: AnyExpression = {
-				$expr: { DIVIDE: ["users.age", 0] },
+				$expr: { DIVIDE: [{ $expr: "users.age" }, 0] },
 			};
 
-			// Should not throw at parse time, but runtime SQL might handle it
-			const result = parseExpression(divisionByZero, testState);
-			expect(result).toContain("users.age");
-			expect(result).toContain("0");
+			expect(() => {
+				parseExpression(divisionByZero, testState);
+			}).toThrow("Division by zero is not allowed");
 		});
 	});
 
