@@ -1,10 +1,11 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { compileSelectQuery, parseSelectQuery } from "../../src/parsers/select";
-import { parseWhereClause } from "../../src/parsers/where";
+
 import type { Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
+import { extractSelectWhereClause } from "../_helpers";
 
 describe("Integration Tests - Complex and Deep Conditions", () => {
 	let db: DatabaseHelper;
@@ -106,7 +107,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 					],
 				};
 
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const sql = `SELECT * FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
 
@@ -156,7 +157,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 					],
 				};
 
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const sql = `SELECT * FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
 
@@ -222,7 +223,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 					],
 				};
 
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const sql = `SELECT * FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
 
@@ -271,7 +272,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 					],
 				};
 
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const sql = `SELECT * FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
 
@@ -314,7 +315,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 					],
 				};
 
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const sql = `SELECT * FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
 
@@ -361,7 +362,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 					],
 				};
 
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const sql = `SELECT * FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
 
@@ -439,7 +440,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 					],
 				};
 
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const sql = `SELECT * FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
 
@@ -672,7 +673,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 					],
 				};
 
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const sql = `SELECT count(*) as total FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
 
@@ -699,7 +700,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 					};
 				}
 
-				const result = parseWhereClause(deepCondition, config, "users");
+				const result = extractSelectWhereClause(deepCondition, config, "users");
 				const sql = `SELECT count(*) as total FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
 
@@ -755,7 +756,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 					],
 				};
 
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const sql = `SELECT * FROM users WHERE ${result.sql} LIMIT 10`;
 				const rows = await db.query(sql, result.params);
 

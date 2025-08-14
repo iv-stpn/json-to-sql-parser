@@ -1,9 +1,19 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
 import { compileSelectQuery, parseSelectQuery } from "../src/parsers/select";
-import { parseWhereClause } from "../src/parsers/where";
 import type { Condition } from "../src/schemas";
 import type { Config } from "../src/types";
+
+// Helper function to extract WHERE clause from parsed select query
+function extractSelectWhereClause(condition: Condition, config: Config, rootTable: string): { sql: string; params: unknown[] } {
+	const query = {
+		rootTable,
+		selection: { [`${rootTable}.id`]: true }, // minimal selection
+		condition,
+	};
+	const parsedQuery = parseSelectQuery(query, config);
+	return { sql: parsedQuery.where || "", params: parsedQuery.params };
+}
 
 describe("Security Tests - SQL Injection Prevention", () => {
 	let testConfig: Config;
@@ -50,7 +60,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 					[`users.${maliciousField}`]: { $eq: "test" },
 				};
 
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 
@@ -68,7 +78,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 					[`${maliciousTable}.name`]: { $eq: "test" },
 				};
 
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 
@@ -83,7 +93,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 					[`users.${maliciousPath}`]: { $eq: "test" },
 				};
 
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 	});
@@ -108,7 +118,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 					"users.name": { $eq: maliciousValue },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 
 				// Verify the malicious SQL is properly escaped and not injectable
 				expect(result.sql).toBe("users.name = $1");
@@ -138,7 +148,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 				};
 
 				// Should either reject non-numeric values or handle them safely
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 
@@ -154,7 +164,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 					"users.name": { $in: maliciousArray },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 
 				// Verify parameters are properly escaped
 				expect(result.params).toEqual(maliciousArray);
@@ -189,7 +199,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 					},
 				};
 
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 
@@ -204,7 +214,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 				};
 
 				// Should treat as unknown variable/field and throw error
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 	});
@@ -330,7 +340,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 					[`users.${unicodeInjection}`]: { $eq: "test" },
 				};
 
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 
@@ -348,7 +358,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 					[`users.${caseVariation}`]: { $eq: "test" },
 				};
 
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 
@@ -366,7 +376,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 					[`users.${whitespaceVariation}`]: { $eq: "test" },
 				};
 
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 
@@ -383,7 +393,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 					"users.name": { $eq: stackedQuery },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.sql).toBe("users.name = $1");
 				expect(result.params).toEqual([stackedQuery]);
 			}
@@ -397,7 +407,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 				[`users.${longFieldName}`]: { $eq: "test" },
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 		});
 
 		it("should handle extremely long string values", () => {
@@ -406,7 +416,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 				"users.name": { $eq: longValue },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.name = $1");
 			expect(result.params).toEqual([longValue]);
 		});
@@ -419,7 +429,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 					"users.name": { $eq: specialValue },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.sql).toBe("users.name = $1");
 				expect(result.params).toEqual([specialValue]);
 			}

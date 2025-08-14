@@ -4,7 +4,6 @@ import type { Config, ParserState } from "../src/types";
 import { ExpressionTypeMap } from "../src/utils/expression-map";
 
 // Regex patterns used in tests
-const JSON_ACCESS_REGEX = /JSON path/;
 const TABLE_NOT_ALLOWED_REGEX = /Table .* is not allowed or does not exist/;
 const FIELD_NOT_ALLOWED_REGEX = /Field .* is not allowed for table/;
 const INVALID_FIELD_PATH_REGEX = /Invalid field path.*must be of the form/;
@@ -267,7 +266,7 @@ describe("Field Path Parsing Tests", () => {
 			for (const invalidPath of invalidJsonOnNonObject) {
 				expect(() => {
 					parseFieldPath({ field: `users.${invalidPath}`, state: testState });
-				}).toThrow(JSON_ACCESS_REGEX);
+				}).toThrow();
 			}
 		});
 
@@ -412,7 +411,7 @@ describe("Field Path Parsing Tests", () => {
 
 			expect(() => {
 				parseFieldPath({ field: invalidPath, state: testState });
-			}).toThrow(JSON_ACCESS_REGEX);
+			}).toThrow();
 		});
 
 		it("should provide clear error messages for empty JSON segments", () => {

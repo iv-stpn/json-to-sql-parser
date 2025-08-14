@@ -1,10 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { type AggregationQuery, compileAggregationQuery, parseAggregationQuery } from "../../src/parsers/aggregate";
 import { compileSelectQuery, parseSelectQuery } from "../../src/parsers/select";
-import { parseWhereClause } from "../../src/parsers/where";
+
 import type { Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
+import { extractSelectWhereClause } from "../_helpers";
 
 describe("Integration Tests - Regular Tables", () => {
 	let db: DatabaseHelper;
@@ -69,7 +70,7 @@ describe("Integration Tests - Regular Tables", () => {
 		it("should execute simple equality condition", async () => {
 			await db.executeInTransaction(async () => {
 				const condition: Condition = { "users.active": true };
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 
 				const sql = `SELECT * FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
@@ -84,7 +85,7 @@ describe("Integration Tests - Regular Tables", () => {
 				const condition: Condition = {
 					$and: [{ "users.active": true }, { "users.age": { $gte: 30 } }],
 				};
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 
 				const sql = `SELECT * FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
@@ -104,7 +105,7 @@ describe("Integration Tests - Regular Tables", () => {
 				const condition: Condition = {
 					$or: [{ "users.status": "premium" }, { "users.age": { $lt: 26 } }],
 				};
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 
 				const sql = `SELECT * FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
@@ -118,7 +119,7 @@ describe("Integration Tests - Regular Tables", () => {
 				const condition: Condition = {
 					"users.metadata->department": "engineering",
 				};
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 
 				const sql = `SELECT * FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
@@ -138,7 +139,7 @@ describe("Integration Tests - Regular Tables", () => {
 				const condition: Condition = {
 					"users.email": { $eq: null },
 				};
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 
 				const sql = `SELECT * FROM users WHERE ${result.sql}`;
 				const rows = await db.query(sql, result.params);
@@ -286,7 +287,7 @@ describe("Integration Tests - Regular Tables", () => {
 				},
 			};
 
-			const conditionResult = parseWhereClause(condition, config, "orders");
+			const conditionResult = extractSelectWhereClause(condition, config, "orders");
 			const aggregationResult = parseAggregationQuery(aggregationQuery, config);
 
 			expect(conditionResult.sql).toContain("orders.status IN");

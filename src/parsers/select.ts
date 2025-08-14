@@ -1,18 +1,9 @@
 import { type CastType, castMap } from "../constants/operators";
-import { type Condition, type FieldSelection, isExpressionObject, type Selection } from "../schemas";
-import type { Config, ParserState, Primitive, Relationship } from "../types";
+import type { FieldSelection, Selection, SelectQuery } from "../schemas";
+import type { BaseParsedQuery, Config, ParserState, Primitive, Relationship } from "../types";
 import { ExpressionTypeMap } from "../utils/expression-map";
-import { aliasValue, castValue, mergeConditions, parseExpressionObject, parseField } from ".";
+import { aliasValue, castValue, isExpressionObject, parseExpressionObject, parseField } from ".";
 import { parseWhereClause } from "./where";
-
-function buildDataTableWhereClause(table: string, state: ParserState, whereClause?: string): string {
-	const dataTable = state.config.dataTable;
-	if (!dataTable) throw new Error("Data table configuration is missing");
-
-	const fieldWhereConditions = (dataTable.whereConditions ?? []).map((condition) => `${table}.${condition}`);
-	const whereConditions = [...fieldWhereConditions, ...(whereClause ? [whereClause] : [])];
-	return mergeConditions([`${table}.${dataTable.tableField} = '${table}'`, ...whereConditions], "data table conditions");
-}
 
 function buildJoinClause(table: string, toTable: string, relationship: Relationship, config: Config, alias?: string): string {
 	const toTableName = config.dataTable ? aliasValue(config.dataTable.table, toTable) : toTable;
@@ -89,8 +80,7 @@ function processRelationship(table: string, selection: Selection, fromTable: str
 }
 
 // Result of parsing a SELECT query
-type ParsedSelectQuery = { select: string[]; from: string; joins: string[]; where?: string; params: Primitive[] };
-type SelectQuery = { rootTable: string; selection: Selection; condition?: Condition };
+type ParsedSelectQuery = BaseParsedQuery & { joins: string[] };
 export function parseSelectQuery(selectQuery: SelectQuery, config: Config): ParsedSelectQuery {
 	const { rootTable, selection, condition } = selectQuery;
 
@@ -107,18 +97,9 @@ export function parseSelectQuery(selectQuery: SelectQuery, config: Config): Pars
 	for (const [fieldName, fieldValue] of Object.entries(selection)) processField(fieldName, fieldValue, rootTable, state);
 
 	const from = config.dataTable ? aliasValue(config.dataTable.table, rootTable) : rootTable;
-	const result: ParsedSelectQuery = { select: state.select, from, joins: state.joins, params: state.params };
+	const where = parseWhereClause(condition, state);
 
-	if (!condition) {
-		// If no condition is provided, ensure we have a valid WHERE clause for schema-less data tables
-		if (config.dataTable) result.where = buildDataTableWhereClause(rootTable, state);
-		return result;
-	}
-
-	const { sql, params: sqlParams } = parseWhereClause(condition, config, rootTable);
-	result.where = config.dataTable ? buildDataTableWhereClause(rootTable, state, sql) : sql;
-	result.params = [...state.params, ...sqlParams];
-	return result;
+	return { select: state.select, from, where, joins: state.joins, params: state.params };
 }
 
 export function compileSelectQuery(query: ParsedSelectQuery): string {

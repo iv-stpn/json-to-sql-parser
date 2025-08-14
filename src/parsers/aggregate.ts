@@ -1,13 +1,12 @@
 import { aggregationOperators, applyAggregationOperator } from "../constants/operators";
 import type { Aggregation, AggregationQuery } from "../schemas";
-import type { Config, ParserState, Primitive } from "../types";
+import type { BaseParsedQuery, Config, ParserState, Primitive } from "../types";
 import { objectEntries } from "../utils";
 import { ExpressionTypeMap } from "../utils/expression-map";
 import { aliasValue, castValue, parseExpression, parseField } from ".";
+import { parseWhereClause } from "./where";
 
 export type { AggregationQuery } from "../schemas";
-
-type ParsedAggregationQuery = { select: string[]; from: string; groupBy: string[]; params: Primitive[] };
 
 function parseAggregationField(table: string, aggregation: Aggregation, state: ParserState): string {
 	if (typeof aggregation.field === "string") {
@@ -28,11 +27,12 @@ function parseAggregation(table: string, alias: string, aggregation: Aggregation
 	return aliasValue(applyAggregationOperator(parseAggregationField(table, aggregation, state), operator), alias);
 }
 
+type ParsedAggregationQuery = BaseParsedQuery & { groupBy: string[] };
 export function parseAggregationQuery(query: AggregationQuery, config: Config): ParsedAggregationQuery {
 	const state = { config, params: [], expressions: new ExpressionTypeMap(), rootTable: query.table };
 	const { table, groupBy, aggregatedFields } = query;
 
-	const aggregatedFieldEntries = objectEntries(aggregatedFields);
+	const aggregatedFieldEntries = objectEntries(aggregatedFields ?? {});
 	if (aggregatedFieldEntries.length === 0 && groupBy.length === 0)
 		throw new Error("Aggregation query must have at least one group by field or aggregated field");
 
@@ -57,7 +57,8 @@ export function parseAggregationQuery(query: AggregationQuery, config: Config): 
 	}
 
 	const from = config.dataTable ? aliasValue(config.dataTable.table, table) : table;
-	return { select: selectFields, from, groupBy: groupByFields, params: state.params };
+	const where = parseWhereClause(query.condition, state);
+	return { select: selectFields, from, where, groupBy: groupByFields, params: state.params };
 }
 
 export function compileAggregationQuery(query: ParsedAggregationQuery): string {

@@ -1,21 +1,11 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 
 import { beforeEach, describe, expect, it } from "bun:test";
-import { MISSING_AGGREGATION_FIELD } from "../src/constants/errors";
 import type { AggregationQuery } from "../src/parsers/aggregate";
 import { compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
 import type { Config } from "../src/types";
 
 let testConfig: Config;
-
-export function validateGroupByInSelect(query: AggregationQuery): void {
-	const { groupBy, aggregatedFields } = query;
-	if (groupBy.length === 0 && Object.keys(aggregatedFields).length === 0) throw new Error(MISSING_AGGREGATION_FIELD);
-
-	// Pure aggregation without grouping is allowed (e.g., COUNT(*))
-	// For queries with GROUP BY, all non-aggregated fields in SELECT must be in GROUP BY
-	// This is automatically ensured by our design since groupBy are automatically added to SELECT
-}
 
 beforeEach(() => {
 	testConfig = {
@@ -222,44 +212,6 @@ describe("Aggregation Edge Cases", () => {
 			};
 
 			expect(() => parseAggregationQuery(query, testConfig)).toThrow(
-				"Aggregation query must have at least one group by field or aggregated field",
-			);
-		});
-	});
-
-	describe("Group By validation", () => {
-		it("should pass validation for valid query", () => {
-			const query: AggregationQuery = {
-				table: "sales",
-				groupBy: ["sales.region"],
-				aggregatedFields: {
-					total: { operator: "SUM", field: "sales.amount" },
-				},
-			};
-
-			expect(() => validateGroupByInSelect(query)).not.toThrow();
-		});
-
-		it("should pass validation for pure aggregation", () => {
-			const query: AggregationQuery = {
-				table: "sales",
-				groupBy: [],
-				aggregatedFields: {
-					total: { operator: "COUNT", field: "*" },
-				},
-			};
-
-			expect(() => validateGroupByInSelect(query)).not.toThrow();
-		});
-
-		it("should throw error for empty query", () => {
-			const query: AggregationQuery = {
-				table: "sales",
-				groupBy: [],
-				aggregatedFields: {},
-			};
-
-			expect(() => validateGroupByInSelect(query)).toThrow(
 				"Aggregation query must have at least one group by field or aggregated field",
 			);
 		});

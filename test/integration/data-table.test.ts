@@ -1,10 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { type AggregationQuery, compileAggregationQuery, parseAggregationQuery } from "../../src/parsers/aggregate";
 import { compileSelectQuery, parseSelectQuery } from "../../src/parsers/select";
-import { parseWhereClause } from "../../src/parsers/where";
+
 import type { Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
+import { extractSelectWhereClause } from "../_helpers";
 
 describe("Integration Tests - Data Table Configuration", () => {
 	let db: DatabaseHelper;
@@ -236,8 +237,8 @@ describe("Integration Tests - Data Table Configuration", () => {
 			const regularConfig = { ...config };
 			delete regularConfig.dataTable;
 
-			const regularResult = parseWhereClause(condition, regularConfig, "users");
-			const dataTableResult = parseWhereClause(condition, config, "users");
+			const regularResult = extractSelectWhereClause(condition, regularConfig, "users");
+			const dataTableResult = extractSelectWhereClause(condition, config, "users");
 
 			// The expressions should be different due to data table transformation
 			expect(regularResult.sql).toBe("users.active = $1");

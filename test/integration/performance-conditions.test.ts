@@ -2,10 +2,21 @@
 
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/parsers/aggregate";
-import { parseWhereClause } from "../../src/parsers/where";
+import { parseSelectQuery } from "../../src/parsers/select";
 import type { Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
+
+// Helper function to extract WHERE clause from parsed select query
+function extractSelectWhereClause(condition: Condition, config: Config, rootTable: string): { sql: string; params: unknown[] } {
+	const query = {
+		rootTable,
+		selection: { [`${rootTable}.id`]: true }, // minimal selection
+		condition,
+	};
+	const parsedQuery = parseSelectQuery(query, config);
+	return { sql: parsedQuery.where || "", params: parsedQuery.params };
+}
 
 describe("Integration Tests - Complex Conditions Performance & Edge Cases", () => {
 	let db: DatabaseHelper;
@@ -115,7 +126,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 				};
 
 				const startTime = Date.now();
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const parseTime = Date.now() - startTime;
 
 				const queryStartTime = Date.now();
@@ -131,8 +142,6 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 				// Performance assertions
 				expect(parseTime).toBeLessThan(1000); // Should parse in under 1 second
 				expect(queryTime).toBeLessThan(5000); // Should execute in under 5 seconds
-
-				console.log(`Parse time: ${parseTime}ms, Query time: ${queryTime}ms, Params: ${result.params.length}`);
 			});
 		});
 
@@ -161,7 +170,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 				const deepCondition = createNestedCondition(20);
 
 				const startTime = Date.now();
-				const result = parseWhereClause(deepCondition, config, "users");
+				const result = extractSelectWhereClause(deepCondition, config, "users");
 				const parseTime = Date.now() - startTime;
 
 				const queryStartTime = Date.now();
@@ -180,8 +189,6 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 				// Performance assertions
 				expect(parseTime).toBeLessThan(2000); // Should parse in under 2 seconds
 				expect(queryTime).toBeLessThan(10000); // Should execute in under 10 seconds
-
-				console.log(`Deep nesting - Parse time: ${parseTime}ms, Query time: ${queryTime}ms`);
 			});
 		});
 	});
@@ -231,7 +238,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 					],
 				};
 
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const sql = `SELECT * FROM users WHERE ${result.sql} LIMIT 5`;
 				const rows = await db.query(sql, result.params);
 
@@ -281,7 +288,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 					],
 				};
 
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const sql = `SELECT * FROM users WHERE ${result.sql} LIMIT 3`;
 				const rows = await db.query(sql, result.params);
 
@@ -394,7 +401,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 				};
 
 				const startTime = Date.now();
-				const result = parseWhereClause(condition, config, "users");
+				const result = extractSelectWhereClause(condition, config, "users");
 				const parseTime = Date.now() - startTime;
 
 				const queryStartTime = Date.now();
@@ -419,8 +426,6 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 				// Performance assertions
 				expect(parseTime).toBeLessThan(1500); // Should parse complex expressions quickly
 				expect(queryTime).toBeLessThan(8000); // Should execute complex expressions reasonably fast
-
-				console.log(`Complex expressions - Parse time: ${parseTime}ms, Query time: ${queryTime}ms`);
 			});
 		});
 	});
@@ -604,7 +609,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 				};
 
 				const startTime = Date.now();
-				const result = parseWhereClause(maxComplexityCondition, config, "users");
+				const result = extractSelectWhereClause(maxComplexityCondition, config, "users");
 				const parseTime = Date.now() - startTime;
 
 				const queryStartTime = Date.now();
@@ -659,7 +664,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 
 			const queries = Array.from({ length: 5 }, async () => {
 				return await db.executeInTransaction(async () => {
-					const result = parseWhereClause(complexCondition, config, "users");
+					const result = extractSelectWhereClause(complexCondition, config, "users");
 					const sql = `SELECT count(*) as total FROM users WHERE ${result.sql}`;
 					return await db.query(sql, result.params);
 				});
@@ -678,8 +683,6 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 
 			// Concurrent execution should be reasonable
 			expect(totalTime).toBeLessThan(10000); // 10 seconds for 5 concurrent queries
-
-			console.log(`Concurrent queries completed in ${totalTime}ms`);
 		});
 	});
 });

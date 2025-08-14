@@ -14,11 +14,15 @@ import {
 	variableFunctions,
 } from "../constants/operators";
 import type { AnyExpression, Condition, ConditionExpression, EqualityValue, ExpressionObject, FieldCondition } from "../schemas";
-import { isExpressionObject } from "../schemas";
 import type { Field, FieldPath, ParserState, Primitive } from "../types";
 import { isEmpty, isInArray, isNotNull, quote } from "../utils";
 import { applyFunction } from "../utils/function-call";
 import { isValidDate, isValidTimestamp, uuidRegex } from "../utils/validators";
+
+export const isExpressionObject = (value: unknown): value is ExpressionObject =>
+	typeof value === "object" &&
+	value !== null &&
+	("$expr" in value || "$cond" in value || "$timestamp" in value || "$date" in value || "$uuid" in value);
 
 function parseTableFieldPath(fieldPath: string, rootTable: string) {
 	if (!fieldPath.includes(".")) return { table: rootTable, field: fieldPath };

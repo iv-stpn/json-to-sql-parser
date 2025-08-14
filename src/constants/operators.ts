@@ -1,9 +1,18 @@
 import { applyFunction } from "../utils/function-call";
 
 // SQL functions and operator definitions for $expr
-export const unaryOperators = ["ABS", "UPPER", "LOWER", "LENGTH", "NOT", "SQRT", "CEIL", "FLOOR", "YEAR"] as const;
+export const unaryOperators = ["ABS", "UPPER", "LOWER", "LENGTH", "NOT", "SQRT", "CEIL", "FLOOR"] as const;
 export const variableFunctions = ["COALESCE", "GREATEST", "LEAST", "CONCAT", "SUBSTRING"] as const;
-export const binaryOperators = { ADD: "+", SUBTRACT: "-", MULTIPLY: "*", DIVIDE: "/", MOD: "%", POW: "^", AND: "AND", OR: "OR" };
+export const binaryOperators = {
+	ADD: "+",
+	SUBTRACT: "-",
+	MULTIPLY: "*",
+	DIVIDE: "/",
+	MOD: "%",
+	POW: "^",
+	AND: "AND",
+	OR: "OR",
+} as const;
 
 type Operator = (typeof unaryOperators)[number] | (typeof variableFunctions)[number] | keyof typeof binaryOperators;
 
@@ -15,7 +24,6 @@ export const operatorReturnTypes: Record<Operator, CastType> = {
 	SQRT: "FLOAT",
 	CEIL: "FLOAT",
 	FLOOR: "FLOAT",
-	YEAR: "FLOAT",
 	NOT: "BOOLEAN",
 	ADD: "FLOAT",
 	SUBTRACT: "FLOAT",

@@ -1,10 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { type AggregationQuery, compileAggregationQuery, parseAggregationQuery } from "../../src/parsers/aggregate";
-import { parseWhereClause } from "../../src/parsers/where";
-import type { Condition } from "../../src/schemas";
+import { generateAggregationQuery, generateSelectQuery } from "../../src";
+import type { AggregationQuery, Condition, SelectQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
-import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
 import { uuidRegex } from "../../src/utils/validators";
+import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
 
 // Type for database row results
 type DbRow = Record<string, unknown>;
@@ -95,11 +94,24 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 				const condition: Condition = {
 					"users.id": { $eq: { $uuid: "550e8400-e29b-41d4-a716-446655440000" } },
 				};
+				const query: SelectQuery = {
+					rootTable: "users",
+					selection: {
+						id: true,
+						name: true,
+						email: true,
+						age: true,
+						active: true,
+						status: true,
+						metadata: true,
+						created_at: true,
+					},
+					condition,
+				};
 
-				const result = parseWhereClause(condition, parserConfig, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
+				const { sql, params } = generateSelectQuery(query, parserConfig);
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql, params);
 				expect(rows).toHaveLength(1);
 				expect((rows[0] as DbRow).name).toBe("John Doe");
 				expect((rows[0] as DbRow).id).toBe("550e8400-e29b-41d4-a716-446655440000");
@@ -108,16 +120,31 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 
 		it("should query with UUID IN clause", async () => {
 			await db.executeInTransaction(async () => {
-				const condition: Condition = {
-					"users.id": {
-						$in: [{ $uuid: "550e8400-e29b-41d4-a716-446655440000" }, { $uuid: "6ba7b810-9dad-11d1-80b4-00c04fd430c8" }],
+				const query: SelectQuery = {
+					rootTable: "users",
+					selection: {
+						id: true,
+						name: true,
+						email: true,
+						age: true,
+						active: true,
+						status: true,
+						created_at: true,
+						updated_at: true,
+						birth_date: true,
+						metadata: true,
+					},
+					condition: {
+						"users.id": {
+							$in: [{ $uuid: "550e8400-e29b-41d4-a716-446655440000" }, { $uuid: "6ba7b810-9dad-11d1-80b4-00c04fd430c8" }],
+						},
 					},
 				};
 
-				const result = parseWhereClause(condition, parserConfig, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql} ORDER BY name`;
+				const { sql, params } = generateSelectQuery(query, parserConfig);
+				const sqlWithOrderBy = `${sql} ORDER BY name`;
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sqlWithOrderBy, params);
 				expect(rows).toHaveLength(2);
 				expect((rows[0] as DbRow).name).toBe("Jane Smith");
 				expect((rows[1] as DbRow).name).toBe("John Doe");
@@ -126,14 +153,28 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 
 		it("should handle UUID variables", async () => {
 			await db.executeInTransaction(async () => {
-				const condition: Condition = {
-					"users.id": { $eq: { $expr: "auth.uid" } },
+				const query: SelectQuery = {
+					rootTable: "users",
+					selection: {
+						id: true,
+						name: true,
+						email: true,
+						age: true,
+						active: true,
+						status: true,
+						created_at: true,
+						updated_at: true,
+						birth_date: true,
+						metadata: true,
+					},
+					condition: {
+						"users.id": { $eq: { $expr: "auth.uid" } },
+					},
 				};
 
-				const result = parseWhereClause(condition, parserConfig, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
+				const { sql, params } = generateSelectQuery(query, parserConfig);
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql, params);
 				expect(rows).toHaveLength(1);
 				expect((rows[0] as DbRow).name).toBe("John Doe");
 			});
@@ -141,14 +182,26 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 
 		it("should handle UUID in related table queries", async () => {
 			await db.executeInTransaction(async () => {
-				const condition: Condition = {
-					"posts.user_id": { $eq: { $uuid: "550e8400-e29b-41d4-a716-446655440000" } },
+				const query: SelectQuery = {
+					rootTable: "posts",
+					selection: {
+						id: true,
+						title: true,
+						content: true,
+						user_id: true,
+						published: true,
+						created_at: true,
+						published_at: true,
+						tags: true,
+					},
+					condition: {
+						"posts.user_id": { $eq: { $uuid: "550e8400-e29b-41d4-a716-446655440000" } },
+					},
 				};
 
-				const result = parseWhereClause(condition, parserConfig, "posts");
-				const sql = `SELECT * FROM posts WHERE ${result.sql}`;
+				const { sql, params } = generateSelectQuery(query, parserConfig);
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql, params);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(rows.every((row) => (row as DbRow).user_id === "550e8400-e29b-41d4-a716-446655440000")).toBe(true);
 			});
@@ -158,14 +211,26 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 	describe("Timestamp Field Queries", () => {
 		it("should query by timestamp equality", async () => {
 			await db.executeInTransaction(async () => {
-				const condition: Condition = {
-					"posts.published_at": { $eq: { $timestamp: "2024-01-15T10:30:00" } },
+				const query: SelectQuery = {
+					rootTable: "posts",
+					selection: {
+						id: true,
+						title: true,
+						content: true,
+						user_id: true,
+						published: true,
+						created_at: true,
+						published_at: true,
+						tags: true,
+					},
+					condition: {
+						"posts.published_at": { $eq: { $timestamp: "2024-01-15T10:30:00" } },
+					},
 				};
 
-				const result = parseWhereClause(condition, parserConfig, "posts");
-				const sql = `SELECT * FROM posts WHERE ${result.sql}`;
+				const { sql, params } = generateSelectQuery(query, parserConfig);
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql, params);
 				expect(rows).toHaveLength(1);
 				expect((rows[0] as DbRow).title).toBe("Getting Started with PostgreSQL");
 			});
@@ -173,17 +238,21 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 
 		it("should query with timestamp range", async () => {
 			await db.executeInTransaction(async () => {
-				const condition: Condition = {
-					$and: [
-						{ "posts.published_at": { $gte: { $timestamp: "2024-01-15T00:00:00" } } },
-						{ "posts.published_at": { $lt: { $timestamp: "2024-01-17T00:00:00" } } },
-					],
+				const query: SelectQuery = {
+					rootTable: "posts",
+					selection: { "*": true },
+					condition: {
+						$and: [
+							{ "posts.published_at": { $gte: { $timestamp: "2024-01-15T00:00:00" } } },
+							{ "posts.published_at": { $lt: { $timestamp: "2024-01-17T00:00:00" } } },
+						],
+					},
 				};
 
-				const result = parseWhereClause(condition, parserConfig, "posts");
-				const sql = `SELECT * FROM posts WHERE ${result.sql} ORDER BY published_at`;
+				const { sql, params } = generateSelectQuery(query, parserConfig);
+				const sqlWithOrderBy = `${sql} ORDER BY published_at`;
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sqlWithOrderBy, params);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(
 					rows.every((row) => {
@@ -200,14 +269,17 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 
 		it("should handle NULL timestamp queries", async () => {
 			await db.executeInTransaction(async () => {
-				const condition: Condition = {
-					"posts.published_at": { $eq: null },
+				const query: SelectQuery = {
+					rootTable: "posts",
+					selection: { "*": true },
+					condition: {
+						"posts.published_at": { $eq: null },
+					},
 				};
 
-				const result = parseWhereClause(condition, parserConfig, "posts");
-				const sql = `SELECT * FROM posts WHERE ${result.sql}`;
+				const { sql, params } = generateSelectQuery(query, parserConfig);
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql, params);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(rows.every((row) => (row as DbRow).published_at === null)).toBe(true);
 			});
@@ -224,14 +296,12 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 					groupBy: ["status"],
 				};
 
-				const parsed = parseAggregationQuery(aggregationQuery, parserConfig);
-				const sql = compileAggregationQuery(parsed);
+				const { sql, params } = generateAggregationQuery(aggregationQuery, parserConfig);
 
-				const rows = await db.query(sql, parsed.params);
+				const rows = await db.query(sql, params);
 				expect(rows.length).toBeGreaterThan(0);
 
 				// Debug output to see what we're getting
-				console.log("Aggregation result:", rows[0]);
 
 				expect(
 					rows.every((row) => {
@@ -247,14 +317,17 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 	describe("Date Field Queries", () => {
 		it("should query by date equality", async () => {
 			await db.executeInTransaction(async () => {
-				const condition: Condition = {
-					"users.birth_date": { $eq: { $date: "1994-01-15" } },
+				const query: SelectQuery = {
+					rootTable: "users",
+					selection: { "*": true },
+					condition: {
+						"users.birth_date": { $eq: { $date: "1994-01-15" } },
+					},
 				};
 
-				const result = parseWhereClause(condition, parserConfig, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
+				const { sql, params } = generateSelectQuery(query, parserConfig);
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql, params);
 				expect(rows).toHaveLength(1);
 				expect((rows[0] as DbRow).name).toBe("John Doe");
 				expect(((rows[0] as DbRow).birth_date as Date).toISOString().split("T")[0]).toBe("1994-01-15");
@@ -263,17 +336,21 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 
 		it("should query with date range", async () => {
 			await db.executeInTransaction(async () => {
-				const condition: Condition = {
-					$and: [
-						{ "users.birth_date": { $gte: { $date: "1990-01-01" } } },
-						{ "users.birth_date": { $lt: { $date: "2000-01-01" } } },
-					],
+				const query: SelectQuery = {
+					rootTable: "users",
+					selection: { "*": true },
+					condition: {
+						$and: [
+							{ "users.birth_date": { $gte: { $date: "1990-01-01" } } },
+							{ "users.birth_date": { $lt: { $date: "2000-01-01" } } },
+						],
+					},
 				};
 
-				const result = parseWhereClause(condition, parserConfig, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql} ORDER BY birth_date`;
+				const { sql, params } = generateSelectQuery(query, parserConfig);
+				const sqlWithOrderBy = `${sql} ORDER BY birth_date`;
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sqlWithOrderBy, params);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(
 					rows.every((row) => {
@@ -286,14 +363,18 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 
 		it("should handle delivered_date queries on orders", async () => {
 			await db.executeInTransaction(async () => {
-				const condition: Condition = {
-					"orders.delivered_date": { $ne: null },
+				const query: SelectQuery = {
+					rootTable: "orders",
+					selection: { "*": true },
+					condition: {
+						"orders.delivered_date": { $ne: null },
+					},
 				};
 
-				const result = parseWhereClause(condition, parserConfig, "orders");
-				const sql = `SELECT * FROM orders WHERE ${result.sql} ORDER BY delivered_date`;
+				const { sql, params } = generateSelectQuery(query, parserConfig);
+				const sqlWithOrderBy = `${sql} ORDER BY delivered_date`;
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sqlWithOrderBy, params);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(rows.every((row) => (row as DbRow).delivered_date !== null)).toBe(true);
 			});
@@ -310,14 +391,12 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 					groupBy: ["delivered_date"],
 				};
 
-				const parsed = parseAggregationQuery(aggregationQuery, parserConfig);
-				const sql = compileAggregationQuery(parsed);
+				const { sql, params } = generateAggregationQuery(aggregationQuery, parserConfig);
 
-				const rows = await db.query(sql, parsed.params);
+				const rows = await db.query(sql, params);
 				expect(rows.length).toBeGreaterThan(0);
 
 				// Debug output to see what we're getting
-				console.log("Delivery date aggregation result:", rows[0]);
 
 				expect(
 					rows.every((row) => {
@@ -333,22 +412,25 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 	describe("Complex Queries with Multiple Date Types", () => {
 		it("should handle queries combining UUID, timestamp, and date", async () => {
 			await db.executeInTransaction(async () => {
-				const condition: Condition = {
-					$and: [
-						{
-							"orders.customer_id": {
-								$in: [{ $uuid: "550e8400-e29b-41d4-a716-446655440000" }, { $uuid: "6ba7b810-9dad-11d1-80b4-00c04fd430c8" }],
+				const query: SelectQuery = {
+					rootTable: "orders",
+					selection: { "*": true },
+					condition: {
+						$and: [
+							{
+								"orders.customer_id": {
+									$in: [{ $uuid: "550e8400-e29b-41d4-a716-446655440000" }, { $uuid: "6ba7b810-9dad-11d1-80b4-00c04fd430c8" }],
+								},
 							},
-						},
-						{ "orders.created_at": { $gte: { $timestamp: "2024-01-15T00:00:00" } } },
-						{ "orders.delivered_date": { $ne: null } },
-					],
+							{ "orders.created_at": { $gte: { $timestamp: "2024-01-15T00:00:00" } } },
+							{ "orders.delivered_date": { $ne: null } },
+						],
+					},
 				};
 
-				const result = parseWhereClause(condition, parserConfig, "orders");
-				const sql = `SELECT * FROM orders WHERE ${result.sql}`;
+				const { sql, params } = generateSelectQuery(query, parserConfig);
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql, params);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(
 					rows.every((row) => {
@@ -375,14 +457,12 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 					groupBy: ["customer_id"],
 				};
 
-				const parsed = parseAggregationQuery(aggregationQuery, parserConfig);
-				const sql = compileAggregationQuery(parsed);
+				const { sql, params } = generateAggregationQuery(aggregationQuery, parserConfig);
 
-				const rows = await db.query(sql, parsed.params);
+				const rows = await db.query(sql, params);
 				expect(rows.length).toBeGreaterThan(0);
 
 				// Debug output to see what we're getting
-				console.log("Complex aggregation result:", rows[0]);
 
 				expect(
 					rows.every((row) => {
@@ -403,14 +483,18 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 
 		it("should handle timestamp microsecond precision", async () => {
 			await db.executeInTransaction(async () => {
-				const condition: Condition = {
-					"orders.shipped_at": { $gte: { $timestamp: "2024-01-16T08:00:00.000" } },
+				const query: SelectQuery = {
+					rootTable: "orders",
+					selection: { "*": true },
+					condition: {
+						"orders.shipped_at": { $gte: { $timestamp: "2024-01-16T08:00:00.000" } },
+					},
 				};
 
-				const result = parseWhereClause(condition, parserConfig, "orders");
-				const sql = `SELECT * FROM orders WHERE ${result.sql} ORDER BY shipped_at`;
+				const { sql, params } = generateSelectQuery(query, parserConfig);
+				const sqlWithOrderBy = `${sql} ORDER BY shipped_at`;
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sqlWithOrderBy, params);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(
 					rows.every((row) => {
@@ -437,20 +521,21 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 					{ $uuid: "6ba7b813-9dad-11d1-80b4-00c04fd430c8" },
 				];
 
-				const condition: Condition = {
-					"users.id": { $in: uuidList },
+				const query: SelectQuery = {
+					rootTable: "users",
+					selection: { "*": true },
+					condition: {
+						"users.id": { $in: uuidList },
+					},
 				};
 
 				const startTime = Date.now();
-				const result = parseWhereClause(condition, parserConfig, "users");
+				const { sql, params } = generateSelectQuery(query, parserConfig);
 				const parseTime = Date.now() - startTime;
 
 				const queryStartTime = Date.now();
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql, params);
 				const queryTime = Date.now() - queryStartTime;
-
-				console.log(`UUID IN query - Parse time: ${parseTime}ms, Query time: ${queryTime}ms, Results: ${rows.length}`);
 
 				expect(rows.length).toBeGreaterThan(0);
 				expect(parseTime).toBeLessThan(100); // Should parse quickly
@@ -460,22 +545,25 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 
 		it("should maintain parameter order in complex queries", async () => {
 			await db.executeInTransaction(async () => {
-				const condition: Condition = {
-					$and: [
-						{ "users.id": { $eq: { $uuid: "550e8400-e29b-41d4-a716-446655440000" } } },
-						{ "users.birth_date": { $eq: { $date: "1994-01-15" } } },
-						{ "users.created_at": { $gte: { $timestamp: "2024-01-15T00:00:00" } } },
-					],
+				const query: SelectQuery = {
+					rootTable: "users",
+					selection: { "*": true },
+					condition: {
+						$and: [
+							{ "users.id": { $eq: { $uuid: "550e8400-e29b-41d4-a716-446655440000" } } },
+							{ "users.birth_date": { $eq: { $date: "1994-01-15" } } },
+							{ "users.created_at": { $gte: { $timestamp: "2024-01-15T00:00:00" } } },
+						],
+					},
 				};
 
-				const result = parseWhereClause(condition, parserConfig, "users");
+				const { sql, params } = generateSelectQuery(query, parserConfig);
 
 				// Verify parameter count matches placeholders in SQL
-				const placeholderCount = (result.sql.match(/\$\d+/g) || []).length;
-				expect(result.params.length).toBe(placeholderCount);
+				const placeholderCount = (sql.match(/\$\d+/g) || []).length;
+				expect(params.length).toBe(placeholderCount);
 
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql, params);
 
 				// Should work without parameter binding errors
 				expect(() => rows).not.toThrow();
@@ -497,12 +585,6 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 
 				const rows = await db.query(schemaQuery, []);
 				expect(rows.length).toBeGreaterThan(0);
-
-				console.log("Database schema verification:");
-				rows.forEach((row) => {
-					const r = row as DbRow;
-					console.log(`${r.table_name}.${r.column_name}: ${r.data_type}`);
-				});
 
 				// Verify that all id columns are UUID type
 				expect(rows.every((row) => (row as DbRow).data_type === "uuid")).toBe(true);

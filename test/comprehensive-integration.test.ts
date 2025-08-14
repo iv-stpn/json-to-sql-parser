@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
 import { compileSelectQuery, parseSelectQuery } from "../src/parsers/select";
-import { parseWhereClause } from "../src/parsers/where";
+
 import type { Condition } from "../src/schemas";
 import type { Config } from "../src/types";
+import { extractSelectWhereClause } from "./_helpers";
 
 describe("Comprehensive Integration Tests", () => {
 	let testConfig: Config;
@@ -404,7 +405,7 @@ describe("Comprehensive Integration Tests", () => {
 				],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 
 			expect(result.sql).toContain("OR");
 			expect(result.sql).toContain("AND");
@@ -440,7 +441,7 @@ describe("Comprehensive Integration Tests", () => {
 				],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 
 			expect(result.sql).toContain("EXISTS");
 			expect(result.sql).toContain("posts");
@@ -459,7 +460,7 @@ describe("Comprehensive Integration Tests", () => {
 				],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 
 			expect(result.sql).toContain(">=");
 			expect(result.sql).toContain("<=");
@@ -483,7 +484,7 @@ describe("Comprehensive Integration Tests", () => {
 				],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 
 			expect(result.sql).toContain("users.id = 123");
 			expect(result.sql).toContain("users.age < 100");
@@ -523,7 +524,7 @@ describe("Comprehensive Integration Tests", () => {
 				],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 
 			expect(result.sql).toContain("*");
 			expect(result.sql).toContain("+");
@@ -555,7 +556,7 @@ describe("Comprehensive Integration Tests", () => {
 				],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 
 			expect(result.sql).toContain("LOWER");
 			expect(result.sql).toContain("UPPER");
@@ -574,7 +575,7 @@ describe("Comprehensive Integration Tests", () => {
 				},
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 
 			expect(result.sql).toContain("COALESCE");
 			expect(result.sql).toContain("*");
@@ -588,7 +589,7 @@ describe("Comprehensive Integration Tests", () => {
 				$and: [{ "users.name": { $in: largeInArray } }, { "users.age": { $in: Array.from({ length: 100 }, (_, i) => i + 18) } }],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 
 			expect(result.params.length).toBe(600); // 500 + 100
 			expect(result.sql).toContain("IN");
@@ -599,7 +600,7 @@ describe("Comprehensive Integration Tests", () => {
 				"users.metadata->level1->level2->level3->level4->level5": { $eq: "deep_value" },
 			};
 
-			const result = parseWhereClause(deepJsonCondition, testConfig, "users");
+			const result = extractSelectWhereClause(deepJsonCondition, testConfig, "users");
 
 			expect(result.sql).toContain("metadata");
 			expect(result.sql).toContain("level1");

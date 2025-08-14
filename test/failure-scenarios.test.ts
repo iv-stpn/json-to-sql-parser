@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { parseExpression } from "../src/parsers";
 import { compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
 import { parseSelectQuery } from "../src/parsers/select";
-import { parseWhereClause } from "../src/parsers/where";
+
 import type { AnyExpression, Condition } from "../src/schemas";
 import type { Config, ParserState } from "../src/types";
 import { ExpressionTypeMap } from "../src/utils/expression-map";
+import { extractSelectWhereClause } from "./_helpers";
 
 describe("Expected Failure Tests", () => {
 	let testConfig: Config;
@@ -43,19 +44,13 @@ describe("Expected Failure Tests", () => {
 	describe("Invalid Field Access", () => {
 		it("should reject non-existent tables", () => {
 			expect(() => {
-				parseWhereClause(
-					{
-						"nonexistent.field": { $eq: "value" },
-					},
-					testConfig,
-					"users",
-				);
+				extractSelectWhereClause({ "nonexistent.field": { $eq: "value" } }, testConfig, "users");
 			}).toThrow("Table 'nonexistent' is not allowed or does not exist");
 		});
 
 		it("should reject non-existent fields", () => {
 			expect(() => {
-				parseWhereClause(
+				extractSelectWhereClause(
 					{
 						"users.nonexistent_field": { $eq: "value" },
 					},
@@ -70,7 +65,7 @@ describe("Expected Failure Tests", () => {
 
 			for (const invalidFormat of invalidFormats) {
 				expect(() => {
-					parseWhereClause(
+					extractSelectWhereClause(
 						{
 							[invalidFormat]: { $eq: "value" },
 						},
@@ -92,7 +87,7 @@ describe("Expected Failure Tests", () => {
 
 			for (const invalidField of invalidFieldNames) {
 				expect(() => {
-					parseWhereClause(
+					extractSelectWhereClause(
 						{
 							[invalidField]: { $eq: "value" },
 						},
@@ -112,7 +107,7 @@ describe("Expected Failure Tests", () => {
 
 			for (const invalidAccess of invalidJsonAccess) {
 				expect(() => {
-					parseWhereClause(
+					extractSelectWhereClause(
 						{
 							[invalidAccess]: { $eq: "value" },
 						},
@@ -133,14 +128,14 @@ describe("Expected Failure Tests", () => {
 					const condition = {
 						"users.name": { [unknownOp]: "value" },
 					};
-					parseWhereClause(condition as Condition, testConfig, "users");
+					extractSelectWhereClause(condition as Condition, testConfig, "users");
 				}).toThrow();
 			}
 		});
 
 		it("should reject empty arrays in IN/NOT IN operators", () => {
 			expect(() => {
-				parseWhereClause(
+				extractSelectWhereClause(
 					{
 						"users.name": { $in: [] },
 					},
@@ -150,7 +145,7 @@ describe("Expected Failure Tests", () => {
 			}).toThrow("Operator 'IN' requires a non-empty array");
 
 			expect(() => {
-				parseWhereClause(
+				extractSelectWhereClause(
 					{
 						"users.name": { $nin: [] },
 					},
@@ -218,7 +213,7 @@ describe("Expected Failure Tests", () => {
 	describe("Invalid Query Structures", () => {
 		it("should reject empty AND conditions", () => {
 			expect(() => {
-				parseWhereClause(
+				extractSelectWhereClause(
 					{
 						$and: [],
 					},
@@ -230,7 +225,7 @@ describe("Expected Failure Tests", () => {
 
 		it("should reject empty OR conditions", () => {
 			expect(() => {
-				parseWhereClause(
+				extractSelectWhereClause(
 					{
 						$or: [],
 					},
@@ -327,7 +322,7 @@ describe("Expected Failure Tests", () => {
 
 		it("should reject EXISTS conditions with invalid tables", () => {
 			expect(() => {
-				parseWhereClause(
+				extractSelectWhereClause(
 					{
 						$exists: {
 							table: "nonexistent",
@@ -374,7 +369,7 @@ describe("Expected Failure Tests", () => {
 			}
 
 			// This should work fine
-			const result = parseWhereClause(deepCondition, testConfig, "users");
+			const result = extractSelectWhereClause(deepCondition, testConfig, "users");
 			expect(result.sql).toContain("users.name = $1");
 			expect(result.params).toEqual(["base"]);
 		});
@@ -400,7 +395,7 @@ describe("Expected Failure Tests", () => {
 				};
 
 				// Should handle these as regular strings, not throw JSON parse errors
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.params).toEqual([malformed]);
 			}
 		});
@@ -412,7 +407,7 @@ describe("Expected Failure Tests", () => {
 
 			for (const systemTable of systemTables) {
 				expect(() => {
-					parseWhereClause(
+					extractSelectWhereClause(
 						{
 							[`${systemTable}.column`]: { $eq: "value" },
 						},
@@ -428,7 +423,7 @@ describe("Expected Failure Tests", () => {
 
 			for (const keyword of dangerousKeywords) {
 				expect(() => {
-					parseWhereClause(
+					extractSelectWhereClause(
 						{
 							[`users.${keyword.toLowerCase()}`]: { $eq: "value" },
 						},
@@ -452,7 +447,7 @@ describe("Expected Failure Tests", () => {
 					"users.name": { $eq: escapeAttempt },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 
 				// Should be properly parameterized, not injected
 				expect(result.sql).toBe("users.name = $1");
@@ -477,7 +472,7 @@ describe("Expected Failure Tests", () => {
 
 			// Should either handle it gracefully or reject with a reasonable error
 			try {
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.params.length).toBe(10000);
 			} catch (error) {
 				// If it throws, it should be a reasonable error about limits
@@ -494,7 +489,7 @@ describe("Expected Failure Tests", () => {
 
 			// Should either handle it or reject with a reasonable error
 			try {
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.params).toEqual(["deep_value"]);
 			} catch (error) {
 				// If it throws, should be a reasonable error

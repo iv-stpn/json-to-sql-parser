@@ -1,10 +1,11 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 import { beforeEach, describe, expect, it } from "bun:test";
 import { parseExpression } from "../src/parsers";
-import { parseWhereClause } from "../src/parsers/where";
+
 import type { AnyExpression, Condition } from "../src/schemas";
 import type { Config, ParserState } from "../src/types";
 import { ExpressionTypeMap } from "../src/utils/expression-map";
+import { extractSelectWhereClause } from "./_helpers";
 
 // Test configuration
 let testConfig: Config;
@@ -64,7 +65,7 @@ describe("Expression Parser Advanced Tests", () => {
 				},
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toContain("CASE WHEN");
 			expect(result.sql).toContain("CASE WHEN users.age >= $3 THEN 'senior' ELSE 'adult' END");
 			expect(result.params).toEqual([true, 18, 65]);
@@ -81,7 +82,7 @@ describe("Expression Parser Advanced Tests", () => {
 				},
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.name = CONCAT(users.name, ' (', 123, ')')");
 		});
 
@@ -96,7 +97,7 @@ describe("Expression Parser Advanced Tests", () => {
 				},
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.age > (YEAR(users.created_at) + 5)");
 		});
 	});
@@ -109,7 +110,7 @@ describe("Expression Parser Advanced Tests", () => {
 				},
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.name = CONCAT('Hello', 'World')");
 		});
 
@@ -120,7 +121,7 @@ describe("Expression Parser Advanced Tests", () => {
 				},
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.age = (25 + 5.5)");
 		});
 	});
@@ -133,7 +134,7 @@ describe("Expression Parser Advanced Tests", () => {
 				},
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow("$expr must contain exactly one function");
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow("$expr must contain exactly one function");
 		});
 
 		it("should throw error for multiple functions in $expr", () => {
@@ -143,7 +144,7 @@ describe("Expression Parser Advanced Tests", () => {
 				},
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow("$expr must contain exactly one function");
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow("$expr must contain exactly one function");
 		});
 
 		it("should throw error for empty function name", () => {
@@ -153,7 +154,7 @@ describe("Expression Parser Advanced Tests", () => {
 				},
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow("Function name cannot be empty");
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow("Function name cannot be empty");
 		});
 	});
 
@@ -192,7 +193,7 @@ describe("Complex logical conditions", () => {
 				],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("((users.active = $1 AND users.age >= $2) OR (users.name LIKE $3 AND users.email IS NOT NULL))");
 			expect(result.params).toEqual([true, 18, "Admin%"]);
 		});
@@ -204,7 +205,7 @@ describe("Complex logical conditions", () => {
 				},
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("NOT ((users.active = $1 OR users.email IS NULL))");
 			expect(result.params).toEqual([false]);
 		});
@@ -216,7 +217,7 @@ describe("Complex logical conditions", () => {
 				"users.age": { $gte: 18, $lte: 65, $ne: 30 },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("(users.age != $1 AND users.age >= $2 AND users.age <= $3)");
 			expect(result.params).toEqual([30, 18, 65]);
 		});
@@ -228,7 +229,7 @@ describe("Complex logical conditions", () => {
 				},
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.id IN ($1, 123, 456)");
 			expect(result.params).toEqual([1]);
 		});
@@ -242,7 +243,7 @@ describe("Null handling", () => {
 				"users.email": { $eq: null },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.email IS NULL");
 			expect(result.params).toEqual([]);
 		});
@@ -252,7 +253,7 @@ describe("Null handling", () => {
 				"users.email": { $ne: null },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.email IS NOT NULL");
 			expect(result.params).toEqual([]);
 		});
@@ -262,7 +263,7 @@ describe("Null handling", () => {
 				"users.name": { $eq: null },
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow(
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
 				"Field 'name' is not nullable, and cannot be compared with NULL",
 			);
 		});

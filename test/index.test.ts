@@ -4,15 +4,11 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { parseExpression } from "../src/parsers";
 import { type AggregationQuery, compileAggregationQuery, parseAggregationQuery } from "../src/parsers/aggregate";
 import { compileSelectQuery, parseSelectQuery } from "../src/parsers/select";
-import { parseWhereClause } from "../src/parsers/where";
+
 import type { AnyExpression, Condition } from "../src/schemas";
 import type { Config, ParserState } from "../src/types";
 import { ExpressionTypeMap } from "../src/utils/expression-map";
-
-// Regex patterns for performance
-const SELECT_REGEX = /^SELECT .* FROM users$/;
-const WHERE_REGEX = /WHERE users\.active = \$1$/;
-const GROUP_BY_REGEX = /GROUP BY users\.active$/;
+import { extractSelectWhereClause } from "./_helpers";
 
 // Test configuration
 let testConfig: Config;
@@ -66,7 +62,7 @@ describe("Conditions Parser", () => {
 				"users.name": { $eq: "John" },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.name = $1");
 			expect(result.params).toEqual(["John"]);
 		});
@@ -77,7 +73,7 @@ describe("Conditions Parser", () => {
 				"users.age": { $gt: 25 },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("(users.name = $1 AND users.age > $2)");
 			expect(result.params).toEqual(["John", 25]);
 		});
@@ -87,7 +83,7 @@ describe("Conditions Parser", () => {
 				$or: [{ "users.name": { $eq: "John" } }, { "users.name": { $eq: "Jane" } }],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("(users.name = $1 OR users.name = $2)");
 			expect(result.params).toEqual(["John", "Jane"]);
 		});
@@ -97,7 +93,7 @@ describe("Conditions Parser", () => {
 				$not: { "users.active": { $eq: true } },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("NOT (users.active = $1)");
 			expect(result.params).toEqual([true]);
 		});
@@ -109,7 +105,7 @@ describe("Conditions Parser", () => {
 				"users.age": { $gte: 18, $lte: 65 },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("(users.age >= $1 AND users.age <= $2)");
 			expect(result.params).toEqual([18, 65]);
 		});
@@ -119,7 +115,7 @@ describe("Conditions Parser", () => {
 				"users.name": { $in: ["John", "Jane", "Bob"] },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.name IN ($1, $2, $3)");
 			expect(result.params).toEqual(["John", "Jane", "Bob"]);
 		});
@@ -129,7 +125,7 @@ describe("Conditions Parser", () => {
 				"users.name": { $like: "John%" },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.name LIKE $1");
 			expect(result.params).toEqual(["John%"]);
 		});
@@ -141,7 +137,7 @@ describe("Conditions Parser", () => {
 				"users.id": { $eq: { $expr: "auth.uid" } },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.id = 123");
 			expect(result.params).toEqual([]);
 		});
@@ -151,7 +147,7 @@ describe("Conditions Parser", () => {
 				"users.age": { $gt: { $expr: { YEAR: [{ $expr: "users.created_at" }] } } },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.age > YEAR(users.created_at)");
 			expect(result.params).toEqual([]);
 		});
@@ -169,7 +165,7 @@ describe("Conditions Parser", () => {
 				},
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.status = (CASE WHEN users.active = $1 THEN 'active' ELSE 'inactive' END)");
 			expect(result.params).toEqual([true]);
 		});
@@ -181,7 +177,7 @@ describe("Conditions Parser", () => {
 				"users.metadata->profile->name": { $eq: "John" },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.metadata->'profile'->>'name' = $1");
 			expect(result.params).toEqual(["John"]);
 		});
@@ -199,7 +195,7 @@ describe("Conditions Parser", () => {
 				},
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("EXISTS (SELECT 1 FROM posts WHERE (posts.user_id = users.id AND posts.published = $1))");
 			expect(result.params).toEqual([true]);
 		});
@@ -221,7 +217,7 @@ describe("Select Parser", () => {
 			expect(result.select).toContain('users.id AS "id"');
 			expect(result.select).toContain('users.name AS "name"');
 			expect(result.select).toContain('users.email AS "email"');
-			expect(sql).toMatch(SELECT_REGEX);
+			expect(sql).toBe('SELECT users.id AS "id", users.name AS "name", users.email AS "email" FROM users');
 		});
 
 		it("should parse selection with conditions", () => {
@@ -231,8 +227,8 @@ describe("Select Parser", () => {
 			const result = parseSelectQuery({ rootTable: "users", selection, condition }, testConfig);
 			const sql = compileSelectQuery(result);
 
-			expect(sql).toMatch(WHERE_REGEX);
 			expect(result.params).toEqual([true]);
+			expect(sql).toBe('SELECT users.id AS "id", users.name AS "name" FROM users WHERE users.active = $1');
 		});
 	});
 
@@ -319,7 +315,10 @@ describe("Aggregation Parser", () => {
 			expect(result.select).toContain('COUNT(*) AS "user_count"');
 			expect(result.select).toContain('AVG(users.age) AS "avg_age"');
 			expect(result.groupBy).toContain("users.active");
-			expect(sql).toMatch(GROUP_BY_REGEX);
+
+			expect(sql).toBe(
+				'SELECT users.active AS "active", COUNT(*) AS "user_count", AVG(users.age) AS "avg_age" FROM users GROUP BY users.active',
+			);
 		});
 	});
 
@@ -422,7 +421,7 @@ describe("Error Handling", () => {
 				"invalid_table.field": { $eq: "value" },
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow("Table 'invalid_table' is not allowed");
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow("Table 'invalid_table' is not allowed");
 		});
 
 		it("should throw error for non-existent field", () => {
@@ -430,7 +429,7 @@ describe("Error Handling", () => {
 				"users.invalid_field": { $eq: "value" },
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow(
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
 				"Field 'invalid_field' is not allowed for table 'users'",
 			);
 		});
@@ -442,7 +441,7 @@ describe("Error Handling", () => {
 				"users.age": { $eq: "not_a_number" },
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow(
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
 				"Field type mismatch for '=' comparison on 'age': expected number, got string",
 			);
 		});
@@ -452,7 +451,7 @@ describe("Error Handling", () => {
 				"users.age": { $like: "25%" },
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow(
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
 				"Field type mismatch for LIKE operation on 'age': expected string, got number",
 			);
 		});
@@ -462,7 +461,7 @@ describe("Error Handling", () => {
 				"users.name": { $gt: 5 },
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow(
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
 				"Field type mismatch for '>' comparison on 'name': expected string, got number",
 			);
 		});
@@ -474,7 +473,7 @@ describe("Error Handling", () => {
 				"users.name->profile": { $eq: "value" },
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow(
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
 				"JSON path access 'profile' is only allowed on JSON fields",
 			);
 		});
@@ -486,7 +485,9 @@ describe("Error Handling", () => {
 				"users.name": { $eq: { $expr: { UNKNOWN_FUNC: ["arg"] } } },
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow("Unknown function or operator: UNKNOWN_FUNC");
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
+				"Unknown function or operator: UNKNOWN_FUNC",
+			);
 		});
 
 		it("should throw error for wrong argument count", () => {
@@ -494,7 +495,7 @@ describe("Error Handling", () => {
 				"users.age": { $eq: { $expr: { ABS: ["arg1", "arg2"] } } },
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow(
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
 				"Unary operator 'ABS' requires exactly 1 argument, got 2",
 			);
 		});

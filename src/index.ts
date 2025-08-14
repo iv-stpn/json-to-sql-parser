@@ -23,7 +23,6 @@ export {
 	conditionSchema,
 	expressionObjectSchema,
 	fieldSelectionSchema,
-	isExpressionObject,
 } from "./schemas";
 // Types
 export type {

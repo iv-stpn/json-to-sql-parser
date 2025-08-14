@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { parseExpression } from "../src/parsers";
 import { parseAggregationQuery } from "../src/parsers/aggregate";
 import { parseSelectQuery } from "../src/parsers/select";
-import { parseWhereClause } from "../src/parsers/where";
 import type { AnyExpression, Condition } from "../src/schemas";
 import type { Config, ParserState } from "../src/types";
 import { ExpressionTypeMap } from "../src/utils/expression-map";
+import { extractSelectWhereClause } from "./_helpers";
 
 describe("Edge Case Tests", () => {
 	let testConfig: Config;
@@ -82,7 +82,7 @@ describe("Edge Case Tests", () => {
 				],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toContain("AND");
 			expect(result.sql).toContain("OR");
 			expect(result.params).toEqual(["John", "Jane", 18, 65, true, "pending"]);
@@ -100,7 +100,7 @@ describe("Edge Case Tests", () => {
 				},
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toContain("NOT");
 			expect(result.params).toEqual(["blocked", "banned", 13]);
 		});
@@ -108,12 +108,12 @@ describe("Edge Case Tests", () => {
 		it("should handle empty AND/OR arrays", () => {
 			expect(() => {
 				const condition: Condition = { $and: [] };
-				parseWhereClause(condition, testConfig, "users");
+				extractSelectWhereClause(condition, testConfig, "users");
 			}).toThrow();
 
 			expect(() => {
 				const condition: Condition = { $or: [] };
-				parseWhereClause(condition, testConfig, "users");
+				extractSelectWhereClause(condition, testConfig, "users");
 			}).toThrow();
 		});
 
@@ -126,8 +126,8 @@ describe("Edge Case Tests", () => {
 				$or: [{ "users.age": { $gt: 18 } }],
 			};
 
-			const andResult = parseWhereClause(andCondition, testConfig, "users");
-			const orResult = parseWhereClause(orCondition, testConfig, "users");
+			const andResult = extractSelectWhereClause(andCondition, testConfig, "users");
+			const orResult = extractSelectWhereClause(orCondition, testConfig, "users");
 
 			expect(andResult.sql).toBe("users.name = $1");
 			expect(orResult.sql).toBe("(users.age > $1)");
@@ -148,7 +148,7 @@ describe("Edge Case Tests", () => {
 					"users.age": { $eq: largeNumber },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.params).toEqual([largeNumber]);
 			}
 		});
@@ -167,7 +167,7 @@ describe("Edge Case Tests", () => {
 					"users.age": { $eq: smallNumber },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.params).toEqual([smallNumber]);
 			}
 		});
@@ -181,9 +181,9 @@ describe("Edge Case Tests", () => {
 				};
 
 				if (Number.isNaN(specialNumber) || !Number.isFinite(specialNumber)) {
-					expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+					expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 				} else {
-					const result = parseWhereClause(condition, testConfig, "users");
+					const result = extractSelectWhereClause(condition, testConfig, "users");
 					expect(result.params).toEqual([specialNumber]);
 				}
 			}
@@ -206,7 +206,7 @@ describe("Edge Case Tests", () => {
 					"users.name": { $eq: stringValue },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.params).toEqual([stringValue]);
 			}
 		});
@@ -230,7 +230,7 @@ describe("Edge Case Tests", () => {
 					"users.name": { $eq: unicodeString },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.params).toEqual([unicodeString]);
 			}
 		});
@@ -300,7 +300,7 @@ describe("Edge Case Tests", () => {
 				[deepJsonPath]: { $eq: "deep_value" },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toContain("metadata");
 			expect(result.sql).toContain("level1");
 			expect(result.sql).toContain("level5");
@@ -321,7 +321,7 @@ describe("Edge Case Tests", () => {
 					[jsonPath]: { $eq: "test_value" },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.params).toEqual(["test_value"]);
 			}
 		});
@@ -339,7 +339,7 @@ describe("Edge Case Tests", () => {
 					[invalidPath]: { $eq: "test" },
 				};
 
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 
@@ -354,7 +354,7 @@ describe("Edge Case Tests", () => {
 					[invalidPath]: { $eq: "test" },
 				};
 
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 
@@ -364,7 +364,7 @@ describe("Edge Case Tests", () => {
 				[invalidJsonOnString]: { $eq: "test" },
 			};
 
-			expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 		});
 	});
 
@@ -373,7 +373,7 @@ describe("Edge Case Tests", () => {
 			const emptyArrayConditions = [{ "users.name": { $in: [] } }, { "users.name": { $nin: [] } }];
 
 			for (const condition of emptyArrayConditions) {
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 
@@ -388,7 +388,7 @@ describe("Edge Case Tests", () => {
 					"users.name": { $in: mixedArray },
 				};
 
-				expect(() => parseWhereClause(condition, testConfig, "users")).toThrow();
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 			}
 		});
 
@@ -398,7 +398,7 @@ describe("Edge Case Tests", () => {
 				"users.name": { $in: largeArray },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.params).toEqual(largeArray);
 			expect(result.sql).toContain("IN");
 		});
@@ -415,7 +415,7 @@ describe("Edge Case Tests", () => {
 					"users.name": { $in: primitiveArray },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.params).toEqual(primitiveArray);
 			}
 		});
@@ -474,7 +474,7 @@ describe("Edge Case Tests", () => {
 					"users.name": { $like: pattern },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.params).toEqual([pattern]);
 				expect(result.sql).toContain("LIKE");
 			}
@@ -488,7 +488,7 @@ describe("Edge Case Tests", () => {
 					"users.name": { $regex: pattern },
 				};
 
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.params).toEqual([pattern]);
 				expect(result.sql).toContain("~");
 			}

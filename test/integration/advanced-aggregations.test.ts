@@ -1,0 +1,602 @@
+/** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { compileAggregationQuery, parseAggregationQuery } from "../../src/parsers/aggregate";
+import type { AggregationQuery } from "../../src/schemas";
+import type { Config } from "../../src/types";
+import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
+
+describe("Integration Tests - Advanced Aggregations with Complex Type Casting", () => {
+	let db: DatabaseHelper;
+	let config: Config;
+
+	beforeAll(async () => {
+		await setupTestEnvironment();
+		db = new DatabaseHelper();
+		await db.connect();
+
+		config = {
+			tables: {
+				users: {
+					allowedFields: [
+						{ name: "id", type: "uuid", nullable: false },
+						{ name: "name", type: "string", nullable: false },
+						{ name: "email", type: "string", nullable: true },
+						{ name: "age", type: "number", nullable: true },
+						{ name: "active", type: "boolean", nullable: false },
+						{ name: "status", type: "string", nullable: false },
+						{ name: "metadata", type: "object", nullable: true },
+						{ name: "created_at", type: "datetime", nullable: false },
+						{ name: "birth_date", type: "date", nullable: true },
+					],
+				},
+				orders: {
+					allowedFields: [
+						{ name: "id", type: "uuid", nullable: false },
+						{ name: "amount", type: "number", nullable: false },
+						{ name: "status", type: "string", nullable: false },
+						{ name: "customer_id", type: "uuid", nullable: false },
+						{ name: "created_at", type: "datetime", nullable: false },
+						{ name: "shipped_at", type: "datetime", nullable: true },
+						{ name: "delivered_date", type: "date", nullable: true },
+					],
+				},
+				posts: {
+					allowedFields: [
+						{ name: "id", type: "uuid", nullable: false },
+						{ name: "title", type: "string", nullable: false },
+						{ name: "content", type: "string", nullable: false },
+						{ name: "user_id", type: "uuid", nullable: false },
+						{ name: "published", type: "boolean", nullable: false },
+						{ name: "tags", type: "object", nullable: true },
+						{ name: "created_at", type: "datetime", nullable: false },
+						{ name: "published_at", type: "datetime", nullable: true },
+					],
+				},
+			},
+			variables: {
+				current_year: 2024,
+				min_order_threshold: 100,
+				premium_tier_threshold: 250,
+				"NOW()": "2024-01-01T00:00:00Z",
+			},
+			relationships: [
+				{ table: "users", field: "id", toTable: "orders", toField: "customer_id", type: "one-to-many" },
+				{ table: "users", field: "id", toTable: "posts", toField: "user_id", type: "one-to-many" },
+			],
+		};
+	});
+
+	afterAll(async () => {
+		await db.disconnect();
+		await teardownTestEnvironment();
+	});
+
+	describe("Complex Expression Aggregations with Type Inference", () => {
+		it("should handle mathematical expressions with proper type casting", async () => {
+			await db.executeInTransaction(async () => {
+				const aggregationQuery: AggregationQuery = {
+					table: "orders",
+					groupBy: ["orders.status"],
+					aggregatedFields: {
+						total_amount: { operator: "SUM", field: "orders.amount" },
+						avg_amount: { operator: "AVG", field: "orders.amount" },
+						// Complex mathematical expression with type inference
+						revenue_score: {
+							operator: "SUM",
+							field: {
+								$expr: {
+									MULTIPLY: [
+										{ $expr: "orders.amount" },
+										{
+											$cond: {
+												if: { "orders.amount": { $gte: { $expr: "premium_tier_threshold" } } },
+												then: 1.5, // Premium multiplier
+												else: 1.0,
+											},
+										},
+									],
+								},
+							},
+						},
+						// Age-based calculation from date field
+						avg_days_since_order: {
+							operator: "AVG",
+							field: {
+								$expr: {
+									SUBTRACT: [
+										{ $expr: { EXTRACT: ["epoch", { $expr: "NOW()" }] } },
+										{ $expr: { EXTRACT: ["epoch", { $expr: "orders.created_at" }] } },
+									],
+								},
+							},
+						},
+						order_count: { operator: "COUNT", field: "*" },
+					},
+				};
+
+				const result = parseAggregationQuery(aggregationQuery, config);
+				const sql = compileAggregationQuery(result);
+				const rows = await db.query(sql, result.params);
+
+				expect(rows).toBeDefined();
+				expect(Array.isArray(rows)).toBe(true);
+				expect(rows.length).toBeGreaterThan(0);
+
+				// Verify proper type casting in SQL
+				expect(sql).toContain("SUM(orders.amount)");
+				expect(sql).toContain("AVG(orders.amount)");
+				expect(sql).toContain("CASE WHEN");
+				expect(sql).toContain("EXTRACT");
+				expect(sql).toContain("GROUP BY");
+
+				// Verify results have expected properties
+				for (const row of rows) {
+					const r = row as Record<string, unknown>;
+					expect(r).toHaveProperty("status");
+					expect(r).toHaveProperty("total_amount");
+					expect(r).toHaveProperty("avg_amount");
+					expect(r).toHaveProperty("revenue_score");
+					expect(r).toHaveProperty("order_count");
+				}
+			});
+		});
+
+		it("should handle JSON path aggregations with type casting", async () => {
+			await db.executeInTransaction(async () => {
+				const aggregationQuery: AggregationQuery = {
+					table: "users",
+					groupBy: ["users.metadata->department", "users.metadata->role"],
+					aggregatedFields: {
+						user_count: { operator: "COUNT", field: "*" },
+						avg_age: { operator: "AVG", field: "users.age" },
+						// Extract JSON boolean and count
+						active_users: {
+							operator: "COUNT",
+							field: {
+								$cond: {
+									if: { "users.active": { $eq: true } },
+									then: 1,
+									else: null,
+								},
+							},
+						},
+						// JSON extraction with mathematical operations
+						settings_complexity: {
+							operator: "AVG",
+							field: {
+								$expr: {
+									ADD: [
+										{
+											$cond: {
+												if: { "users.metadata->settings->notifications": { $eq: true } },
+												then: 1,
+												else: 0,
+											},
+										},
+										{
+											$expr: {
+												LENGTH: [{ $expr: { COALESCE: [{ $expr: "users.metadata->settings->theme" }, "default"] } }],
+											},
+										},
+									],
+								},
+							},
+						},
+					},
+				};
+
+				const result = parseAggregationQuery(aggregationQuery, config);
+				const sql = compileAggregationQuery(result);
+				const rows = await db.query(sql, result.params);
+
+				expect(rows).toBeDefined();
+				expect(Array.isArray(rows)).toBe(true);
+
+				// Verify JSON path access in SQL
+				expect(sql).toContain("metadata");
+				expect(sql).toContain("department");
+				expect(sql).toContain("role");
+				expect(sql).toContain("settings");
+				expect(sql).toContain("COALESCE");
+				expect(sql).toContain("LENGTH");
+
+				// Check that we get engineering and marketing departments
+				const departments = rows.map((row) => (row as Record<string, unknown>)["metadata->department"]);
+				expect(departments).toContain("engineering");
+				expect(departments).toContain("marketing");
+			});
+		});
+	});
+
+	describe("Cross-table Aggregations with Complex Joins", () => {
+		it("should handle aggregations with EXISTS conditions", async () => {
+			await db.executeInTransaction(async () => {
+				const aggregationQuery: AggregationQuery = {
+					table: "users",
+					groupBy: ["users.status"],
+					aggregatedFields: {
+						user_count: { operator: "COUNT", field: "*" },
+						avg_age: { operator: "AVG", field: "users.age" },
+						// Count users with orders above threshold
+						high_value_customers: {
+							operator: "COUNT",
+							field: {
+								$cond: {
+									if: {
+										$exists: {
+											table: "orders",
+											conditions: {
+												$and: [
+													{ "orders.customer_id": { $eq: { $expr: "users.id" } } },
+													{ "orders.amount": { $gte: { $expr: "min_order_threshold" } } },
+													{ "orders.status": { $eq: "completed" } },
+												],
+											},
+										},
+									},
+									then: 1,
+									else: null,
+								},
+							},
+						},
+						// Complex calculation involving multiple tables
+						engagement_score: {
+							operator: "AVG",
+							field: {
+								$expr: {
+									ADD: [
+										// Base score from age
+										{
+											$expr: {
+												DIVIDE: [{ $expr: { COALESCE: [{ $expr: "users.age" }, 25] } }, 10],
+											},
+										},
+										// Bonus points for having posts
+										{
+											$cond: {
+												if: {
+													$exists: {
+														table: "posts",
+														conditions: {
+															$and: [{ "posts.user_id": { $eq: { $expr: "users.id" } } }, { "posts.published": { $eq: true } }],
+														},
+													},
+												},
+												then: 5,
+												else: 0,
+											},
+										},
+									],
+								},
+							},
+						},
+					},
+				};
+
+				const result = parseAggregationQuery(aggregationQuery, config);
+				const sql = compileAggregationQuery(result);
+				const rows = await db.query(sql, result.params);
+
+				expect(rows).toBeDefined();
+				expect(Array.isArray(rows)).toBe(true);
+
+				// Verify EXISTS subqueries in aggregation
+				expect(sql).toContain("EXISTS");
+				expect(sql).toContain("SELECT 1 FROM orders");
+				expect(sql).toContain("SELECT 1 FROM posts");
+				expect(sql).toContain("CASE WHEN");
+				expect(sql).toContain("COALESCE");
+				expect(sql).toContain("/");
+
+				// Verify results structure
+				for (const row of rows) {
+					const r = row as Record<string, unknown>;
+					expect(r).toHaveProperty("status");
+					expect(r).toHaveProperty("user_count");
+					expect(r).toHaveProperty("engagement_score");
+				}
+			});
+		});
+	});
+
+	describe("Date and Time Aggregations with Complex Casting", () => {
+		it("should handle date extraction and time-based aggregations", async () => {
+			await db.executeInTransaction(async () => {
+				const aggregationQuery: AggregationQuery = {
+					table: "orders",
+					groupBy: ["orders.created_at"],
+					aggregatedFields: {
+						order_count: { operator: "COUNT", field: "*" },
+						total_revenue: { operator: "SUM", field: "orders.amount" },
+						// Calculate average processing time for shipped orders
+						avg_processing_days: {
+							operator: "AVG",
+							field: {
+								$cond: {
+									if: { "orders.shipped_at": { $ne: null } },
+									then: {
+										$expr: {
+											DIVIDE: [
+												{
+													$expr: {
+														SUBTRACT: [
+															{ $expr: { EXTRACT: ["epoch", { $expr: "orders.shipped_at" }] } },
+															{ $expr: { EXTRACT: ["epoch", { $expr: "orders.created_at" }] } },
+														],
+													},
+												},
+												86400, // Convert seconds to days
+											],
+										},
+									},
+									else: null,
+								},
+							},
+						},
+						// Age of oldest order in days
+						oldest_order_age_days: {
+							operator: "MAX",
+							field: {
+								$expr: {
+									DIVIDE: [
+										{
+											$expr: {
+												SUBTRACT: [
+													{ $expr: { EXTRACT: ["epoch", { $expr: "NOW()" }] } },
+													{ $expr: { EXTRACT: ["epoch", { $expr: "orders.created_at" }] } },
+												],
+											},
+										},
+										86400,
+									],
+								},
+							},
+						},
+					},
+				};
+
+				const result = parseAggregationQuery(aggregationQuery, config);
+				const sql = compileAggregationQuery(result);
+				const rows = await db.query(sql, result.params);
+
+				expect(rows).toBeDefined();
+				expect(Array.isArray(rows)).toBe(true);
+
+				// Verify date/time functions in SQL
+				expect(sql).toContain("EXTRACT");
+				expect(sql).toContain("epoch");
+				expect(sql).toContain("NOW()");
+				expect(sql).toContain("SUBTRACT");
+				expect(sql).toContain("DIVIDE");
+				expect(result.params).toContain(86400); // Day conversion factor
+
+				// Verify results structure
+				for (const row of rows) {
+					const r = row as Record<string, unknown>;
+					expect(r).toHaveProperty("EXTRACT('year' FROM orders.created_at)");
+					expect(r).toHaveProperty("EXTRACT('month' FROM orders.created_at)");
+					expect(r).toHaveProperty("order_count");
+					expect(r).toHaveProperty("total_revenue");
+				}
+			});
+		});
+	});
+
+	describe("String and Array Aggregations with Type Inference", () => {
+		it("should handle string manipulation and array aggregations", async () => {
+			await db.executeInTransaction(async () => {
+				const aggregationQuery: AggregationQuery = {
+					table: "users",
+					groupBy: ["users.email"],
+					aggregatedFields: {
+						user_count: { operator: "COUNT", field: "*" },
+						// Average name length with proper casting
+						avg_name_length: {
+							operator: "AVG",
+							field: {
+								$expr: {
+									LENGTH: [{ $expr: "users.name" }],
+								},
+							},
+						},
+						// Concatenated names with type preservation
+						all_names: {
+							operator: "STRING_AGG",
+							field: {
+								$expr: {
+									CONCAT: [
+										{ $expr: { UPPER: [{ $expr: "users.name" }] } },
+										" (",
+										{ $expr: { COALESCE: [{ $expr: "users.status" }, "unknown"] } },
+										")",
+									],
+								},
+							},
+						},
+						// Complex boolean aggregation
+						has_premium_users: {
+							operator: "MAX",
+							field: {
+								$cond: {
+									if: { "users.status": { $eq: "premium" } },
+									then: 1,
+									else: 0,
+								},
+							},
+						},
+						// Age statistics with null handling
+						age_stats: {
+							operator: "STRING_AGG",
+							field: {
+								$expr: {
+									CONCAT: [{ $expr: "users.name" }, ":", { $expr: { COALESCE: [{ $expr: "users.age" }, "unknown"] } }],
+								},
+							},
+						},
+					},
+				};
+
+				const result = parseAggregationQuery(aggregationQuery, config);
+				const sql = compileAggregationQuery(result);
+				const rows = await db.query(sql, result.params);
+
+				expect(rows).toBeDefined();
+				expect(Array.isArray(rows)).toBe(true);
+
+				// Verify string functions in SQL
+				expect(sql).toContain("SUBSTRING");
+				expect(sql).toContain("LENGTH");
+				expect(sql).toContain("UPPER");
+				expect(sql).toContain("CONCAT");
+				expect(sql).toContain("COALESCE");
+				expect(sql).toContain("STRING_AGG");
+
+				// Verify type casting for different operations
+				expect(sql).toContain("MAX");
+				expect(sql).toContain("AVG");
+				expect(sql).toContain("CASE WHEN");
+			});
+		});
+	});
+
+	describe("Nested Expressions with Multiple Type Conversions", () => {
+		it("should handle deeply nested expressions with proper type inference", async () => {
+			await db.executeInTransaction(async () => {
+				const aggregationQuery: AggregationQuery = {
+					table: "orders",
+					groupBy: ["orders.status"],
+					aggregatedFields: {
+						order_count: { operator: "COUNT", field: "*" },
+						// Complex mathematical expression with multiple type conversions
+						weighted_revenue: {
+							operator: "SUM",
+							field: {
+								$expr: {
+									MULTIPLY: [
+										{ $expr: "orders.amount" },
+										{
+											$expr: {
+												ADD: [
+													1,
+													{
+														$expr: {
+															DIVIDE: [
+																{
+																	$expr: {
+																		SUBTRACT: [
+																			{ $expr: { EXTRACT: ["epoch", { $expr: "NOW()" }] } },
+																			{ $expr: { EXTRACT: ["epoch", { $expr: "orders.created_at" }] } },
+																		],
+																	},
+																},
+																2592000, // 30 days in seconds
+															],
+														},
+													},
+												],
+											},
+										},
+									],
+								},
+							},
+						},
+						// String manipulation with mathematical results
+						order_summary: {
+							operator: "STRING_AGG",
+							field: {
+								$expr: {
+									CONCAT: [
+										"Order#",
+										{ $expr: { SUBSTRING: [{ $expr: "orders.id" }, 1, 8] } },
+										" ($",
+										{
+											$expr: {
+												MULTIPLY: [
+													{ $expr: "orders.amount" },
+													{
+														$cond: {
+															if: { "orders.status": { $eq: "completed" } },
+															then: 1.0,
+															else: 0.8, // Potential value for non-completed orders
+														},
+													},
+												],
+											},
+										},
+										")",
+									],
+								},
+							},
+						},
+						// Complex conditional aggregation
+						efficiency_score: {
+							operator: "AVG",
+							field: {
+								$cond: {
+									if: {
+										$and: [{ "orders.shipped_at": { $ne: null } }, { "orders.status": { $in: ["shipped", "completed"] } }],
+									},
+									then: {
+										$expr: {
+											DIVIDE: [
+												{ $expr: "orders.amount" },
+												{
+													$expr: {
+														ADD: [
+															{
+																$expr: {
+																	DIVIDE: [
+																		{
+																			$expr: {
+																				SUBTRACT: [
+																					{ $expr: { EXTRACT: ["epoch", { $expr: "orders.shipped_at" }] } },
+																					{ $expr: { EXTRACT: ["epoch", { $expr: "orders.created_at" }] } },
+																				],
+																			},
+																		},
+																		3600, // Convert to hours
+																	],
+																},
+															},
+															1, // Prevent division by zero
+														],
+													},
+												},
+											],
+										},
+									},
+									else: 0,
+								},
+							},
+						},
+					},
+				};
+
+				const result = parseAggregationQuery(aggregationQuery, config);
+				const sql = compileAggregationQuery(result);
+				const rows = await db.query(sql, result.params);
+
+				expect(rows).toBeDefined();
+				expect(Array.isArray(rows)).toBe(true);
+
+				// Verify complex nested expressions in SQL
+				expect(sql).toContain("CASE WHEN");
+				expect(sql.split("CASE WHEN").length).toBeGreaterThan(3); // Multiple CASE statements
+				expect(sql).toContain("MULTIPLY");
+				expect(sql).toContain("DIVIDE");
+				expect(sql).toContain("SUBTRACT");
+				expect(sql).toContain("ADD");
+				expect(sql).toContain("EXTRACT");
+				expect(sql).toContain("SUBSTRING");
+				expect(sql).toContain("CONCAT");
+				expect(sql).toContain("STRING_AGG");
+
+				// Verify proper parameter handling
+				expect(result.params).toContain(200);
+				expect(result.params).toContain(100);
+				expect(result.params).toContain(2592000); // 30 days
+				expect(result.params).toContain(3600); // 1 hour
+			});
+		});
+	});
+});

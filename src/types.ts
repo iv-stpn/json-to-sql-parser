@@ -17,3 +17,4 @@ type Tables = { [tableName: string]: { allowedFields: Field[] } };
 export type Config = { tables: Tables; variables: Variables; relationships: Relationship[]; dataTable?: DataTableConfig };
 
 export type ParserState = { config: Config; params: Primitive[]; rootTable: string; expressions: ExpressionTypeMap };
+export type BaseParsedQuery = { select: string[]; from: string; where?: string; params: Primitive[] };

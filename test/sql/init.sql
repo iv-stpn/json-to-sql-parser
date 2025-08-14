@@ -10,6 +10,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE,
     age INTEGER,
     active BOOLEAN NOT NULL DEFAULT true,
+    balance DECIMAL(10,2) DEFAULT 0.00,
     status VARCHAR(50) NOT NULL DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -65,12 +66,12 @@ CREATE INDEX idx_data_storage_data ON data_storage USING GIN(data);
 CREATE INDEX idx_data_storage_deleted_at ON data_storage(deleted_at);
 
 -- Insert sample data for regular tables with specific UUIDs
-INSERT INTO users (id, name, email, age, active, status, birth_date, metadata) VALUES
-('550e8400-e29b-41d4-a716-446655440000', 'John Doe', 'john@example.com', 30, true, 'premium', '1994-01-15', '{"department": "engineering", "role": "senior", "settings": {"theme": "dark", "notifications": true}}'),
-('6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Jane Smith', 'jane@example.com', 25, true, 'active', '1999-03-22', '{"department": "marketing", "role": "manager", "settings": {"theme": "light", "notifications": false}}'),
-('6ba7b811-9dad-11d1-80b4-00c04fd430c8', 'Bob Johnson', 'bob@example.com', 35, false, 'inactive', '1989-07-08', '{"department": "sales", "role": "representative", "settings": {"theme": "dark", "notifications": true}}'),
-('6ba7b812-9dad-11d1-80b4-00c04fd430c8', 'Alice Brown', 'alice@example.com', 28, true, 'premium', '1996-11-30', '{"department": "engineering", "role": "junior", "settings": {"theme": "light", "notifications": true}}'),
-('6ba7b813-9dad-11d1-80b4-00c04fd430c8', 'Charlie Wilson', null, 32, true, 'active', '1992-05-18', '{"department": "hr", "role": "coordinator", "settings": {"theme": "dark", "notifications": false}}');
+INSERT INTO users (id, name, email, age, active, status, birth_date, metadata, balance) VALUES
+('550e8400-e29b-41d4-a716-446655440000', 'John Doe', 'john@example.com', 30, true, 'premium', '1994-01-15', '{"department": "engineering", "role": "senior", "settings": {"theme": "dark", "notifications": true}}', 1000.00),
+('6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Jane Smith', 'jane@example.com', 25, true, 'active', '1999-03-22', '{"department": "marketing", "role": "manager", "settings": {"theme": "light", "notifications": false}}', 1500.00),
+('6ba7b811-9dad-11d1-80b4-00c04fd430c8', 'Bob Johnson', 'bob@example.com', 35, false, 'inactive', '1989-07-08', '{"department": "sales", "role": "representative", "settings": {"theme": "dark", "notifications": true}}', 800.00),
+('6ba7b812-9dad-11d1-80b4-00c04fd430c8', 'Alice Brown', 'alice@example.com', 28, true, 'premium', '1996-11-30', '{"department": "engineering", "role": "junior", "settings": {"theme": "light", "notifications": true}}', 1200.00),
+('6ba7b813-9dad-11d1-80b4-00c04fd430c8', 'Charlie Wilson', null, 32, true, 'active', '1992-05-18', '{"department": "hr", "role": "coordinator", "settings": {"theme": "dark", "notifications": false}}', 900.00);
 
 INSERT INTO posts (id, title, content, user_id, published, published_at, tags) VALUES
 ('7ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Getting Started with PostgreSQL', 'This is a comprehensive guide to PostgreSQL...', '550e8400-e29b-41d4-a716-446655440000', true, '2024-01-15 10:30:00', '["database", "postgresql", "tutorial"]'),

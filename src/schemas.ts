@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: we use `then` and `else` for conditional expressions */
 import { z } from "zod";
-import { type AggregationOperator, aggregationOperators } from "./constants/operators";
+import { aggregationOperators } from "./constants/operators";
 
 // Primitive value types
 export const equalityValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
@@ -15,10 +15,6 @@ export type ExpressionObject =
 	| { $uuid: string } // UUID value
 	| { $cond: ConditionExpression };
 
-function record<T extends z.ZodTypeAny>(type: T): z.ZodRecord<z.ZodString, T> {
-	return z.record(z.string(), type);
-}
-
 export const expressionObjectSchema: z.ZodType<ExpressionObject> = z.lazy(() =>
 	z.union([
 		z.object({
@@ -28,18 +24,13 @@ export const expressionObjectSchema: z.ZodType<ExpressionObject> = z.lazy(() =>
 				else: z.lazy(() => anyExpressionSchema),
 			}),
 		}),
-		z.object({ $expr: record(z.array(z.lazy(() => anyExpressionSchema))) }), // Function call
+		z.object({ $expr: z.record(z.string(), z.array(z.lazy(() => anyExpressionSchema))) }), // Function call
 		z.object({ $expr: z.string() }), // Field reference or context variable
 		z.object({ $timestamp: z.string() }), // Timestamp value
 		z.object({ $date: z.string() }), // Date value
-		z.object({ $uuid: z.string() }), // UUID value
+		z.object({ $uuid: z.uuid({ error: "Invalid UUID format" }) }), // UUID value
 	]),
 );
-
-export const isExpressionObject = (value: unknown): value is ExpressionObject =>
-	typeof value === "object" &&
-	value !== null &&
-	("$expr" in value || "$cond" in value || "$timestamp" in value || "$date" in value || "$uuid" in value);
 
 export type AnyExpression = ExpressionObject | EqualityValue;
 export const anyExpressionSchema: z.ZodType<AnyExpression> = z.lazy(() => z.union([expressionObjectSchema, equalityValueSchema]));
@@ -89,8 +80,19 @@ export type Selection = { [key: FieldName]: FieldSelection };
 export const fieldSelectionSchema: z.ZodType<FieldSelection> = z.union([
 	z.boolean(),
 	expressionObjectSchema,
-	record(z.lazy(() => fieldSelectionSchema)),
+	z.record(
+		z.string(),
+		z.lazy(() => fieldSelectionSchema),
+	),
 ]);
+
+export const selectQuerySchema = z.object({
+	rootTable: z.string(),
+	selection: z.record(z.string(), fieldSelectionSchema),
+	condition: conditionSchema.optional(),
+});
+
+export type SelectQuery = z.infer<typeof selectQuerySchema>;
 
 // Aggregation schemas
 export const aggregatedSchema = z.object({
@@ -98,12 +100,14 @@ export const aggregatedSchema = z.object({
 	field: z.union([z.string(), expressionObjectSchema]),
 });
 
-export type Aggregation = { operator: AggregationOperator; field: string | ExpressionObject };
-export type AggregationQuery = { table: string; groupBy: string[]; aggregatedFields: Record<string, Aggregation> };
+export type Aggregation = z.infer<typeof aggregatedSchema>;
 
 // Schema for aggregation query
 export const aggregationQuerySchema = z.object({
 	table: z.string(),
-	groupByFields: z.array(z.string()),
-	aggregatedFields: record(aggregatedSchema),
+	groupBy: z.array(z.string()),
+	condition: conditionSchema.optional(),
+	aggregatedFields: z.record(z.string(), aggregatedSchema).optional(),
 });
+
+export type AggregationQuery = z.infer<typeof aggregationQuerySchema>;

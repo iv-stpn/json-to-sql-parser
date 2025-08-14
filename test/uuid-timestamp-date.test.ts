@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { parseExpression } from "../src/parsers";
 import { compileSelectQuery, parseSelectQuery } from "../src/parsers/select";
-import { parseWhereClause } from "../src/parsers/where";
 import type { AnyExpression, Condition } from "../src/schemas";
 import type { Config, ParserState } from "../src/types";
 import { ExpressionTypeMap } from "../src/utils/expression-map";
+import { extractSelectWhereClause } from "./_helpers";
 
 describe("UUID, Timestamp, and Date Tests", () => {
 	let testConfig: Config;
@@ -78,7 +78,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 				"users.id": { $eq: { $uuid: "550e8400-e29b-41d4-a716-446655440000" } },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.id = '550e8400-e29b-41d4-a716-446655440000'");
 			expect(result.params).toEqual([]);
 		});
@@ -94,7 +94,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 			];
 
 			for (const condition of conditions) {
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.sql).toBeTruthy();
 				// UUID expressions generate literal SQL, not parameters
 				expect(result.sql).toContain("550e8400-e29b-41d4-a716-446655440000");
@@ -106,7 +106,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 				"users.id": { $eq: { $expr: "auth.uid" } },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			// Variables get casted and rendered as literals, not parameters
 			expect(result.sql).toBe("(users.id)::TEXT = '550e8400-e29b-41d4-a716-446655440000'");
 			expect(result.params).toEqual([]);
@@ -179,21 +179,21 @@ describe("UUID, Timestamp, and Date Tests", () => {
 				"users.created_at": { $gte: { $timestamp: "2024-01-01T00:00:00" } },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.created_at >= '2024-01-01 00:00:00'::TIMESTAMP");
 			expect(result.params).toEqual([]);
 		});
 
 		it("should parse timestamp with comparison operators", () => {
 			const conditions = [
-				{ "users.created_at": { $gt: { $timestamp: "2024-01-01T00:00:00" } } },
-				{ "users.updated_at": { $lt: { $timestamp: "2024-12-31T23:59:59" } } },
-				{ "users.last_login": { $gte: { $timestamp: "2024-06-15T12:00:00" } } },
-				{ "users.last_login": { $lte: { $timestamp: "2024-06-15T18:00:00" } } },
+				{ "users.created_at": { $gt: { $timestamp: "2024-01-01T00:00:00" } } } as Condition,
+				{ "users.updated_at": { $lt: { $timestamp: "2024-12-31T23:59:59" } } } as Condition,
+				{ "users.last_login": { $gte: { $timestamp: "2024-06-15T12:00:00" } } } as Condition,
+				{ "users.last_login": { $lte: { $timestamp: "2024-06-15T18:00:00" } } } as Condition,
 			];
 
 			for (const condition of conditions) {
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.sql).toBeTruthy();
 				expect(result.sql).toContain("::TIMESTAMP");
 			}
@@ -204,7 +204,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 				"users.created_at": { $lt: { $expr: "current_timestamp" } },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			// Variables get casted and rendered as literals, not parameters
 			expect(result.sql).toBe("(users.created_at)::TEXT < '2024-01-15T10:30:45'");
 			expect(result.params).toEqual([]);
@@ -238,7 +238,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 				],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "events");
+			const result = extractSelectWhereClause(condition, testConfig, "events");
 			expect(result.sql).toBe(
 				"(events.occurred_at >= '2024-01-01 00:00:00'::TIMESTAMP AND events.occurred_at < '2024-02-01 00:00:00'::TIMESTAMP)",
 			);
@@ -268,7 +268,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 				"users.birth_date": { $eq: { $date: "1990-05-15" } },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("users.birth_date = '1990-05-15'::DATE");
 			expect(result.params).toEqual([]);
 		});
@@ -282,7 +282,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 			];
 
 			for (const condition of conditions) {
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.sql).toBeTruthy();
 				expect(result.sql).toContain("::DATE");
 			}
@@ -293,7 +293,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 				"events.scheduled_date": { $eq: { $expr: "current_date" } },
 			};
 
-			const result = parseWhereClause(condition, testConfig, "events");
+			const result = extractSelectWhereClause(condition, testConfig, "events");
 			// Variables get casted and rendered as literals, not parameters
 			expect(result.sql).toBe("(events.scheduled_date)::TEXT = '2024-01-15'");
 			expect(result.params).toEqual([]);
@@ -328,7 +328,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 				],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "users");
+			const result = extractSelectWhereClause(condition, testConfig, "users");
 			expect(result.sql).toBe("(users.birth_date >= '1980-01-01'::DATE AND users.birth_date < '2000-01-01'::DATE)");
 		});
 	});
@@ -343,7 +343,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 				],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "events");
+			const result = extractSelectWhereClause(condition, testConfig, "events");
 			expect(result.sql).toBe(
 				"(events.user_id = '550e8400-e29b-41d4-a716-446655440000' AND events.occurred_at >= '2024-01-01 00:00:00'::TIMESTAMP AND events.scheduled_date = '2024-01-15'::DATE)",
 			);
@@ -352,13 +352,13 @@ describe("UUID, Timestamp, and Date Tests", () => {
 
 		it("should handle NULL comparisons with date types", () => {
 			const conditions = [
-				{ "users.birth_date": { $eq: null } },
-				{ "users.last_login": { $ne: null } },
-				{ "users.profile_id": { $eq: null } },
+				{ "users.birth_date": { $eq: null } } as Condition,
+				{ "users.last_login": { $ne: null } } as Condition,
+				{ "users.profile_id": { $eq: null } } as Condition,
 			];
 
 			for (const condition of conditions) {
-				const result = parseWhereClause(condition, testConfig, "users");
+				const result = extractSelectWhereClause(condition, testConfig, "users");
 				expect(result.sql).toBeTruthy();
 			}
 		});
@@ -370,7 +370,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 				},
 			};
 
-			const result = parseWhereClause(condition, testConfig, "events");
+			const result = extractSelectWhereClause(condition, testConfig, "events");
 			expect(result.sql).toBe("events.scheduled_date IN ('2024-01-15'::DATE, '2024-01-16'::DATE, '2024-01-17'::DATE)");
 		});
 
@@ -452,7 +452,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 				],
 			};
 
-			const result = parseWhereClause(condition, testConfig, "events");
+			const result = extractSelectWhereClause(condition, testConfig, "events");
 			// UUID expressions are literals, not parameters
 			expect(result.params).toEqual([]);
 			expect(result.sql).toContain("550e8400-e29b-41d4-a716-446655440000");
