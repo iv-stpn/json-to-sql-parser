@@ -9,8 +9,9 @@ export type ScalarValue = z.infer<typeof scalarValueSchema>;
 
 export type ConditionExpression = { if: Condition; then: AnyExpression; else: AnyExpression };
 export type ExpressionObject =
-	| { $expr: string } // Field reference or context variable
-	| { $expr: { [functionName: string]: AnyExpression[] } } // Function call with arguments
+	| { $field: string } // Field reference
+	| { $var: string } // Variable reference
+	| { $func: { [functionName: string]: AnyExpression[] } } // Function call with arguments
 	| { $timestamp: string } // Timestamp value
 	| { $date: string } // Date value
 	| { $uuid: string } // UUID value
@@ -25,8 +26,9 @@ export const expressionObjectSchema: z.ZodType<ExpressionObject> = z.lazy(() =>
 				else: z.lazy(() => anyExpressionSchema),
 			}),
 		}),
-		z.object({ $expr: z.record(z.string(), z.array(z.lazy(() => anyExpressionSchema))) }), // Function call
-		z.object({ $expr: z.string() }), // Field reference or context variable
+		z.object({ $func: z.record(z.string(), z.array(z.lazy(() => anyExpressionSchema))) }), // Function call
+		z.object({ $field: z.string() }), // Field reference
+		z.object({ $var: z.string() }), // Variable reference
 		z.object({ $timestamp: z.string() }), // Timestamp value
 		z.object({ $date: z.string() }), // Date value
 		z.object({ $uuid: z.uuid({ error: "Invalid UUID format" }) }), // UUID value
@@ -36,9 +38,9 @@ export const expressionObjectSchema: z.ZodType<ExpressionObject> = z.lazy(() =>
 export type AnyExpression = ExpressionObject | ScalarValue;
 export const anyExpressionSchema: z.ZodType<AnyExpression> = z.lazy(() => z.union([expressionObjectSchema, scalarValueSchema]));
 
-const $expr = anyExpressionSchema.optional();
-const comparisonOperators = { $eq: $expr, $ne: $expr, $gt: $expr, $gte: $expr, $lt: $expr, $lte: $expr };
-const stringOperators = { $like: $expr, $ilike: $expr, $regex: $expr };
+const $func = anyExpressionSchema.optional();
+const comparisonOperators = { $eq: $func, $ne: $func, $gt: $func, $gte: $func, $lt: $func, $lte: $func };
+const stringOperators = { $like: $func, $ilike: $func, $regex: $func };
 
 const $arrayExpr = z.array(anyExpressionSchema).optional();
 const arrayOperators = { $in: $arrayExpr, $nin: $arrayExpr };

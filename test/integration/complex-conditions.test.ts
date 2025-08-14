@@ -51,7 +51,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 				},
 			},
 			variables: {
-				currentUserId: "550e8400-e29b-41d4-a716-446655440000",
+				current_user_id: "550e8400-e29b-41d4-a716-446655440000",
 				adminRole: "admin",
 				minAge: 18,
 				maxAge: 65,
@@ -185,7 +185,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 								table: "posts",
 								conditions: {
 									$and: [
-										{ "posts.user_id": { $eq: { $expr: "users.id" } } },
+										{ "posts.user_id": { $eq: { $field: "users.id" } } },
 										{ "posts.published": true },
 										{
 											$or: [{ "posts.title": { $like: "%tech%" } }, { "posts.tags->category": "technology" }],
@@ -199,7 +199,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 								table: "orders",
 								conditions: {
 									$and: [
-										{ "orders.customer_id": { $eq: { $expr: "users.id" } } },
+										{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 										{ "orders.amount": { $gte: 100 } },
 										{ "orders.status": { $in: ["completed", "shipped"] } },
 									],
@@ -212,7 +212,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 									table: "orders",
 									conditions: {
 										$and: [
-											{ "orders.customer_id": { $eq: { $expr: "users.id" } } },
+											{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 											{ "orders.status": "cancelled" },
 											{ "orders.amount": { $gt: 500 } },
 										],
@@ -382,18 +382,18 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 					$or: [
 						{
 							$and: [
-								{ "users.id": { $eq: { $expr: "currentUserId" } } },
+								{ "users.id": { $eq: { $var: "current_user_id" } } },
 								{
 									"users.age": {
-										$gte: { $expr: "minAge" },
-										$lte: { $expr: "maxAge" },
+										$gte: { $var: "minAge" },
+										$lte: { $var: "maxAge" },
 									},
 								},
 								{
 									"users.status": {
 										$ne: {
-											$expr: {
-												UPPER: [{ $expr: "adminRole" }],
+											$func: {
+												UPPER: [{ $var: "adminRole" }],
 											},
 										},
 									},
@@ -405,15 +405,15 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 								{
 									"users.name": {
 										$like: {
-											$expr: {
-												CONCAT: [{ $expr: "adminRole" }, "%"],
+											$func: {
+												CONCAT: [{ $var: "adminRole" }, "%"],
 											},
 										},
 									},
 								},
 								{
 									"users.metadata->balance": {
-										$gte: { $expr: "premiumThreshold" },
+										$gte: { $var: "premiumThreshold" },
 									},
 								},
 								{
@@ -421,12 +421,12 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 										table: "orders",
 										conditions: {
 											$and: [
-												{ "orders.customer_id": { $eq: { $expr: "users.id" } } },
+												{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 												{
 													"orders.amount": {
 														$gt: {
-															$expr: {
-																DIVIDE: [{ $expr: "premiumThreshold" }, 2],
+															$func: {
+																DIVIDE: [{ $var: "premiumThreshold" }, 2],
 															},
 														},
 													},
@@ -448,7 +448,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify variable substitution
-				expect(result.sql).toContain("'550e8400-e29b-41d4-a716-446655440000'"); // currentUserId
+				expect(result.sql).toContain("'550e8400-e29b-41d4-a716-446655440000'"); // current_user_id
 				expect(result.sql).toContain("18"); // minAge
 				expect(result.sql).toContain("65"); // maxAge
 				expect(result.sql).toContain("1000"); // premiumThreshold
@@ -467,16 +467,16 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 							name: true,
 							email: true,
 							computed_age_group: {
-								$expr: {
-									CONCAT: ["age_", { $expr: "users.age" }],
+								$func: {
+									CONCAT: ["age_", { $field: "users.age" }],
 								},
 							},
 							posts: {
 								id: true,
 								title: true,
 								content_preview: {
-									$expr: {
-										CONCAT: [{ $expr: { SUBSTRING: ["posts.content", 1, 50] } }, "..."],
+									$func: {
+										CONCAT: [{ $func: { SUBSTRING: ["posts.content", 1, 50] } }, "..."],
 									},
 								},
 							},
@@ -512,7 +512,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 										table: "posts",
 										conditions: {
 											$and: [
-												{ "posts.user_id": { $eq: { $expr: "users.id" } } },
+												{ "posts.user_id": { $eq: { $field: "users.id" } } },
 												{ "posts.published": true },
 												{
 													$or: [{ "posts.title": { $like: "%important%" } }, { "posts.tags->priority": "high" }],
@@ -553,15 +553,15 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 							id: true,
 							name: true,
 							status_display: {
-								$expr: {
-									CONCAT: [{ $expr: { UPPER: ["users.status"] } }, " - ACTIVE"],
+								$func: {
+									CONCAT: [{ $func: { UPPER: ["users.status"] } }, " - ACTIVE"],
 								},
 							},
 							posts: {
 								id: true,
 								title: true,
 								word_count: {
-									$expr: { LENGTH: ["posts.content"] },
+									$func: { LENGTH: ["posts.content"] },
 								},
 							},
 							orders: {
@@ -602,7 +602,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 												table: "posts",
 												conditions: {
 													$and: [
-														{ "posts.user_id": { $eq: { $expr: "users.id" } } },
+														{ "posts.user_id": { $eq: { $field: "users.id" } } },
 														{ "posts.published": true },
 														{
 															$or: [{ "posts.title": { $like: "%featured%" } }, { "posts.tags->featured": true }],
@@ -616,7 +616,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 												table: "orders",
 												conditions: {
 													$and: [
-														{ "orders.customer_id": { $eq: { $expr: "users.id" } } },
+														{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 														{ "orders.amount": { $gte: 500 } },
 														{ "orders.status": "completed" },
 													],

@@ -45,7 +45,7 @@ describe("Data Table Configuration Tests", () => {
 				},
 			},
 			variables: {
-				currentUserId: 123,
+				current_user_id: 123,
 				adminRole: "admin",
 			},
 			relationships: [
@@ -86,7 +86,7 @@ describe("Data Table Configuration Tests", () => {
 				},
 			},
 			variables: {
-				currentUserId: 123,
+				current_user_id: 123,
 				adminRole: "admin",
 			},
 			relationships: [
@@ -287,22 +287,22 @@ describe("Data Table Configuration Tests", () => {
 		});
 
 		it("should evaluate field reference without data table", () => {
-			const result = parseExpression({ $expr: "users.name" }, regularState);
+			const result = parseExpression({ $field: "users.name" }, regularState);
 			expect(result).toBe("users.name");
 		});
 
 		it("should evaluate field reference with data table", () => {
-			const result = parseExpression({ $expr: "users.name" }, dataTableState);
+			const result = parseExpression({ $field: "users.name" }, dataTableState);
 			expect(result).toBe("users.data->>'name'");
 		});
 
 		it("should evaluate function with context variable without data table", () => {
-			const result = parseExpression({ $expr: { CONCAT: [{ $expr: "currentUserId" }, " user"] } }, regularState);
+			const result = parseExpression({ $func: { CONCAT: [{ $var: "current_user_id" }, " user"] } }, regularState);
 			expect(result).toBe("CONCAT((123)::TEXT, ' user')");
 		});
 
 		it("should evaluate function with context variable with data table", () => {
-			const result = parseExpression({ $expr: { CONCAT: [{ $expr: "currentUserId" }, " user"] } }, dataTableState);
+			const result = parseExpression({ $func: { CONCAT: [{ $var: "current_user_id" }, " user"] } }, dataTableState);
 			expect(result).toBe("CONCAT((123)::TEXT, ' user')");
 		});
 	});

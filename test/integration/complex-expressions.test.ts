@@ -76,8 +76,8 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 					age: true,
 					// Simple calculated field
 					age_plus_ten: {
-						$expr: {
-							ADD: [{ $expr: "users.age" }, 10],
+						$func: {
+							ADD: [{ $field: "users.age" }, 10],
 						},
 					},
 				},
@@ -103,14 +103,14 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 					email: true,
 					// String length
 					name_length: {
-						$expr: {
-							LENGTH: [{ $expr: "users.name" }],
+						$func: {
+							LENGTH: [{ $field: "users.name" }],
 						},
 					},
 					// String concatenation
 					display_name: {
-						$expr: {
-							CONCAT: [{ $expr: "users.name" }, " (", { $expr: "users.email" }, ")"],
+						$func: {
+							CONCAT: [{ $field: "users.name" }, " (", { $field: "users.email" }, ")"],
 						},
 					},
 				},

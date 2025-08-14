@@ -168,7 +168,7 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 						metadata: true,
 					},
 					condition: {
-						"users.id": { $eq: { $expr: "auth.uid" } },
+						"users.id": { $eq: { $var: "auth.uid" } },
 					},
 				};
 

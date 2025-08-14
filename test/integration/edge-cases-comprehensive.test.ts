@@ -122,20 +122,20 @@ describe("Integration Tests - Edge Cases and Comprehensive Type Inference", () =
 					updated_at: true,
 					// Name formatting instead of date formatting
 					name_upper: {
-						$expr: {
+						$func: {
 							UPPER: ["users.name"],
 						},
 					},
 					// Name length instead of date difference
 					name_length: {
-						$expr: {
+						$func: {
 							LENGTH: ["users.name"],
 						},
 					},
 					// Simple field selections instead of complex operations
 					user_name_upper: {
-						$expr: {
-							UPPER: [{ $expr: "users.name" }],
+						$func: {
+							UPPER: [{ $field: "users.name" }],
 						},
 					},
 				},
@@ -192,14 +192,14 @@ describe("Integration Tests - Edge Cases and Comprehensive Type Inference", () =
 					metadata: true,
 					// Simple JSON field access instead of JSON_EXTRACT
 					user_email: {
-						$expr: {
-							LOWER: [{ $expr: "users.email" }],
+						$func: {
+							LOWER: [{ $field: "users.email" }],
 						},
 					},
 					// Simple string manipulation
 					name_length: {
-						$expr: {
-							LENGTH: [{ $expr: "users.name" }],
+						$func: {
+							LENGTH: [{ $field: "users.name" }],
 						},
 					},
 					// JSON validity check
@@ -361,7 +361,7 @@ describe("Integration Tests - Edge Cases and Comprehensive Type Inference", () =
 					safe_balance: {
 						$cond: {
 							if: { "users.balance": { $ne: null } },
-							then: { $expr: "users.balance" },
+							then: { $field: "users.balance" },
 							else: 0,
 						},
 					},
@@ -405,7 +405,7 @@ describe("Integration Tests - Edge Cases and Comprehensive Type Inference", () =
 						content: true,
 						// Calculate title length instead of engagement score
 						title_length: {
-							$expr: {
+							$func: {
 								LENGTH: ["posts.title"],
 							},
 						},

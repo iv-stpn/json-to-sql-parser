@@ -97,9 +97,9 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 					weighted_score: {
 						operator: "SUM",
 						field: {
-							$expr: {
+							$func: {
 								MULTIPLY: [
-									{ $expr: "users.age" },
+									{ $field: "users.age" },
 									{
 										$cond: {
 											if: { "users.active": { $eq: true } },
@@ -149,7 +149,7 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 						field: {
 							$cond: {
 								if: { "users.created_at": { $gte: { $date: "2023-01-01" } } },
-								then: { $expr: "users.balance" },
+								then: { $field: "users.balance" },
 								else: null,
 							},
 						},
@@ -222,8 +222,8 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 					avg_name_length: {
 						operator: "AVG",
 						field: {
-							$expr: {
-								LENGTH: [{ $expr: "users.name" }],
+							$func: {
+								LENGTH: [{ $field: "users.name" }],
 							},
 						},
 					},

@@ -192,7 +192,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 				const condition: Condition = {
 					"users.name": {
 						$eq: {
-							$expr: {
+							$func: {
 								[maliciousFunction]: ["users.name"],
 							},
 						},
@@ -209,7 +209,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 			for (const maliciousVariable of maliciousVariables) {
 				const condition: Condition = {
 					"users.name": {
-						$eq: { $expr: maliciousVariable },
+						$eq: { $field: maliciousVariable },
 					},
 				};
 
@@ -243,7 +243,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 		it("should prevent injection in aliases", () => {
 			const maliciousAliases = {
 				user_name: {
-					"malicious'; DROP TABLE users; --": { $expr: "users.name" },
+					"malicious'; DROP TABLE users; --": { $field: "users.name" },
 				},
 			};
 

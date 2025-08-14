@@ -216,13 +216,13 @@ describe("Comprehensive Integration Tests", () => {
 					rootTable: "users",
 					selection: {
 						id: true,
-						full_name: { $expr: { CONCAT: [{ $expr: "users.name" }, " (", { $expr: "users.email" }, ")"] } },
-						age_group: { $expr: { CONCAT: ["age_", { $expr: "users.age" }] } },
-						normalized_email: { $expr: { LOWER: [{ $expr: "users.email" }] } },
+						full_name: { $func: { CONCAT: [{ $field: "users.name" }, " (", { $field: "users.email" }, ")"] } },
+						age_group: { $func: { CONCAT: ["age_", { $field: "users.age" }] } },
+						normalized_email: { $func: { LOWER: [{ $field: "users.email" }] } },
 						posts: {
 							title: true,
-							title_length: { $expr: { LENGTH: [{ $expr: "posts.title" }] } },
-							view_ratio: { $expr: { DIVIDE: [{ $expr: "posts.view_count" }, 100] } },
+							title_length: { $func: { LENGTH: [{ $field: "posts.title" }] } },
+							view_ratio: { $func: { DIVIDE: [{ $field: "posts.view_count" }, 100] } },
 						},
 					},
 				},
@@ -333,12 +333,12 @@ describe("Comprehensive Integration Tests", () => {
 						user_count: { operator: "COUNT", field: "*" },
 						avg_name_length: {
 							operator: "AVG",
-							field: { $expr: { LENGTH: [{ $expr: "users.name" }] } },
+							field: { $func: { LENGTH: [{ $field: "users.name" }] } },
 						},
 						total_balance: { operator: "SUM", field: "balance" },
 						max_age: {
 							operator: "MAX",
-							field: { $expr: { COALESCE_NUMBER: [{ $expr: "users.age" }, 0] } },
+							field: { $func: { COALESCE_NUMBER: [{ $field: "users.age" }, 0] } },
 						},
 					},
 				},
@@ -477,10 +477,10 @@ describe("Comprehensive Integration Tests", () => {
 		it("should handle conditions with variable references", () => {
 			const condition: Condition = {
 				$and: [
-					{ "users.id": { $eq: { $expr: "auth.uid" } } },
-					{ "users.age": { $lt: { $expr: "max_age" } } },
-					{ "users.balance": { $gte: { $expr: "min_balance" } } },
-					{ "users.status": { $eq: { $expr: "default_status" } } },
+					{ "users.id": { $eq: { $var: "auth.uid" } } },
+					{ "users.age": { $lt: { $var: "max_age" } } },
+					{ "users.balance": { $gte: { $var: "min_balance" } } },
+					{ "users.status": { $eq: { $var: "default_status" } } },
 				],
 			};
 
@@ -500,8 +500,8 @@ describe("Comprehensive Integration Tests", () => {
 					{
 						"users.balance": {
 							$gt: {
-								$expr: {
-									MULTIPLY: [{ $expr: { ADD: [{ $expr: "users.age" }, 10] } }, 100],
+								$func: {
+									MULTIPLY: [{ $func: { ADD: [{ $field: "users.age" }, 10] } }, 100],
 								},
 							},
 						},
@@ -509,11 +509,11 @@ describe("Comprehensive Integration Tests", () => {
 					{
 						"users.name": {
 							$eq: {
-								$expr: {
+								$func: {
 									UPPER: [
 										{
-											$expr: {
-												CONCAT: [{ $expr: { SUBSTRING: ["users.email", 1, 5] } }, "_USER"],
+											$func: {
+												CONCAT: [{ $func: { SUBSTRING: ["users.email", 1, 5] } }, "_USER"],
 											},
 										},
 									],
@@ -538,8 +538,8 @@ describe("Comprehensive Integration Tests", () => {
 					{
 						"users.email": {
 							$like: {
-								$expr: {
-									LOWER: [{ $expr: { CONCAT: ["%", "users.name", "@%"] } }],
+								$func: {
+									LOWER: [{ $func: { CONCAT: ["%", "users.name", "@%"] } }],
 								},
 							},
 						},
@@ -547,8 +547,8 @@ describe("Comprehensive Integration Tests", () => {
 					{
 						"users.name": {
 							$eq: {
-								$expr: {
-									UPPER: [{ $expr: { SUBSTRING: ["users.email", 1, 10] } }],
+								$func: {
+									UPPER: [{ $func: { SUBSTRING: ["users.email", 1, 10] } }],
 								},
 							},
 						},
@@ -568,8 +568,8 @@ describe("Comprehensive Integration Tests", () => {
 			const condition: Condition = {
 				"users.balance": {
 					$gt: {
-						$expr: {
-							COALESCE_NUMBER: [{ $expr: "min_balance" }, { $expr: { MULTIPLY: [{ $expr: "users.age" }, 10] } }, 0],
+						$func: {
+							COALESCE_NUMBER: [{ $var: "min_balance" }, { $func: { MULTIPLY: [{ $field: "users.age" }, 10] } }, 0],
 						},
 					},
 				},
@@ -614,17 +614,17 @@ describe("Comprehensive Integration Tests", () => {
 					rootTable: "users",
 					selection: {
 						id: true,
-						display_name: { $expr: { UPPER: ["users.name"] } },
-						age_category: { $expr: { CONCAT: ["category_", "users.age"] } },
+						display_name: { $func: { UPPER: ["users.name"] } },
+						age_category: { $func: { CONCAT: ["category_", "users.age"] } },
 						"metadata->profile": true,
 						posts: {
 							id: true,
 							title: true,
-							word_count: { $expr: { LENGTH: ["posts.content"] } },
+							word_count: { $func: { LENGTH: ["posts.content"] } },
 							"tags->primary": true,
 							comments: {
 								id: true,
-								short_content: { $expr: { SUBSTRING: ["comments.content", 1, 50] } },
+								short_content: { $func: { SUBSTRING: ["comments.content", 1, 50] } },
 							},
 						},
 						orders: {

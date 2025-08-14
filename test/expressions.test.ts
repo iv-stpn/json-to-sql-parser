@@ -75,8 +75,8 @@ describe("Expression Parser Advanced Tests", () => {
 			const condition: Condition = {
 				"users.name": {
 					$eq: {
-						$expr: {
-							CONCAT: [{ $expr: "users.name" }, " (", { $expr: "auth.uid" }, ")"],
+						$func: {
+							CONCAT: [{ $field: "users.name" }, " (", { $var: "auth.uid" }, ")"],
 						},
 					},
 				},
@@ -89,8 +89,8 @@ describe("Expression Parser Advanced Tests", () => {
 			const condition: Condition = {
 				"users.age": {
 					$gt: {
-						$expr: {
-							ADD: [{ $expr: { LENGTH: [{ $expr: "users.name" }] } }, 5],
+						$func: {
+							ADD: [{ $func: { LENGTH: [{ $field: "users.name" }] } }, 5],
 						},
 					},
 				},
@@ -104,7 +104,7 @@ describe("Expression Parser Advanced Tests", () => {
 		it("should handle strings in expressions", () => {
 			const condition: Condition = {
 				"users.name": {
-					$eq: { $expr: { CONCAT: ["Hello", "World"] } },
+					$eq: { $func: { CONCAT: ["Hello", "World"] } },
 				},
 			};
 
@@ -115,7 +115,7 @@ describe("Expression Parser Advanced Tests", () => {
 		it("should handle numeric literals in expressions", () => {
 			const condition: Condition = {
 				"users.age": {
-					$eq: { $expr: { ADD: [25, 5.5] } },
+					$eq: { $func: { ADD: [25, 5.5] } },
 				},
 			};
 
@@ -128,27 +128,27 @@ describe("Expression Parser Advanced Tests", () => {
 		it("should throw error for invalid expression structure", () => {
 			const condition: Condition = {
 				"users.name": {
-					$eq: { $expr: {} },
+					$eq: { $func: {} },
 				},
 			};
 
-			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow("$expr must contain exactly one function");
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow("$func must contain exactly one function");
 		});
 
-		it("should throw error for multiple functions in $expr", () => {
+		it("should throw error for multiple functions in $func", () => {
 			const condition: Condition = {
 				"users.name": {
-					$eq: { $expr: { UPPER: ["test"], LOWER: ["test"] } },
+					$eq: { $func: { UPPER: ["test"], LOWER: ["test"] } },
 				},
 			};
 
-			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow("$expr must contain exactly one function");
+			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow("$func must contain exactly one function");
 		});
 
 		it("should throw error for empty function name", () => {
 			const condition: Condition = {
 				"users.name": {
-					$eq: { $expr: { "": ["test"] } },
+					$eq: { $func: { "": ["test"] } },
 				},
 			};
 
@@ -223,7 +223,7 @@ describe("Complex logical conditions", () => {
 		it("should handle array operations with expressions", () => {
 			const condition: Condition = {
 				"users.id": {
-					$in: ["1", { $expr: "auth.uid" }, { $expr: "current_user" }],
+					$in: ["1", { $var: "auth.uid" }, { $var: "current_user" }],
 				},
 			};
 

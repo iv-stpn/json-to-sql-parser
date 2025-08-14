@@ -62,11 +62,11 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 				},
 			},
 			variables: {
-				currentUserId: "550e8400-e29b-41d4-a716-446655440000",
+				current_user_id: "550e8400-e29b-41d4-a716-446655440000",
 				adminRole: "admin",
 				testPattern: "test_%",
 				maxResults: 100,
-				scoreThreshold: 85.5,
+				score_threshold: 85.5,
 			},
 			relationships: [
 				{ table: "posts", field: "user_id", toTable: "users", toField: "id", type: "many-to-one" },
@@ -311,22 +311,22 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 						{
 							"users.name": {
 								$eq: {
-									$expr: {
+									$func: {
 										UPPER: [
 											{
-												$expr: {
+												$func: {
 													CONCAT: [
 														{
-															$expr: {
+															$func: {
 																SUBSTRING: [
-																	{ $expr: { LOWER: [{ $expr: "users.email" }] } },
+																	{ $func: { LOWER: [{ $field: "users.email" }] } },
 																	1,
-																	{ $expr: { LENGTH: [{ $expr: "users.name" }] } },
+																	{ $func: { LENGTH: [{ $field: "users.name" }] } },
 																],
 															},
 														},
 														"_",
-														{ $expr: { UPPER: ["users.status"] } },
+														{ $func: { UPPER: ["users.status"] } },
 													],
 												},
 											},
@@ -338,16 +338,16 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 						{
 							"users.age": {
 								$gt: {
-									$expr: {
+									$func: {
 										ADD: [
 											{
-												$expr: {
-													MULTIPLY: [{ $expr: "users.age" }, 2],
+												$func: {
+													MULTIPLY: [{ $field: "users.age" }, 2],
 												},
 											},
 											{
-												$expr: {
-													DIVIDE: [{ $expr: { LENGTH: [{ $expr: "users.name" }] } }, 3],
+												$func: {
+													DIVIDE: [{ $func: { LENGTH: [{ $field: "users.name" }] } }, 3],
 												},
 											},
 										],
@@ -365,13 +365,13 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 													$and: [{ "users.age": { $gte: 65 } }, { "users.active": true }],
 												},
 												then: {
-													$expr: { UPPER: ["senior"] },
+													$func: { UPPER: ["senior"] },
 												},
 												else: {
 													$cond: {
 														if: { "users.age": { $gte: 18 } },
 														then: {
-															$expr: { CONCAT: ["adult_", { $expr: "users.status" }] },
+															$func: { CONCAT: ["adult_", { $field: "users.status" }] },
 														},
 														else: "minor",
 													},
@@ -383,12 +383,12 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 								{
 									"users.email": {
 										$like: {
-											$expr: {
+											$func: {
 												CONCAT: [
 													"%",
-													{ $expr: { LOWER: ["users.name"] } },
+													{ $func: { LOWER: ["users.name"] } },
 													"%@%",
-													{ $expr: { SUBSTRING: ["users.status", 1, 3] } },
+													{ $func: { SUBSTRING: ["users.status", 1, 3] } },
 													".com",
 												],
 											},
@@ -444,13 +444,13 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 							max_age: { operator: "MAX", field: "age" },
 							name_lengths: {
 								operator: "AVG",
-								field: { $expr: { LENGTH: [{ $expr: "name" }] } },
+								field: { $func: { LENGTH: [{ $field: "name" }] } },
 							},
 							complex_calc: {
 								operator: "SUM",
 								field: {
-									$expr: {
-										ADD: [{ $expr: { MULTIPLY: [{ $expr: "age" }, 2] } }, { $expr: { LENGTH: [{ $expr: "name" }] } }],
+									$func: {
+										ADD: [{ $func: { MULTIPLY: [{ $field: "age" }, 2] } }, { $func: { LENGTH: [{ $field: "name" }] } }],
 									},
 								},
 							},
@@ -516,18 +516,18 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 								{
 									"users.age": {
 										$gt: {
-											$expr: {
+											$func: {
 												ADD: [
 													{
-														$expr: {
-															MULTIPLY: [{ $expr: "users.age" }, { $expr: { COALESCE_NUMBER: [{ $expr: "users.age" }, 25] } }],
+														$func: {
+															MULTIPLY: [{ $field: "users.age" }, { $func: { COALESCE_NUMBER: [{ $field: "users.age" }, 25] } }],
 														},
 													},
 													{
-														$expr: {
+														$func: {
 															DIVIDE: [
-																{ $expr: { LENGTH: [{ $expr: "users.name" }] } },
-																{ $expr: { GREATEST_NUMBER: [1, { $expr: "scoreThreshold" }] } },
+																{ $func: { LENGTH: [{ $field: "users.name" }] } },
+																{ $func: { GREATEST_NUMBER: [1, { $var: "score_threshold" }] } },
 															],
 														},
 													},
@@ -539,13 +539,13 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 								{
 									"users.email": {
 										$like: {
-											$expr: {
+											$func: {
 												CONCAT: [
-													{ $expr: { LOWER: ["users.name"] } },
+													{ $func: { LOWER: ["users.name"] } },
 													"_",
-													{ $expr: { SUBSTRING: ["users.status", 1, 3] } },
+													{ $func: { SUBSTRING: ["users.status", 1, 3] } },
 													"@",
-													{ $expr: { UPPER: [{ $expr: "adminRole" }] } },
+													{ $func: { UPPER: [{ $var: "adminRole" }] } },
 													".com",
 												],
 											},
@@ -562,7 +562,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 										table: "posts",
 										conditions: {
 											$and: [
-												{ "posts.user_id": { $eq: { $expr: "users.id" } } },
+												{ "posts.user_id": { $eq: { $field: "users.id" } } },
 												{ "posts.published": true },
 												{
 													$or: [
@@ -580,7 +580,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 										table: "orders",
 										conditions: {
 											$and: [
-												{ "orders.customer_id": { $eq: { $expr: "users.id" } } },
+												{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 												{ "orders.amount": { $gte: 100 } },
 												{ "orders.status": { $in: ["completed", "shipped"] } },
 											],
@@ -653,7 +653,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 								$exists: {
 									table: "orders",
 									conditions: {
-										$and: [{ "orders.customer_id": { $eq: { $expr: "users.id" } } }, { "orders.amount": { $gte: 200 } }],
+										$and: [{ "orders.customer_id": { $eq: { $field: "users.id" } } }, { "orders.amount": { $gte: 200 } }],
 									},
 								},
 							},

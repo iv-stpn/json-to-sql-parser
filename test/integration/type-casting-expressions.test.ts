@@ -186,8 +186,8 @@ describe("Integration Tests - Type Casting and Complex Expressions", () => {
 						name: true,
 						age: true,
 						name_with_age: {
-							$expr: {
-								CONCAT: [{ $expr: "users.name" }, " (Age: ", { $expr: "users.age" }, ")"],
+							$func: {
+								CONCAT: [{ $field: "users.name" }, " (Age: ", { $field: "users.age" }, ")"],
 							},
 						},
 					},

@@ -239,8 +239,8 @@ describe("Edge Case Tests", () => {
 	describe("Complex Expression Edge Cases", () => {
 		it("should handle deeply nested function calls", () => {
 			const nestedExpression: AnyExpression = {
-				$expr: {
-					UPPER: [{ $expr: { LOWER: [{ $expr: { CONCAT: ["users.name", " - ", "users.status"] } }] } }],
+				$func: {
+					UPPER: [{ $func: { LOWER: [{ $func: { CONCAT: ["users.name", " - ", "users.status"] } }] } }],
 				},
 			};
 
@@ -251,28 +251,28 @@ describe("Edge Case Tests", () => {
 		});
 
 		it("should handle mathematical expressions with edge cases", () => {
-			const addResult = parseExpression({ $expr: { ADD: [0, 0] } }, testState);
+			const addResult = parseExpression({ $func: { ADD: [0, 0] } }, testState);
 			expect(addResult).toMatch("0 + 0");
 
-			const subtractResult = parseExpression({ $expr: { SUBTRACT: [0, 0] } }, testState);
+			const subtractResult = parseExpression({ $func: { SUBTRACT: [0, 0] } }, testState);
 			expect(subtractResult).toMatch("0 - 0");
 
-			const multiplyResult = parseExpression({ $expr: { MULTIPLY: [0, 1] } }, testState);
+			const multiplyResult = parseExpression({ $func: { MULTIPLY: [0, 1] } }, testState);
 			expect(multiplyResult).toMatch("0 * 1");
 
-			const divideResult = parseExpression({ $expr: { DIVIDE: [1, 1] } }, testState);
+			const divideResult = parseExpression({ $func: { DIVIDE: [1, 1] } }, testState);
 			expect(divideResult).toMatch("1 / 1");
 
-			const modResult = parseExpression({ $expr: { MOD: [10, 3] } }, testState);
+			const modResult = parseExpression({ $func: { MOD: [10, 3] } }, testState);
 			expect(modResult).toMatch("10 % 3");
 
-			const powResult = parseExpression({ $expr: { POW: [2, 0] } }, testState);
+			const powResult = parseExpression({ $func: { POW: [2, 0] } }, testState);
 			expect(powResult).toMatch("2 ^ 0");
 		});
 
 		it("should handle division by zero attempts", () => {
 			const divisionByZero: AnyExpression = {
-				$expr: { DIVIDE: [{ $expr: "users.age" }, 0] },
+				$func: { DIVIDE: [{ $field: "users.age" }, 0] },
 			};
 
 			expect(() => {
@@ -397,7 +397,7 @@ describe("Edge Case Tests", () => {
 	describe("Variable Resolution Edge Cases", () => {
 		it("should handle undefined variables gracefully", () => {
 			const undefinedVarExpr: AnyExpression = {
-				$expr: "undefined_variable",
+				$field: "undefined_variable",
 			};
 
 			// Should treat as field reference and potentially throw
@@ -420,7 +420,7 @@ describe("Edge Case Tests", () => {
 			const variables = ["auth.uid", "system-version", "user_context", "data.nested.value"];
 
 			for (const variable of variables) {
-				const expr: AnyExpression = { $expr: variable };
+				const expr: AnyExpression = { $var: variable };
 				const result = parseExpression(expr, specialState);
 				expect(result).not.toContain("undefined");
 			}

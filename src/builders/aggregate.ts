@@ -56,7 +56,7 @@ function parseAggregation(alias: string, aggregation: AggregatedField, state: Pa
 
 // function getFieldsFromAggregatedField(aggregatedField: string | ExpressionObject, fields: string[] = []): string[] {
 // 	if (typeof aggregatedField === "string") return [aggregatedField];
-// 	if ("$expr" in aggregatedField)
+// 	if ("$func" in aggregatedField)
 // }
 
 type ParsedAggregationQuery = BaseParsedQuery & { groupBy: string[]; joins: string[] };

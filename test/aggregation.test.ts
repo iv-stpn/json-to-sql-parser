@@ -79,9 +79,9 @@ describe("Aggregation Edge Cases", () => {
 					adjusted_total: {
 						operator: "SUM",
 						field: {
-							$expr: {
+							$func: {
 								MULTIPLY: [
-									{ $expr: "sales.amount" },
+									{ $field: "sales.amount" },
 									{ $cond: { if: { "sales.region": { $eq: "premium" } }, then: 1.2, else: 1.0 } },
 								],
 							},

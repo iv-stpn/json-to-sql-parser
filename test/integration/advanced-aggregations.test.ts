@@ -84,12 +84,12 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						revenue_score: {
 							operator: "SUM",
 							field: {
-								$expr: {
+								$func: {
 									MULTIPLY: [
-										{ $expr: "orders.amount" },
+										{ $field: "orders.amount" },
 										{
 											$cond: {
-												if: { "orders.amount": { $gte: { $expr: "premium_tier_threshold" } } },
+												if: { "orders.amount": { $gte: { $var: "premium_tier_threshold" } } },
 												then: 1.5, // Premium multiplier
 												else: 1.0,
 											},
@@ -157,7 +157,7 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						settings_complexity: {
 							operator: "AVG",
 							field: {
-								$expr: {
+								$func: {
 									ADD: [
 										{
 											$cond: {
@@ -167,8 +167,8 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 											},
 										},
 										{
-											$expr: {
-												LENGTH: [{ $expr: { COALESCE_STRING: [{ $expr: "users.metadata->settings->>theme" }, "default"] } }],
+											$func: {
+												LENGTH: [{ $func: { COALESCE_STRING: [{ $field: "users.metadata->settings->>theme" }, "default"] } }],
 											},
 										},
 									],
@@ -220,8 +220,8 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 											table: "orders",
 											conditions: {
 												$and: [
-													{ "orders.customer_id": { $eq: { $expr: "users.id" } } },
-													{ "orders.amount": { $gte: { $expr: "min_order_threshold" } } },
+													{ "orders.customer_id": { $eq: { $field: "users.id" } } },
+													{ "orders.amount": { $gte: { $var: "min_order_threshold" } } },
 													{ "orders.status": { $eq: "completed" } },
 												],
 											},
@@ -236,12 +236,12 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						engagement_score: {
 							operator: "AVG",
 							field: {
-								$expr: {
+								$func: {
 									ADD: [
 										// Base score from age
 										{
-											$expr: {
-												DIVIDE: [{ $expr: { COALESCE_NUMBER: [{ $expr: "users.age" }, 25] } }, 10],
+											$func: {
+												DIVIDE: [{ $func: { COALESCE_NUMBER: [{ $field: "users.age" }, 25] } }, 10],
 											},
 										},
 										// Bonus points for having posts
@@ -251,7 +251,7 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 													$exists: {
 														table: "posts",
 														conditions: {
-															$and: [{ "posts.user_id": { $eq: { $expr: "users.id" } } }, { "posts.published": { $eq: true } }],
+															$and: [{ "posts.user_id": { $eq: { $field: "users.id" } } }, { "posts.published": { $eq: true } }],
 														},
 													},
 												},
@@ -308,9 +308,9 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 								$cond: {
 									if: { "orders.shipped_at": { $ne: null } },
 									then: {
-										$expr: {
+										$func: {
 											DIVIDE: [
-												{ $expr: { SUBTRACT: [{ $expr: "orders.shipped_at" }, { $expr: "orders.created_at" }] } },
+												{ $func: { SUBTRACT: [{ $field: "orders.shipped_at" }, { $field: "orders.created_at" }] } },
 												86400, // Convert seconds to days
 											],
 										},
@@ -361,8 +361,8 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						avg_name_length: {
 							operator: "AVG",
 							field: {
-								$expr: {
-									LENGTH: [{ $expr: "users.name" }],
+								$func: {
+									LENGTH: [{ $field: "users.name" }],
 								},
 							},
 						},
@@ -370,11 +370,11 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						all_names: {
 							operator: "STRING_AGG",
 							field: {
-								$expr: {
+								$func: {
 									CONCAT: [
-										{ $expr: { UPPER: [{ $expr: "users.name" }] } },
+										{ $func: { UPPER: [{ $field: "users.name" }] } },
 										" (",
-										{ $expr: { COALESCE_STRING: [{ $expr: "users.status" }, "unknown"] } },
+										{ $func: { COALESCE_STRING: [{ $field: "users.status" }, "unknown"] } },
 										")",
 									],
 								},
@@ -395,8 +395,8 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						age_stats: {
 							operator: "STRING_AGG",
 							field: {
-								$expr: {
-									CONCAT: [{ $expr: "users.name" }, ":", { $expr: { COALESCE_STRING: [{ $expr: "users.age" }, "unknown"] } }],
+								$func: {
+									CONCAT: [{ $field: "users.name" }, ":", { $func: { COALESCE_STRING: [{ $field: "users.age" }, "unknown"] } }],
 								},
 							},
 						},
@@ -437,15 +437,15 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						weighted_revenue: {
 							operator: "SUM",
 							field: {
-								$expr: {
+								$func: {
 									MULTIPLY: [
-										{ $expr: "orders.amount" },
+										{ $field: "orders.amount" },
 										{
-											$expr: {
+											$func: {
 												ADD: [
 													1,
 													{
-														$expr: {
+														$func: {
 															DIVIDE: [
 																500, // Simple numeric constant
 																2592000, // 30 days in seconds
@@ -463,15 +463,15 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						order_summary: {
 							operator: "STRING_AGG",
 							field: {
-								$expr: {
+								$func: {
 									CONCAT: [
 										"Order#",
-										{ $expr: { SUBSTRING: [{ $expr: "orders.id" }, 1, 8] } },
+										{ $func: { SUBSTRING: [{ $field: "orders.id" }, 1, 8] } },
 										" ($",
 										{
-											$expr: {
+											$func: {
 												MULTIPLY: [
-													{ $expr: "orders.amount" },
+													{ $field: "orders.amount" },
 													{
 														$cond: {
 															if: { "orders.status": { $eq: "completed" } },
@@ -496,18 +496,18 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 										$and: [{ "orders.shipped_at": { $ne: null } }, { "orders.status": { $in: ["shipped", "completed"] } }],
 									},
 									then: {
-										$expr: {
+										$func: {
 											DIVIDE: [
-												{ $expr: "orders.amount" },
+												{ $field: "orders.amount" },
 												{
-													$expr: {
+													$func: {
 														ADD: [
 															{
-																$expr: {
+																$func: {
 																	DIVIDE: [
 																		{
-																			$expr: {
-																				SUBTRACT: [{ $expr: "orders.shipped_at" }, { $expr: "orders.created_at" }],
+																			$func: {
+																				SUBTRACT: [{ $field: "orders.shipped_at" }, { $field: "orders.created_at" }],
 																			},
 																		},
 																		3600, // Convert to hours

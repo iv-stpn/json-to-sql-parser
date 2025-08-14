@@ -134,7 +134,7 @@ describe("Conditions Parser", () => {
 	describe("Expression support", () => {
 		it("should parse simple field reference expressions", () => {
 			const condition: Condition = {
-				"users.id": { $eq: { $expr: "auth.uid" } },
+				"users.id": { $eq: { $var: "auth.uid" } },
 			};
 
 			const result = extractSelectWhereClause(condition, testConfig, "users");
@@ -179,7 +179,7 @@ describe("Conditions Parser", () => {
 				$exists: {
 					table: "posts",
 					conditions: {
-						"posts.user_id": { $eq: { $expr: "users.id" } },
+						"posts.user_id": { $eq: { $field: "users.id" } },
 						"posts.published": { $eq: true },
 					},
 				},
@@ -226,7 +226,7 @@ describe("Select Parser", () => {
 		it("should parse expression fields", () => {
 			const selection = {
 				id: true,
-				display_name: { $expr: { CONCAT: [{ $expr: "users.name" }, " - ", { $expr: "users.email" }] } },
+				display_name: { $func: { CONCAT: [{ $field: "users.name" }, " - ", { $field: "users.email" }] } },
 			};
 
 			const result = parseSelectQuery({ rootTable: "users", selection }, testConfig);
@@ -320,7 +320,7 @@ describe("Aggregation Parser", () => {
 				aggregatedFields: {
 					max_age_plus_ten: {
 						operator: "MAX",
-						field: { $expr: { ADD: [{ $expr: "users.age" }, 10] } },
+						field: { $func: { ADD: [{ $field: "users.age" }, 10] } },
 					},
 				},
 			};
@@ -356,13 +356,13 @@ describe("Expression Evaluation", () => {
 
 	describe("Field references", () => {
 		it("should resolve context variables", () => {
-			const expr: AnyExpression = { $expr: "auth.uid" };
+			const expr: AnyExpression = { $var: "auth.uid" };
 			const result = parseExpression(expr, testState);
 			expect(result).toBe("'123'");
 		});
 
 		it("should resolve field references", () => {
-			const expr: AnyExpression = { $expr: "users.name" };
+			const expr: AnyExpression = { $field: "users.name" };
 			const result = parseExpression(expr, testState);
 			expect(result).toBe("users.name");
 		});
@@ -370,19 +370,19 @@ describe("Expression Evaluation", () => {
 
 	describe("Function calls", () => {
 		it("should evaluate unary functions", () => {
-			const expr: AnyExpression = { $expr: { UPPER: [{ $expr: "users.name" }] } };
+			const expr: AnyExpression = { $func: { UPPER: [{ $field: "users.name" }] } };
 			const result = parseExpression(expr, testState);
 			expect(result).toBe("UPPER(users.name)");
 		});
 
 		it("should evaluate binary functions", () => {
-			const expr: AnyExpression = { $expr: { ADD: [{ $expr: "users.age" }, 5] } };
+			const expr: AnyExpression = { $func: { ADD: [{ $field: "users.age" }, 5] } };
 			const result = parseExpression(expr, testState);
 			expect(result).toBe("(users.age + 5)");
 		});
 
 		it("should evaluate variable functions", () => {
-			const expr: AnyExpression = { $expr: { CONCAT: [{ $expr: "users.name" }, " - ", { $expr: "users.email" }] } };
+			const expr: AnyExpression = { $func: { CONCAT: [{ $field: "users.name" }, " - ", { $field: "users.email" }] } };
 			const result = parseExpression(expr, testState);
 			expect(result).toBe("CONCAT(users.name, ' - ', users.email)");
 		});
@@ -462,7 +462,7 @@ describe("Error Handling", () => {
 	describe("Expression validation", () => {
 		it("should throw error for unknown functions", () => {
 			const condition: Condition = {
-				"users.name": { $eq: { $expr: { UNKNOWN_FUNC: ["arg"] } } },
+				"users.name": { $eq: { $func: { UNKNOWN_FUNC: ["arg"] } } },
 			};
 
 			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(
@@ -472,7 +472,7 @@ describe("Error Handling", () => {
 
 		it("should throw error for wrong argument count", () => {
 			const condition: Condition = {
-				"users.age": { $eq: { $expr: { ABS: ["arg1", "arg2"] } } },
+				"users.age": { $eq: { $func: { ABS: ["arg1", "arg2"] } } },
 			};
 
 			expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow(

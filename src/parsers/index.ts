@@ -18,7 +18,13 @@ import { fieldNameRegex, isPrimitiveValue, isScalarValue, isValidDate, isValidTi
 export const isExpressionObject = (value: unknown): value is ExpressionObject =>
 	typeof value === "object" &&
 	value !== null &&
-	("$expr" in value || "$cond" in value || "$timestamp" in value || "$date" in value || "$uuid" in value);
+	("$field" in value ||
+		"$var" in value ||
+		"$func" in value ||
+		"$cond" in value ||
+		"$timestamp" in value ||
+		"$date" in value ||
+		"$uuid" in value);
 
 function parseTableFieldPath(fieldPath: string, rootTable: string) {
 	if (!fieldPath.includes(".")) return { table: rootTable, field: fieldPath };
@@ -60,7 +66,7 @@ export function parseFieldPath({ field, state }: ParseTableFieldParams): FieldPa
 // Parse SQL functions and operators in expressions
 function parseExpressionFunction(exprObj: { [functionName: string]: AnyExpression[] }, state: ParserState): string {
 	const entries = Object.entries(exprObj);
-	if (entries.length !== 1) throw new Error("$expr must contain exactly one function");
+	if (entries.length !== 1) throw new Error("$func must contain exactly one function");
 
 	const entry = entries[0];
 	if (!entry) throw new Error("Function name cannot be empty");
@@ -93,7 +99,7 @@ function parseExpressionFunction(exprObj: { [functionName: string]: AnyExpressio
 		return expression;
 	});
 
-	state.expressions.add({ $expr: exprObj }, returnType);
+	state.expressions.add({ $func: exprObj }, returnType);
 	return toSQL ? toSQL(resolvedArguments) : applyFunction(name, resolvedArguments);
 }
 
@@ -169,6 +175,9 @@ function parsePrimitiveValue(value: ScalarValue) {
 }
 
 export function parseExpressionObject(expression: ExpressionObject, state: ParserState): string {
+	if ("$func" in expression) return parseExpressionFunction(expression.$func, state);
+	if ("$cond" in expression) return parseConditionalExpression(expression.$cond, state);
+
 	if ("$uuid" in expression) {
 		if (!uuidRegex.test(expression.$uuid)) throw new Error(`Invalid UUID format: ${expression.$uuid}`);
 		state.expressions.add(expression, "UUID");
@@ -188,23 +197,19 @@ export function parseExpressionObject(expression: ExpressionObject, state: Parse
 		return `'${expression.$date}'::DATE`;
 	}
 
-	if ("$expr" in expression) {
-		if (typeof expression.$expr === "string") {
-			const variable = state.config.variables[expression.$expr];
-			// Return variable if it exists
-			if (variable !== undefined) {
-				state.expressions.add(expression, getPrimitiveCastType(variable));
-				return parsePrimitiveValue(variable);
-			}
-
-			const { select, fieldPath } = parseField(expression.$expr, state);
-			state.expressions.add(expression, castMap[fieldPath.fieldConfig.type]);
-			return castValue(select.field, select.cast);
-		}
-		return parseExpressionFunction(expression.$expr, state);
+	if ("$field" in expression) {
+		const { select, fieldPath } = parseField(expression.$field, state);
+		state.expressions.add(expression, castMap[fieldPath.fieldConfig.type]);
+		return castValue(select.field, select.cast);
 	}
 
-	if ("$cond" in expression) return parseConditionalExpression(expression.$cond, state);
+	if ("$var" in expression) {
+		const variable = state.config.variables[expression.$var];
+		if (variable === undefined) throw new Error(`Variable '${expression.$var}' is not defined`);
+		state.expressions.add(expression, getPrimitiveCastType(variable));
+		return parsePrimitiveValue(variable);
+	}
+
 	throw new Error(`Invalid expression object: ${JSON.stringify(expression)}`);
 }
 

@@ -51,7 +51,7 @@ describe("Integration Tests - Data Table Configuration", () => {
 				},
 			},
 			variables: {
-				currentUserId: "550e8400-e29b-41d4-a716-446655440000",
+				current_user_id: "550e8400-e29b-41d4-a716-446655440000",
 				adminRole: "admin",
 			},
 			relationships: [

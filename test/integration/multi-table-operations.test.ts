@@ -81,11 +81,11 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 						name: true,
 						// Complex string expression with type inference
 						display_name: {
-							$expr: {
+							$func: {
 								CONCAT: [
-									{ $expr: { UPPER: [{ $expr: "users.name" }] } },
+									{ $func: { UPPER: [{ $field: "users.name" }] } },
 									" (",
-									{ $expr: { COALESCE_STRING: [{ $expr: "users.status" }, "unknown"] } },
+									{ $func: { COALESCE_STRING: [{ $field: "users.status" }, "unknown"] } },
 									")",
 								],
 							},
@@ -96,7 +96,7 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 								if: {
 									$and: [
 										{ "users.age": { $gte: 18 } },
-										{ "users.age": { $lte: { $expr: "premium_age_limit" } } },
+										{ "users.age": { $lte: { $var: "premium_age_limit" } } },
 										{ "users.active": { $eq: true } },
 										{
 											$or: [{ "users.status": { $eq: "premium" } }, { "users.metadata->department": { $eq: "engineering" } }],
@@ -109,7 +109,7 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 						},
 						// Simplified age calculation using numeric constants
 						calculated_age: {
-							$expr: {
+							$func: {
 								SUBTRACT: [
 									30, // Average age as constant
 									5, // Offset
@@ -122,8 +122,8 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 							title: true,
 							// Character count with type casting
 							content_length: {
-								$expr: {
-									LENGTH: [{ $expr: "posts.content" }],
+								$func: {
+									LENGTH: [{ $field: "posts.content" }],
 								},
 							},
 							// Complex conditional expression
@@ -148,12 +148,12 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 							status: true,
 							// Complex mathematical expression with type casting
 							discounted_amount: {
-								$expr: {
+								$func: {
 									MULTIPLY: [
-										{ $expr: "orders.amount" },
+										{ $field: "orders.amount" },
 										{
 											$cond: {
-												if: { "orders.amount": { $gte: { $expr: "high_value_threshold" } } },
+												if: { "orders.amount": { $gte: { $var: "high_value_threshold" } } },
 												then: 0.9, // 10% discount for high-value orders
 												else: {
 													$cond: {
@@ -169,10 +169,10 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 							},
 							// Simple calculation using numeric constants
 							days_since_order: {
-								$expr: {
+								$func: {
 									DIVIDE: [
 										{
-											$expr: {
+											$func: {
 												SUBTRACT: [
 													365, // Days in year as constant
 													100, // Offset
@@ -276,7 +276,7 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 								table: "posts",
 								conditions: {
 									$and: [
-										{ "posts.user_id": { $eq: { $expr: "users.id" } } },
+										{ "posts.user_id": { $eq: { $field: "users.id" } } },
 										{ "posts.published": { $eq: true } },
 										{
 											$or: [
@@ -284,8 +284,8 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 													// String function with type casting
 													"posts.title": {
 														$like: {
-															$expr: {
-																CONCAT: ["%", { $expr: { UPPER: ["PostgreSQL"] } }, "%"],
+															$func: {
+																CONCAT: ["%", { $func: { UPPER: ["PostgreSQL"] } }, "%"],
 															},
 														},
 													},
@@ -309,15 +309,15 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 								table: "orders",
 								conditions: {
 									$and: [
-										{ "orders.customer_id": { $eq: { $expr: "users.id" } } },
+										{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 										{ "orders.status": { $eq: "completed" } },
 										{
 											// Complex mathematical condition with variables
 											"orders.amount": {
 												$gte: {
-													$expr: {
+													$func: {
 														MULTIPLY: [
-															{ $expr: "high_value_threshold" },
+															{ $var: "high_value_threshold" },
 															{
 																$cond: {
 																	if: { "users.status": { $eq: "premium" } },
@@ -340,7 +340,7 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 									table: "orders",
 									conditions: {
 										$and: [
-											{ "orders.customer_id": { $eq: { $expr: "users.id" } } },
+											{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 											{ "orders.status": { $eq: "cancelled" } },
 											{
 												// Simple time condition
@@ -392,15 +392,15 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 						id: true,
 						name: true,
 						// Direct JSON field access
-						department: { $expr: "users.metadata->department" },
-						role: { $expr: "users.metadata->role" },
+						department: { $field: "users.metadata->department" },
+						role: { $field: "users.metadata->role" },
 						// Complex JSON manipulation
 						profile_summary: {
-							$expr: {
+							$func: {
 								CONCAT: [
-									{ $expr: { COALESCE_STRING: [{ $expr: "users.metadata->>department" }, "unknown"] } },
+									{ $func: { COALESCE_STRING: [{ $field: "users.metadata->>department" }, "unknown"] } },
 									" - ",
-									{ $expr: { UPPER: [{ $expr: { COALESCE_STRING: [{ $expr: "users.metadata->>role" }, "employee"] } }] } },
+									{ $func: { UPPER: [{ $func: { COALESCE_STRING: [{ $field: "users.metadata->>role" }, "employee"] } }] } },
 								],
 							},
 						},
@@ -414,7 +414,7 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 						},
 						// Complex JSON array operations
 						settings_count: {
-							$expr: {
+							$func: {
 								ADD: [
 									{
 										$cond: {
@@ -424,8 +424,8 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 										},
 									},
 									{
-										$expr: {
-											LENGTH: [{ $expr: { COALESCE_STRING: [{ $expr: "users.metadata->settings->>theme" }, ""] } }],
+										$func: {
+											LENGTH: [{ $func: { COALESCE_STRING: [{ $field: "users.metadata->settings->>theme" }, ""] } }],
 										},
 									},
 								],
@@ -510,16 +510,16 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 						age: true,
 						// Calculate user value score based on multiple factors
 						user_value_score: {
-							$expr: {
+							$func: {
 								ADD: [
 									// Base score from age (normalized)
 									{
-										$expr: {
-											DIVIDE: [{ $expr: { COALESCE_NUMBER: [{ $expr: "users.age" }, 25] } }, 10],
+										$func: {
+											DIVIDE: [{ $func: { COALESCE_NUMBER: [{ $field: "users.age" }, 25] } }, 10],
 										},
 									},
 									{
-										$expr: {
+										$func: {
 											ADD: [
 												// Bonus for premium status
 												{
@@ -549,11 +549,11 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 							title: true,
 							// Content complexity score
 							complexity_score: {
-								$expr: {
+								$func: {
 									MULTIPLY: [
 										{
-											$expr: {
-												DIVIDE: [{ $expr: { LENGTH: [{ $expr: "posts.content" }] } }, 100],
+											$func: {
+												DIVIDE: [{ $func: { LENGTH: [{ $field: "posts.content" }] } }, 100],
 											},
 										},
 										{
@@ -568,11 +568,11 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 							},
 							// Estimated reading time (words per minute calculation)
 							estimated_reading_minutes: {
-								$expr: {
+								$func: {
 									DIVIDE: [
 										{
-											$expr: {
-												DIVIDE: [{ $expr: { LENGTH: [{ $expr: "posts.content" }] } }, 5], // Approximate words (chars/5)
+											$func: {
+												DIVIDE: [{ $func: { LENGTH: [{ $field: "posts.content" }] } }, 5], // Approximate words (chars/5)
 											},
 										},
 										200, // Average reading speed
@@ -587,18 +587,18 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 							status: true,
 							// Tax calculation (fictional 8.5% tax)
 							tax_amount: {
-								$expr: {
-									MULTIPLY: [{ $expr: "orders.amount" }, 0.085],
+								$func: {
+									MULTIPLY: [{ $field: "orders.amount" }, 0.085],
 								},
 							},
 							// Total with tax
 							total_with_tax: {
-								$expr: {
+								$func: {
 									ADD: [
-										{ $expr: "orders.amount" },
+										{ $field: "orders.amount" },
 										{
-											$expr: {
-												MULTIPLY: [{ $expr: "orders.amount" }, 0.085],
+											$func: {
+												MULTIPLY: [{ $field: "orders.amount" }, 0.085],
 											},
 										},
 									],
@@ -610,11 +610,11 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 									if: { "orders.amount": { $gte: 100 } },
 									then: 0, // Free shipping
 									else: {
-										$expr: {
+										$func: {
 											MULTIPLY: [
 												{
-													$expr: {
-														GREATEST_NUMBER: [5, { $expr: { MULTIPLY: [{ $expr: "orders.amount" }, 0.1] } }],
+													$func: {
+														GREATEST_NUMBER: [5, { $func: { MULTIPLY: [{ $field: "orders.amount" }, 0.1] } }],
 													},
 												},
 												1,
@@ -628,11 +628,11 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 								$cond: {
 									if: { "orders.shipped_at": { $ne: null } },
 									then: {
-										$expr: {
+										$func: {
 											DIVIDE: [
 												{
-													$expr: {
-														SUBTRACT: [{ $expr: "orders.shipped_at" }, { $expr: "orders.created_at" }],
+													$func: {
+														SUBTRACT: [{ $field: "orders.shipped_at" }, { $field: "orders.created_at" }],
 													},
 												},
 												86400, // Convert to days
@@ -653,7 +653,7 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 										$exists: {
 											table: "posts",
 											conditions: {
-												$and: [{ "posts.user_id": { $eq: { $expr: "users.id" } } }, { "posts.published": { $eq: true } }],
+												$and: [{ "posts.user_id": { $eq: { $field: "users.id" } } }, { "posts.published": { $eq: true } }],
 											},
 										},
 									},
@@ -662,7 +662,7 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 											table: "orders",
 											conditions: {
 												$and: [
-													{ "orders.customer_id": { $eq: { $expr: "users.id" } } },
+													{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 													{ "orders.status": { $eq: "completed" } },
 													{ "orders.amount": { $gte: 50 } },
 												],

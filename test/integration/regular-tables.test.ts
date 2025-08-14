@@ -51,7 +51,7 @@ describe("Integration Tests - Regular Tables", () => {
 				},
 			},
 			variables: {
-				currentUserId: "1",
+				current_user_id: "1",
 				adminRole: "admin",
 			},
 			relationships: [
@@ -190,7 +190,7 @@ describe("Integration Tests - Regular Tables", () => {
 				const selection = {
 					id: true,
 					name: true,
-					department: { $expr: "users.metadata->department" },
+					department: { $field: "users.metadata->department" },
 				};
 				const result = parseSelectQuery({ rootTable: "users", selection }, config);
 				const sql = compileSelectQuery(result);

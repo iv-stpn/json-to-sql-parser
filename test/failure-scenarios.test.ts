@@ -155,7 +155,7 @@ describe("Expected Failure Tests", () => {
 			for (const invalidFunc of invalidFunctions) {
 				expect(() => {
 					const expr: AnyExpression = {
-						$expr: { [invalidFunc]: ["users.name"] },
+						$func: { [invalidFunc]: ["users.name"] },
 					};
 					parseExpression(expr, testState);
 				}).toThrow("Unknown function or operator");
@@ -166,14 +166,14 @@ describe("Expected Failure Tests", () => {
 			// Unary functions with wrong argument count
 			expect(() => {
 				const expr: AnyExpression = {
-					$expr: { UPPER: [] }, // No arguments
+					$func: { UPPER: [] }, // No arguments
 				};
 				parseExpression(expr, testState);
 			}).toThrow("Function 'UPPER' requires exactly 1 argument, got 0");
 
 			expect(() => {
 				const expr: AnyExpression = {
-					$expr: { UPPER: ["arg1", "arg2"] }, // Too many arguments
+					$func: { UPPER: ["arg1", "arg2"] }, // Too many arguments
 				};
 				parseExpression(expr, testState);
 			}).toThrow("Function 'UPPER' requires exactly 1 argument, got 2");
@@ -181,14 +181,14 @@ describe("Expected Failure Tests", () => {
 			// Binary functions with wrong argument count
 			expect(() => {
 				const expr: AnyExpression = {
-					$expr: { ADD: ["only_one"] }, // Not enough arguments
+					$func: { ADD: ["only_one"] }, // Not enough arguments
 				};
 				parseExpression(expr, testState);
 			}).toThrow("Function 'ADD' requires exactly 2 arguments, got 1");
 
 			expect(() => {
 				const expr: AnyExpression = {
-					$expr: { ADD: ["arg1", "arg2", "arg3"] }, // Too many arguments
+					$func: { ADD: ["arg1", "arg2", "arg3"] }, // Too many arguments
 				};
 				parseExpression(expr, testState);
 			}).toThrow("Function 'ADD' requires exactly 2 arguments, got 3");
@@ -197,7 +197,7 @@ describe("Expected Failure Tests", () => {
 		it("should reject variable functions with no arguments", () => {
 			expect(() => {
 				const expr: AnyExpression = {
-					$expr: { COALESCE_STRING: [] },
+					$func: { COALESCE_STRING: [] },
 				};
 				parseExpression(expr, testState);
 			}).toThrow("Function 'COALESCE_STRING' requires at least 2 arguments, got 0");
@@ -330,20 +330,20 @@ describe("Expected Failure Tests", () => {
 		it("should reject malformed expression function objects", () => {
 			expect(() => {
 				const expr: AnyExpression = {
-					$expr: {}, // Empty object
+					$func: {}, // Empty object
 				};
 				parseExpression(expr, testState);
-			}).toThrow("$expr must contain exactly one function");
+			}).toThrow("$func must contain exactly one function");
 
 			expect(() => {
 				const expr: AnyExpression = {
-					$expr: {
+					$func: {
 						UPPER: ["arg1"],
 						LOWER: ["arg2"], // Multiple functions
 					},
 				};
 				parseExpression(expr, testState);
-			}).toThrow("$expr must contain exactly one function");
+			}).toThrow("$func must contain exactly one function");
 		});
 	});
 
@@ -367,7 +367,7 @@ describe("Expected Failure Tests", () => {
 			// we can test cases that might cause infinite loops
 			expect(() => {
 				const expr: AnyExpression = {
-					$expr: { CONCAT: [] }, // Empty array
+					$func: { CONCAT: [] }, // Empty array
 				};
 				parseExpression(expr, testState);
 			}).toThrow();

@@ -122,7 +122,7 @@ const config = {
 
 // Use in conditions
 const condition = {
-  "users.id": { $eq: { $expr: "auth.uid" } },
+  "users.id": { $eq: { $var: "auth.uid" } },
 };
 ```
 
@@ -163,11 +163,11 @@ const query = {
   selection: {
     id: true,
     display_name: {
-      $expr: {
+      $func: {
         CONCAT: [
-          { $expr: "users.name" },
+          { $field: "users.name" },
           " (",
-          { $expr: "users.email" },
+          { $field: "users.email" },
           ")",
         ],
       },
@@ -215,7 +215,7 @@ const condition = {
   $exists: {
     table: "posts",
     conditions: {
-      "posts.user_id": { $expr: "users.id" },
+      "posts.user_id": { $field: "users.id" },
       "posts.published": { $eq: true },
     },
   },
@@ -258,17 +258,17 @@ The expression system supports various functions and operations:
 ```typescript
 // Simple field reference
 {
-  $expr: "users.name";
+  $field: "users.name";
 }
 
 // Cross-table reference (requires relationship)
 {
-  $expr: "posts.title";
+  $field: "posts.title";
 }
 
 // Variable reference
 {
-  $expr: "auth.uid";
+  $var: "auth.uid";
 }
 ```
 
@@ -277,64 +277,64 @@ The expression system supports various functions and operations:
 ```typescript
 // String functions
 {
-  $expr: {
-    UPPER: [{ $expr: "users.name" }];
+  $func: {
+    UPPER: [{ $field: "users.name" }];
   }
 }
 {
-  $expr: {
-    LOWER: [{ $expr: "users.email" }];
+  $func: {
+    LOWER: [{ $field: "users.email" }];
   }
 }
 {
-  $expr: {
-    LENGTH: [{ $expr: "users.name" }];
+  $func: {
+    LENGTH: [{ $field: "users.name" }];
   }
 }
 {
-  $expr: {
-    CONCAT: ["Hello, ", { $expr: "users.name" }];
+  $func: {
+    CONCAT: ["Hello, ", { $field: "users.name" }];
   }
 }
 
 // Math functions
 {
-  $expr: {
-    ABS: [{ $expr: "users.balance" }];
+  $func: {
+    ABS: [{ $field: "users.balance" }];
   }
 }
 {
-  $expr: {
-    SQRT: [{ $expr: "users.score" }];
+  $func: {
+    SQRT: [{ $field: "users.score" }];
   }
 }
 {
-  $expr: {
-    ADD: [{ $expr: "users.score" }, 10];
+  $func: {
+    ADD: [{ $field: "users.score" }, 10];
   }
 }
 {
-  $expr: {
-    MULTIPLY: [{ $expr: "users.hourly_rate" }, 8];
+  $func: {
+    MULTIPLY: [{ $field: "users.hourly_rate" }, 8];
   }
 }
 
 // Date functions
 {
-  $expr: {
-    YEAR: [{ $expr: "users.created_at" }];
+  $func: {
+    YEAR: [{ $field: "users.created_at" }];
   }
 }
 
 // Utility functions
 {
-  $expr: {
-    COALESCE_STRING: [{ $expr: "users.nickname" }, { $expr: "users.name" }];
+  $func: {
+    COALESCE_STRING: [{ $field: "users.nickname" }, { $field: "users.name" }];
   }
 }
 {
-  $expr: {
-    GREATEST_NUMBER: [{ $expr: "users.score1" }, { $expr: "users.score2" }];
+  $func: {
+    GREATEST_NUMBER: [{ $field: "users.score1" }, { $field: "users.score2" }];
   }
 }
 ```
@@ -487,9 +487,9 @@ const query = {
     id: true,
     name: true,
     total_posts: {
-      $expr: {
+      $func: {
         COALESCE_NUMBER: [
-          { $expr: "post_count.count" },
+          { $field: "post_count.count" },
           0,
         ],
       },
@@ -513,7 +513,7 @@ const query = {
         $exists: {
           table: "posts",
           conditions: {
-            "posts.user_id": { $expr: "users.id" },
+            "posts.user_id": { $field: "users.id" },
             "posts.published": { $eq: true },
           },
         },

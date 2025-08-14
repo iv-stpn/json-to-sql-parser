@@ -103,7 +103,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 
 		it("should handle UUID variables", () => {
 			const condition: Condition = {
-				"users.id": { $eq: { $expr: "auth.uid" } },
+				"users.id": { $eq: { $var: "auth.uid" } },
 			};
 
 			const result = extractSelectWhereClause(condition, testConfig, "users");
@@ -201,7 +201,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 
 		it("should handle timestamp variables", () => {
 			const condition: Condition = {
-				"users.created_at": { $lt: { $expr: "current_timestamp" } },
+				"users.created_at": { $lt: { $var: "current_timestamp" } },
 			};
 
 			const result = extractSelectWhereClause(condition, testConfig, "users");
@@ -290,7 +290,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 
 		it("should handle date variables", () => {
 			const condition: Condition = {
-				"events.scheduled_date": { $eq: { $expr: "current_date" } },
+				"events.scheduled_date": { $eq: { $var: "current_date" } },
 			};
 
 			const result = extractSelectWhereClause(condition, testConfig, "events");
@@ -385,7 +385,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 				},
 				condition: {
 					$and: [
-						{ "events.user_id": { $eq: { $expr: "auth.uid" } } },
+						{ "events.user_id": { $eq: { $var: "auth.uid" } } },
 						{ "events.occurred_at": { $gte: { $timestamp: "2024-01-01T00:00:00" } } },
 					],
 				},
