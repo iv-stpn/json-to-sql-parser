@@ -1,7 +1,8 @@
-import { aliasValue, castValue, isExpressionObject, parseExpressionObject, parseField } from "../parsers";
+import { aliasValue, castValue, parseExpressionObject, parseField } from "../parsers";
 import type { FieldName, FieldSelection, SelectQuery } from "../schemas";
 import type { BaseParsedQuery, Config, ParserState, Primitive } from "../types";
 import { ExpressionTypeMap } from "../utils/expression-map";
+import { isExpressionObject } from "../utils/validators";
 import { buildJoinClause } from "./joins";
 import { buildWhereClause } from "./where";
 

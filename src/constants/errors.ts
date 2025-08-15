@@ -1,5 +1,5 @@
+import type { CastType } from "./cast-types";
 import type { FunctionDefinition } from "./functions";
-import type { CastType } from "./operators";
 
 export const JSON_ACCESS_TYPE_ERROR = (path: string, field: string, type: string): string =>
 	`JSON path access '${path}' is only allowed on JSON fields, but field '${field}' is of type '${type}'`;

@@ -1,4 +1,4 @@
-import type { CastType } from "../constants/operators";
+import type { CastType } from "../constants/cast-types";
 import type { ExpressionObject } from "../schemas";
 import { objectKeys } from ".";
 

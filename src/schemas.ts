@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: we use `then` and `else` for conditional expressions */
 import { z } from "zod";
-import { aggregationOperators } from "./constants/operators";
+import { aggregationOperators } from "./constants/aggregation-functions";
 import { isField } from "./utils/validators";
 
 // Primitive value types

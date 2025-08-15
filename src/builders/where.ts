@@ -19,6 +19,6 @@ export function buildWhereClause(condition: unknown, state: ParserState) {
 		return undefined;
 	}
 
-	const sql = parseCondition(conditionSchema.parse(condition), state);
-	return state.config.dataTable ? buildDataTableWhereClause(state, sql) : sql;
+	const whereClause = parseCondition(conditionSchema.parse(condition), state);
+	return state.config.dataTable ? buildDataTableWhereClause(state, whereClause) : whereClause;
 }

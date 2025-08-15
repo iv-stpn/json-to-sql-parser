@@ -1,11 +1,11 @@
-import type { FieldType } from "./constants/operators";
+import type { FieldType } from "./constants/cast-types";
 import type { ExpressionTypeMap } from "./utils/expression-map";
 
 export type Field = { name: string; type: FieldType; nullable: boolean };
 export type FieldPath = {
 	table: string;
 	field: string;
-	jsonPathSegments: string[];
+	jsonAccess: string[];
 	jsonExtractText?: boolean;
 	fieldConfig: Field;
 };

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { removeAllWrappingParens } from "../utils/function-call";
-import { castTypes } from "./operators";
+import { castTypes } from "./cast-types";
 
 export const argumentDefinitionSchema = z.object({ type: z.enum(castTypes), variadic: z.boolean().optional() });
 export type ArgumentDefinition = z.infer<typeof argumentDefinitionSchema>;

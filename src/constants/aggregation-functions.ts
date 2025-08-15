@@ -23,18 +23,3 @@ export function applyAggregationOperator(field: string, operator: AggregationOpe
 	if (operator === "STRING_AGG") return applyFunction("STRING_AGG", [field, "','"]);
 	return applyFunction(operator, [field]);
 }
-
-// Cast types for SQL queries
-export const castMap = {
-	string: "TEXT",
-	number: "FLOAT",
-	boolean: "BOOLEAN",
-	object: "JSONB",
-	date: "DATE",
-	datetime: "TIMESTAMP",
-	uuid: "UUID",
-} as const;
-export const castTypes = Object.values(castMap);
-
-export type CastType = (typeof castMap)[keyof typeof castMap] | null;
-export type FieldType = keyof typeof castMap;

@@ -7,9 +7,9 @@ export const fieldPathRegex = `->(?:>${segmentRegex}|${segmentRegex}(?:->${segme
 const jsonAccessRegex = new RegExp(`^${fieldPathRegex}$`);
 const segmentCharacterRegex = new RegExp(segmentCharacter);
 
-export function parseJsonAccess(jsonAccess: string): { jsonPathSegments: string[]; jsonExtractText?: true } {
+export function parseJsonAccess(jsonAccessPath: string): { jsonAccess: string[]; jsonExtractText?: true } {
 	// Validate the input matches the expected pattern
-	if (!jsonAccessRegex.test(jsonAccess)) throw new Error(INVALID_JSON_ACCESS_ERROR(jsonAccess, "format"));
+	if (!jsonAccessRegex.test(jsonAccessPath)) throw new Error(INVALID_JSON_ACCESS_ERROR(jsonAccessPath, "format"));
 
 	const segments: string[] = [];
 
@@ -17,11 +17,11 @@ export function parseJsonAccess(jsonAccess: string): { jsonPathSegments: string[
 	let currentSegment = "";
 	let jsonExtractText = false;
 
-	while (i < jsonAccess.length) {
-		const char = jsonAccess[i];
+	while (i < jsonAccessPath.length) {
+		const char = jsonAccessPath[i];
 
 		// Check if we're at the start of an arrow sequence
-		if (char === "-" && i + 1 < jsonAccess.length && jsonAccess[i + 1] === ">") {
+		if (char === "-" && i + 1 < jsonAccessPath.length && jsonAccessPath[i + 1] === ">") {
 			// We found an arrow, so the current segment is complete
 			if (currentSegment) {
 				segments.push(currentSegment);
@@ -33,7 +33,7 @@ export function parseJsonAccess(jsonAccess: string): { jsonPathSegments: string[
 
 			// Check if the next character is '>' (indicating jsonExtractText = true)
 			// This should only happen on the last segment
-			if (i < jsonAccess.length && jsonAccess[i] === ">") {
+			if (i < jsonAccessPath.length && jsonAccessPath[i] === ">") {
 				jsonExtractText = true;
 				i++;
 			}
@@ -56,27 +56,27 @@ export function parseJsonAccess(jsonAccess: string): { jsonPathSegments: string[
 			let quotedContent = "";
 
 			// Read until closing quote
-			while (i < jsonAccess.length && jsonAccess[i] !== "'") {
-				quotedContent += jsonAccess[i];
+			while (i < jsonAccessPath.length && jsonAccessPath[i] !== "'") {
+				quotedContent += jsonAccessPath[i];
 				i++;
 			}
 
-			if (i >= jsonAccess.length) throw new Error(INVALID_JSON_ACCESS_ERROR(jsonAccess, "quote"));
+			if (i >= jsonAccessPath.length) throw new Error(INVALID_JSON_ACCESS_ERROR(jsonAccessPath, "quote"));
 
 			// Skip closing quote
 			i++;
 			currentSegment = quotedContent;
 		} else {
-			let character = jsonAccess[i];
-			while (i < jsonAccess.length && character && segmentCharacterRegex.test(character)) {
+			let character = jsonAccessPath[i];
+			while (i < jsonAccessPath.length && character && segmentCharacterRegex.test(character)) {
 				currentSegment += character;
 				i++;
-				character = jsonAccess[i];
+				character = jsonAccessPath[i];
 			}
 		}
 	}
 
 	// Add the final segment if there is one
 	if (currentSegment) segments.push(currentSegment);
-	return { jsonPathSegments: segments, jsonExtractText: jsonExtractText || undefined };
+	return { jsonAccess: segments, jsonExtractText: jsonExtractText || undefined };
 }

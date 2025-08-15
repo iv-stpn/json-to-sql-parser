@@ -1,3 +1,5 @@
+import type { CastType, FieldType } from "../constants/cast-types";
+import { castMap } from "../constants/cast-types";
 import {
 	COMPARISON_TYPE_MISMATCH_ERROR,
 	FUNCTION_TYPE_MISMATCH_ERROR,
@@ -6,25 +8,20 @@ import {
 	JSON_ACCESS_TYPE_ERROR,
 } from "../constants/errors";
 import { allowedFunctions } from "../constants/functions";
-import type { CastType, FieldType } from "../constants/operators";
-import { castMap } from "../constants/operators";
 import { parseJsonAccess } from "../parsers/parse-json-access";
 import type { AnyExpression, Condition, ConditionExpression, ExpressionObject, FieldCondition, ScalarValue } from "../schemas";
 import type { Field, FieldPath, ParserState, Primitive } from "../types";
 import { isNotNull, quote } from "../utils";
 import { applyFunction } from "../utils/function-call";
-import { fieldNameRegex, isPrimitiveValue, isScalarValue, isValidDate, isValidTimestamp, uuidRegex } from "../utils/validators";
-
-export const isExpressionObject = (value: unknown): value is ExpressionObject =>
-	typeof value === "object" &&
-	value !== null &&
-	("$field" in value ||
-		"$var" in value ||
-		"$func" in value ||
-		"$cond" in value ||
-		"$timestamp" in value ||
-		"$date" in value ||
-		"$uuid" in value);
+import {
+	fieldNameRegex,
+	isExpressionObject,
+	isPrimitiveValue,
+	isScalarValue,
+	isValidDate,
+	isValidTimestamp,
+	uuidRegex,
+} from "../utils/validators";
 
 function parseTableFieldPath(fieldPath: string, rootTable: string) {
 	if (!fieldPath.includes(".")) return { table: rootTable, field: fieldPath };
@@ -54,13 +51,13 @@ export function parseFieldPath({ field, state }: ParseTableFieldParams): FieldPa
 	if (!fieldConfig) throw new Error(`Field '${fieldName}' is not allowed or does not exist for table '${table}'`);
 
 	// No JSON path, return as is
-	if (arrowIdx === -1) return { table, field: fieldPath, fieldConfig, jsonPathSegments: [] };
+	if (arrowIdx === -1) return { table, field: fieldPath, fieldConfig, jsonAccess: [] };
 
 	if (fieldConfig.type !== "object") throw new Error(JSON_ACCESS_TYPE_ERROR(fieldPath, fieldName, fieldConfig.type));
 
 	// Parse JSON access
-	const { jsonPathSegments, jsonExtractText } = parseJsonAccess(fieldPath.substring(arrowIdx));
-	return { table, field: fieldName, fieldConfig, jsonPathSegments, jsonExtractText }; // Return parsed field path with JSON parts
+	const { jsonAccess, jsonExtractText } = parseJsonAccess(fieldPath.substring(arrowIdx));
+	return { table, field: fieldName, fieldConfig, jsonAccess, jsonExtractText }; // Return parsed field path with JSON parts
 }
 
 // Parse SQL functions and operators in expressions
@@ -103,16 +100,16 @@ function parseExpressionFunction(exprObj: { [functionName: string]: AnyExpressio
 	return toSQL ? toSQL(resolvedArguments) : applyFunction(name, resolvedArguments);
 }
 
-function jsonAccess(path: string, jsonPathSegments: string[], jsonExtractText = true): string {
-	if (jsonPathSegments.length === 0) return path;
+function jsonAccessPath(path: string, jsonAccess: string[], jsonExtractText = true): string {
+	if (jsonAccess.length === 0) return path;
 
 	const finalOperator = jsonExtractText ? "->>" : "->";
-	if (jsonPathSegments.length === 1) return `${path}${finalOperator}'${jsonPathSegments[0]}'`;
-	return `${path}->'${jsonPathSegments.slice(0, -1).join("'->'")}'${finalOperator}'${jsonPathSegments.at(-1)}'`;
+	if (jsonAccess.length === 1) return `${path}${finalOperator}'${jsonAccess[0]}'`;
+	return `${path}->'${jsonAccess.slice(0, -1).join("'->'")}'${finalOperator}'${jsonAccess.at(-1)}'`;
 }
 
-function jsonPathAlias(path: string, jsonPathSegments: string[]): string {
-	return jsonAccess(path, jsonPathSegments, false).replaceAll(/(?<=->)'+|'+(?=->)|'+$/g, "");
+function jsonPathAlias(path: string, jsonAccess: string[]): string {
+	return jsonAccessPath(path, jsonAccess, false).replaceAll(/(?<=->)'+|'+(?=->)|'+$/g, "");
 }
 
 function getPrimitiveCastType(value: Primitive): CastType {
@@ -149,14 +146,14 @@ function selectField({ fieldPath, state, cast = null, jsonExtractText }: SelectF
 	const dataTable = state.config.dataTable;
 
 	const field = dataTable ? dataTable.dataField : fieldName;
-	const jsonPathSegments = dataTable ? [fieldName, ...fieldPath.jsonPathSegments] : fieldPath.jsonPathSegments;
+	const jsonAccess = dataTable ? [fieldName, ...fieldPath.jsonAccess] : fieldPath.jsonAccess;
 
 	const shouldJsonExtractText = jsonExtractText ?? (cast ? cast !== "JSONB" : true);
-	const path = jsonAccess(`${tableName}.${field}`, jsonPathSegments, shouldJsonExtractText);
+	const path = jsonAccessPath(`${tableName}.${field}`, jsonAccess, shouldJsonExtractText);
 	const relativePath = state.rootTable === tableName ? fieldName : `${tableName}.${fieldName}`;
 
-	const expectedCast = getExpectedCast(cast, jsonPathSegments.length > 0, fieldConfig.type, state);
-	return { alias: jsonPathAlias(relativePath, fieldPath.jsonPathSegments), cast: expectedCast, field: path };
+	const expectedCast = getExpectedCast(cast, jsonAccess.length > 0, fieldConfig.type, state);
+	return { alias: jsonPathAlias(relativePath, fieldPath.jsonAccess), cast: expectedCast, field: path };
 }
 
 export function parseField(field: string, state: ParserState, cast?: CastType, jsonExtractText?: boolean) {

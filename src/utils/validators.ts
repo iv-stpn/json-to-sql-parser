@@ -1,6 +1,18 @@
 import { fieldPathRegex } from "../parsers/parse-json-access";
-import type { FieldName, ScalarValue } from "../schemas";
+import type { ExpressionObject, FieldName, ScalarValue } from "../schemas";
 import type { Primitive } from "../types";
+
+// Internal validators
+export const isExpressionObject = (value: unknown): value is ExpressionObject =>
+	typeof value === "object" &&
+	value !== null &&
+	("$field" in value ||
+		"$var" in value ||
+		"$func" in value ||
+		"$cond" in value ||
+		"$timestamp" in value ||
+		"$date" in value ||
+		"$uuid" in value);
 
 export const isPrimitiveValue = (value: unknown): value is Primitive =>
 	typeof value === "string" || typeof value === "number" || typeof value === "boolean";

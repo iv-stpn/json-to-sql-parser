@@ -1,5 +1,5 @@
-import type { CastType } from "../constants/operators";
-import { castMap } from "../constants/operators";
+import type { CastType } from "../constants/cast-types";
+import { castMap } from "../constants/cast-types";
 import { aliasValue, castValue } from "../parsers";
 import type { Config, Relationship } from "../types";
 
@@ -10,6 +10,16 @@ export function buildJoinClause(
 	config: Config,
 	alias?: string,
 ): string {
+	// Ensure the relationship contains the table and toTable
+	if (
+		!relationship ||
+		!relationship.table ||
+		!relationship.toTable ||
+		(relationship.table !== table && relationship.toTable !== table)
+	) {
+		throw new Error(`Invalid relationship for table ${table}: ${JSON.stringify(relationship)}`);
+	}
+
 	const toTableName = config.dataTable ? aliasValue(config.dataTable.table, toTable) : toTable;
 
 	// Get field types for proper casting

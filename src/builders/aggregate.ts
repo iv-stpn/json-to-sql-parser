@@ -1,4 +1,4 @@
-import { aggregationOperators, applyAggregationOperator } from "../constants/operators";
+import { aggregationOperators, applyAggregationOperator } from "../constants/aggregation-functions";
 import { aliasValue, castValue, parseExpression, parseField } from "../parsers";
 import type { AggregatedField, AggregationQuery } from "../schemas";
 import type { BaseParsedQuery, Config, ParserState, Primitive } from "../types";

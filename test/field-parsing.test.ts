@@ -64,7 +64,7 @@ describe("Field Path Parsing Tests", () => {
 				const result = parseFieldPath({ field: `users.${field}`, state: testState });
 				expect(result.table).toBe("users");
 				expect(result.field).toBe(field);
-				expect(result.jsonPathSegments).toEqual([]);
+				expect(result.jsonAccess).toEqual([]);
 			}
 		});
 
@@ -80,7 +80,7 @@ describe("Field Path Parsing Tests", () => {
 			for (const fieldPath of validJsonPaths) {
 				const result = parseFieldPath({ field: `users.${fieldPath}`, state: testState });
 				expect(result.table).toBe("users");
-				expect(result.jsonPathSegments.length).toBeGreaterThan(0);
+				expect(result.jsonAccess.length).toBeGreaterThan(0);
 			}
 		});
 
@@ -98,7 +98,7 @@ describe("Field Path Parsing Tests", () => {
 			for (const fieldPath of validQuotedPaths) {
 				const result = parseFieldPath({ field: `users.${fieldPath}`, state: testState });
 				expect(result.table).toBe("users");
-				expect(result.jsonPathSegments.length).toBeGreaterThan(0);
+				expect(result.jsonAccess.length).toBeGreaterThan(0);
 			}
 		});
 
@@ -340,7 +340,7 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const fieldPath of deepPaths) {
 				const result = parseFieldPath({ field: `users.${fieldPath}`, state: testState });
-				expect(result.jsonPathSegments.length).toBeGreaterThan(4);
+				expect(result.jsonAccess.length).toBeGreaterThan(4);
 			}
 		});
 
@@ -358,14 +358,14 @@ describe("Field Path Parsing Tests", () => {
 			const quotedPath = "metadata->'level1'->'level2'->'level3'";
 			const result = parseFieldPath({ field: `users.${quotedPath}`, state: testState });
 
-			expect(result.jsonPathSegments).toEqual(["level1", "level2", "level3"]);
+			expect(result.jsonAccess).toEqual(["level1", "level2", "level3"]);
 		});
 
 		it("should handle mixed quoted and unquoted segments", () => {
 			const mixedPath = "metadata->level1->'level2'->level3->'level4'";
 			const result = parseFieldPath({ field: `users.${mixedPath}`, state: testState });
 
-			expect(result.jsonPathSegments).toEqual(["level1", "level2", "level3", "level4"]);
+			expect(result.jsonAccess).toEqual(["level1", "level2", "level3", "level4"]);
 		});
 	});
 
