@@ -274,7 +274,7 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 						{
 							$exists: {
 								table: "posts",
-								conditions: {
+								condition: {
 									$and: [
 										{ "posts.user_id": { $eq: { $field: "users.id" } } },
 										{ "posts.published": { $eq: true } },
@@ -307,7 +307,7 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 						{
 							$exists: {
 								table: "orders",
-								conditions: {
+								condition: {
 									$and: [
 										{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 										{ "orders.status": { $eq: "completed" } },
@@ -338,7 +338,7 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 							$not: {
 								$exists: {
 									table: "orders",
-									conditions: {
+									condition: {
 										$and: [
 											{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 											{ "orders.status": { $eq: "cancelled" } },
@@ -632,7 +632,10 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 											DIVIDE: [
 												{
 													$func: {
-														SUBTRACT: [{ $field: "orders.shipped_at" }, { $field: "orders.created_at" }],
+														SUBTRACT: [
+															{ $func: { EXTRACT_EPOCH: [{ $field: "orders.shipped_at" }] } },
+															{ $func: { EXTRACT_EPOCH: [{ $field: "orders.created_at" }] } },
+														],
 													},
 												},
 												86400, // Convert to days
@@ -652,7 +655,7 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 									{
 										$exists: {
 											table: "posts",
-											conditions: {
+											condition: {
 												$and: [{ "posts.user_id": { $eq: { $field: "users.id" } } }, { "posts.published": { $eq: true } }],
 											},
 										},
@@ -660,7 +663,7 @@ describe("Integration Tests - Multi-table Operations with Complex Type Casting",
 									{
 										$exists: {
 											table: "orders",
-											conditions: {
+											condition: {
 												$and: [
 													{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 													{ "orders.status": { $eq: "completed" } },

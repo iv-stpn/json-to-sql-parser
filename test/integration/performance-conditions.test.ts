@@ -438,16 +438,16 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 						table: "users",
 						groupBy: ["status", "active"],
 						aggregatedFields: {
-							total_users: { operator: "COUNT", field: "*" },
-							avg_age: { operator: "AVG", field: "age" },
-							min_age: { operator: "MIN", field: "age" },
-							max_age: { operator: "MAX", field: "age" },
+							total_users: { function: "COUNT", field: "*" },
+							avg_age: { function: "AVG", field: "age" },
+							min_age: { function: "MIN", field: "age" },
+							max_age: { function: "MAX", field: "age" },
 							name_lengths: {
-								operator: "AVG",
+								function: "AVG",
 								field: { $func: { LENGTH: [{ $field: "name" }] } },
 							},
 							complex_calc: {
-								operator: "SUM",
+								function: "SUM",
 								field: {
 									$func: {
 										ADD: [{ $func: { MULTIPLY: [{ $field: "age" }, 2] } }, { $func: { LENGTH: [{ $field: "name" }] } }],
@@ -560,7 +560,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 								{
 									$exists: {
 										table: "posts",
-										conditions: {
+										condition: {
 											$and: [
 												{ "posts.user_id": { $eq: { $field: "users.id" } } },
 												{ "posts.published": true },
@@ -578,7 +578,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 								{
 									$exists: {
 										table: "orders",
-										conditions: {
+										condition: {
 											$and: [
 												{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 												{ "orders.amount": { $gte: 100 } },
@@ -628,10 +628,6 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 				// Performance should still be reasonable
 				expect(parseTime).toBeLessThan(3000); // 3 seconds max for parsing
 				expect(queryTime).toBeLessThan(15000); // 15 seconds max for execution
-
-				console.log(
-					`Max complexity - Parse time: ${parseTime}ms, Query time: ${queryTime}ms, Params: ${result.params.length}, SQL length: ${result.sql.length}`,
-				);
 			});
 		});
 
@@ -652,7 +648,7 @@ describe("Integration Tests - Complex Conditions Performance & Edge Cases", () =
 							{
 								$exists: {
 									table: "orders",
-									conditions: {
+									condition: {
 										$and: [{ "orders.customer_id": { $eq: { $field: "users.id" } } }, { "orders.amount": { $gte: 200 } }],
 									},
 								},

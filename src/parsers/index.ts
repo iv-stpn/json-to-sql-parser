@@ -61,23 +61,23 @@ export function parseFieldPath({ field, state }: ParseTableFieldParams): FieldPa
 }
 
 // Parse SQL functions and operators in expressions
-function parseExpressionFunction(exprObj: { [functionName: string]: AnyExpression[] }, state: ParserState): string {
+function parseFunctionExpression(exprObj: { [functionName: string]: AnyExpression[] }, state: ParserState): string {
 	const entries = Object.entries(exprObj);
 	if (entries.length !== 1) throw new Error("$func must contain exactly one function");
 
 	const entry = entries[0];
 	if (!entry) throw new Error("Function name cannot be empty");
 
-	const [operator, args] = entry;
+	const [operator, operatorArguments] = entry;
 
 	const functionDefinition = allowedFunctions.find(({ name }) => name === operator);
 	if (!functionDefinition) throw new Error(`Unknown function or operator: "${operator}"`);
 
 	const { argumentTypes, name, toSQL, returnType, variadic } = functionDefinition;
-	if (argumentTypes.length > args.length || (argumentTypes.length < args.length && !variadic))
-		throw new Error(INVALID_ARGUMENT_COUNT_ERROR(functionDefinition, args.length));
+	if (argumentTypes.length > operatorArguments.length || (argumentTypes.length < operatorArguments.length && !variadic))
+		throw new Error(INVALID_ARGUMENT_COUNT_ERROR(name, argumentTypes.length, operatorArguments.length, variadic));
 
-	const resolvedArguments = args.map((arg, index) => {
+	const resolvedArguments = operatorArguments.map((arg, index) => {
 		const expectedType = index >= argumentTypes.length ? argumentTypes.at(-1) : argumentTypes[index];
 		if (!expectedType) throw new Error(`No argument type defined for function '${name}' at index ${index}`);
 
@@ -88,8 +88,6 @@ function parseExpressionFunction(exprObj: { [functionName: string]: AnyExpressio
 
 		if (actualType !== expectedType && actualType !== null) {
 			if (expectedType === "TEXT") return castValue(expression, "TEXT"); // Every type can be cast to TEXT, automatically cast in this case
-			if (expectedType === "FLOAT" && (actualType === "TIMESTAMP" || actualType === "DATE"))
-				return `(EXTRACT(EPOCH FROM ${expression}))`; // Special case for TIMESTAMP and DATE to FLOAT conversion (casted as seconds since epoch)
 			throw new Error(FUNCTION_TYPE_MISMATCH_ERROR(operator, expectedType, actualType));
 		}
 
@@ -119,7 +117,7 @@ function getPrimitiveCastType(value: Primitive): CastType {
 	throw new Error(`Invalid value type: ${typeof value}`);
 }
 
-function getExpressionCastType(expression: AnyExpression, state: ParserState): CastType {
+export function getExpressionCastType(expression: AnyExpression, state: ParserState): CastType {
 	if (isExpressionObject(expression)) return state.expressions.get(expression);
 	if (isPrimitiveValue(expression)) return getPrimitiveCastType(expression);
 	if (expression === null) return null;
@@ -172,7 +170,7 @@ function parsePrimitiveValue(value: ScalarValue) {
 }
 
 export function parseExpressionObject(expression: ExpressionObject, state: ParserState): string {
-	if ("$func" in expression) return parseExpressionFunction(expression.$func, state);
+	if ("$func" in expression) return parseFunctionExpression(expression.$func, state);
 	if ("$cond" in expression) return parseConditionalExpression(expression.$cond, state);
 
 	if ("$uuid" in expression) {
@@ -242,6 +240,16 @@ export const mergeConditions = (parsedConditions: string[], context: string): st
 export function parseCondition(condition: Condition, state: ParserState): string {
 	const parseSubCondition = (subCondition: Condition): string => parseCondition(subCondition, state);
 
+	if (typeof condition === "boolean") return condition ? "TRUE" : "FALSE";
+	if (isExpressionObject(condition)) {
+		const expression = parseExpressionObject(condition, state);
+		const expressionType = state.expressions.get(condition);
+		if (expressionType === "BOOLEAN") return expression;
+		throw new Error(
+			`Condition expression must evaluate to BOOLEAN, got ${expressionType} for condition: ${JSON.stringify(condition)}`,
+		);
+	}
+
 	// Handle logical operators
 	if ("$and" in condition)
 		return `${mergeConditions(condition.$and.map(parseSubCondition), `$and condition (${JSON.stringify(condition.$and)})`)}`;
@@ -254,7 +262,7 @@ export function parseCondition(condition: Condition, state: ParserState): string
 
 	// Handle EXISTS subquery
 	if ("$exists" in condition) {
-		const { table, conditions } = condition.$exists;
+		const { table, condition: conditions } = condition.$exists;
 		const subQueryCondition = parseCondition(conditions, state); // Parse the subquery conditions
 		return `EXISTS (SELECT 1 FROM ${table} WHERE ${subQueryCondition})`;
 	}

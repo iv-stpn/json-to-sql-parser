@@ -211,8 +211,8 @@ describe("Integration Tests - Regular Tables", () => {
 					table: "orders",
 					groupBy: ["orders.status"],
 					aggregatedFields: {
-						total_amount: { operator: "SUM", field: "orders.amount" },
-						order_count: { operator: "COUNT", field: "orders.id" },
+						total_amount: { function: "SUM", field: "orders.amount" },
+						order_count: { function: "COUNT", field: "orders.id" },
 					},
 				};
 
@@ -243,8 +243,8 @@ describe("Integration Tests - Regular Tables", () => {
 					table: "users",
 					groupBy: ["users.metadata->department"],
 					aggregatedFields: {
-						avg_age: { operator: "AVG", field: "users.age" },
-						user_count: { operator: "COUNT", field: "users.id" },
+						avg_age: { function: "AVG", field: "users.age" },
+						user_count: { function: "COUNT", field: "users.id" },
 					},
 				};
 
@@ -281,9 +281,9 @@ describe("Integration Tests - Regular Tables", () => {
 				table: "orders",
 				groupBy: ["orders.status"],
 				aggregatedFields: {
-					total_revenue: { operator: "SUM", field: "orders.amount" },
-					order_count: { operator: "COUNT", field: "orders.id" },
-					avg_order_value: { operator: "AVG", field: "orders.amount" },
+					total_revenue: { function: "SUM", field: "orders.amount" },
+					order_count: { function: "COUNT", field: "orders.id" },
+					avg_order_value: { function: "AVG", field: "orders.amount" },
 				},
 			};
 

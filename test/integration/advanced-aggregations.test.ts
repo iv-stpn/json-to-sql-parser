@@ -78,11 +78,11 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 					table: "orders",
 					groupBy: ["orders.status"],
 					aggregatedFields: {
-						total_amount: { operator: "SUM", field: "orders.amount" },
-						avg_amount: { operator: "AVG", field: "orders.amount" },
+						total_amount: { function: "SUM", field: "orders.amount" },
+						avg_amount: { function: "AVG", field: "orders.amount" },
 						// Complex mathematical expression with type inference
 						revenue_score: {
-							operator: "SUM",
+							function: "SUM",
 							field: {
 								$func: {
 									MULTIPLY: [
@@ -100,10 +100,10 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						},
 						// Total orders count
 						total_orders: {
-							operator: "COUNT",
+							function: "COUNT",
 							field: "*",
 						},
-						order_count: { operator: "COUNT", field: "*" },
+						order_count: { function: "COUNT", field: "*" },
 					},
 				};
 
@@ -140,11 +140,11 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 					table: "users",
 					groupBy: ["users.metadata->department", "users.metadata->role"],
 					aggregatedFields: {
-						user_count: { operator: "COUNT", field: "*" },
-						avg_age: { operator: "AVG", field: "users.age" },
+						user_count: { function: "COUNT", field: "*" },
+						avg_age: { function: "AVG", field: "users.age" },
 						// Extract JSON boolean and count
 						active_users: {
-							operator: "COUNT",
+							function: "COUNT",
 							field: {
 								$cond: {
 									if: { "users.active": { $eq: true } },
@@ -155,7 +155,7 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						},
 						// JSON extraction with mathematical operations
 						settings_complexity: {
-							operator: "AVG",
+							function: "AVG",
 							field: {
 								$func: {
 									ADD: [
@@ -208,17 +208,17 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 					table: "users",
 					groupBy: ["users.status"],
 					aggregatedFields: {
-						user_count: { operator: "COUNT", field: "*" },
-						avg_age: { operator: "AVG", field: "users.age" },
+						user_count: { function: "COUNT", field: "*" },
+						avg_age: { function: "AVG", field: "users.age" },
 						// Count users with orders above threshold
 						high_value_customers: {
-							operator: "COUNT",
+							function: "COUNT",
 							field: {
 								$cond: {
 									if: {
 										$exists: {
 											table: "orders",
-											conditions: {
+											condition: {
 												$and: [
 													{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 													{ "orders.amount": { $gte: { $var: "min_order_threshold" } } },
@@ -234,7 +234,7 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						},
 						// Complex calculation involving multiple tables
 						engagement_score: {
-							operator: "AVG",
+							function: "AVG",
 							field: {
 								$func: {
 									ADD: [
@@ -250,7 +250,7 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 												if: {
 													$exists: {
 														table: "posts",
-														conditions: {
+														condition: {
 															$and: [{ "posts.user_id": { $eq: { $field: "users.id" } } }, { "posts.published": { $eq: true } }],
 														},
 													},
@@ -299,18 +299,25 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 					table: "orders",
 					groupBy: ["orders.created_at"],
 					aggregatedFields: {
-						order_count: { operator: "COUNT", field: "*" },
-						total_revenue: { operator: "SUM", field: "orders.amount" },
+						order_count: { function: "COUNT", field: "*" },
+						total_revenue: { function: "SUM", field: "orders.amount" },
 						// Calculate average processing time for shipped orders (simplified)
 						avg_processing_days: {
-							operator: "AVG",
+							function: "AVG",
 							field: {
 								$cond: {
 									if: { "orders.shipped_at": { $ne: null } },
 									then: {
 										$func: {
 											DIVIDE: [
-												{ $func: { SUBTRACT: [{ $field: "orders.shipped_at" }, { $field: "orders.created_at" }] } },
+												{
+													$func: {
+														SUBTRACT: [
+															{ $func: { EXTRACT_EPOCH: [{ $field: "orders.shipped_at" }] } },
+															{ $func: { EXTRACT_EPOCH: [{ $field: "orders.created_at" }] } },
+														],
+													},
+												},
 												86400, // Convert seconds to days
 											],
 										},
@@ -321,7 +328,7 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						},
 						// Simple order count
 						avg_order_count: {
-							operator: "COUNT",
+							function: "COUNT",
 							field: "*",
 						},
 					},
@@ -356,10 +363,10 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 					table: "users",
 					groupBy: ["users.email"],
 					aggregatedFields: {
-						user_count: { operator: "COUNT", field: "*" },
+						user_count: { function: "COUNT", field: "*" },
 						// Average name length with proper casting
 						avg_name_length: {
-							operator: "AVG",
+							function: "AVG",
 							field: {
 								$func: {
 									LENGTH: [{ $field: "users.name" }],
@@ -368,7 +375,8 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						},
 						// Concatenated names with type preservation
 						all_names: {
-							operator: "STRING_AGG",
+							function: "STRING_AGG",
+							additionalArguments: [","],
 							field: {
 								$func: {
 									CONCAT: [
@@ -382,7 +390,7 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						},
 						// Complex boolean aggregation
 						has_premium_users: {
-							operator: "MAX",
+							function: "MAX",
 							field: {
 								$cond: {
 									if: { "users.status": { $eq: "premium" } },
@@ -393,7 +401,8 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						},
 						// Age statistics with null handling
 						age_stats: {
-							operator: "STRING_AGG",
+							function: "STRING_AGG",
+							additionalArguments: [","],
 							field: {
 								$func: {
 									CONCAT: [{ $field: "users.name" }, ":", { $func: { COALESCE_STRING: [{ $field: "users.age" }, "unknown"] } }],
@@ -432,10 +441,10 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 					table: "orders",
 					groupBy: ["orders.status"],
 					aggregatedFields: {
-						order_count: { operator: "COUNT", field: "*" },
+						order_count: { function: "COUNT", field: "*" },
 						// Complex mathematical expression with multiple type conversions
 						weighted_revenue: {
-							operator: "SUM",
+							function: "SUM",
 							field: {
 								$func: {
 									MULTIPLY: [
@@ -461,7 +470,8 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						},
 						// String manipulation with mathematical results
 						order_summary: {
-							operator: "STRING_AGG",
+							function: "STRING_AGG",
+							additionalArguments: [","],
 							field: {
 								$func: {
 									CONCAT: [
@@ -489,7 +499,7 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 						},
 						// Complex conditional aggregation
 						efficiency_score: {
-							operator: "AVG",
+							function: "AVG",
 							field: {
 								$cond: {
 									if: {
@@ -507,7 +517,10 @@ describe("Integration Tests - Advanced Aggregations with Complex Type Casting", 
 																	DIVIDE: [
 																		{
 																			$func: {
-																				SUBTRACT: [{ $field: "orders.shipped_at" }, { $field: "orders.created_at" }],
+																				SUBTRACT: [
+																					{ $func: { EXTRACT_EPOCH: [{ $field: "orders.shipped_at" }] } },
+																					{ $func: { EXTRACT_EPOCH: [{ $field: "orders.created_at" }] } },
+																				],
 																			},
 																		},
 																		3600, // Convert to hours

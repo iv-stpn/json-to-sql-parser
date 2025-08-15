@@ -71,20 +71,20 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 				aggregatedFields: {
 					// Basic aggregations
 					total_users: {
-						operator: "COUNT",
+						function: "COUNT",
 						field: "users.id",
 					},
 					avg_age: {
-						operator: "AVG",
+						function: "AVG",
 						field: "users.age",
 					},
 					total_balance: {
-						operator: "SUM",
+						function: "SUM",
 						field: "users.balance",
 					},
 					// Conditional aggregation
 					active_users_count: {
-						operator: "SUM",
+						function: "SUM",
 						field: {
 							$cond: {
 								if: { "users.active": { $eq: true } },
@@ -95,7 +95,7 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 					},
 					// Weighted calculation
 					weighted_score: {
-						operator: "SUM",
+						function: "SUM",
 						field: {
 							$func: {
 								MULTIPLY: [
@@ -134,7 +134,7 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 				aggregatedFields: {
 					// Users created in recent period
 					recent_users: {
-						operator: "SUM",
+						function: "SUM",
 						field: {
 							$cond: {
 								if: { "users.created_at": { $gte: { $date: "2023-01-01" } } },
@@ -145,7 +145,7 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 					},
 					// Average balance for recent users
 					recent_users_balance: {
-						operator: "AVG",
+						function: "AVG",
 						field: {
 							$cond: {
 								if: { "users.created_at": { $gte: { $date: "2023-01-01" } } },
@@ -175,7 +175,7 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 				aggregatedFields: {
 					// Count users by department from JSON metadata
 					engineering_count: {
-						operator: "SUM",
+						function: "SUM",
 						field: {
 							$cond: {
 								if: {
@@ -188,7 +188,7 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 					},
 					// Count users with metadata
 					users_with_metadata: {
-						operator: "SUM",
+						function: "SUM",
 						field: {
 							$cond: {
 								if: {
@@ -220,7 +220,7 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 				aggregatedFields: {
 					// Average name length by status
 					avg_name_length: {
-						operator: "AVG",
+						function: "AVG",
 						field: {
 							$func: {
 								LENGTH: [{ $field: "users.name" }],
@@ -229,7 +229,7 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 					},
 					// Count users with long names
 					long_name_count: {
-						operator: "SUM",
+						function: "SUM",
 						field: {
 							$cond: {
 								if: {
@@ -262,7 +262,7 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 				aggregatedFields: {
 					// High-value active users
 					gold_users: {
-						operator: "SUM",
+						function: "SUM",
 						field: {
 							$cond: {
 								if: {
@@ -275,7 +275,7 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 					},
 					// Medium-value active users
 					silver_users: {
-						operator: "SUM",
+						function: "SUM",
 						field: {
 							$cond: {
 								if: {
@@ -292,7 +292,7 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 					},
 					// Low-value active users
 					bronze_users: {
-						operator: "SUM",
+						function: "SUM",
 						field: {
 							$cond: {
 								if: {
@@ -325,22 +325,22 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 				aggregatedFields: {
 					// User count
 					user_count: {
-						operator: "COUNT",
+						function: "COUNT",
 						field: "users.id",
 					},
 					// Average user age
 					avg_user_age: {
-						operator: "AVG",
+						function: "AVG",
 						field: "users.age",
 					},
 					// Count related posts
 					post_count: {
-						operator: "COUNT",
+						function: "COUNT",
 						field: "posts.id",
 					},
 					// Total user count per status
 					total_users: {
-						operator: "COUNT",
+						function: "COUNT",
 						field: "*",
 					},
 				},
@@ -348,7 +348,6 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 
 			const result = parseAggregationQuery(query, config);
 			const sql = compileAggregationQuery(result);
-			console.log("Generated SQL:", sql);
 			const rows = await db.query(sql, result.params);
 
 			expect(rows).toBeDefined();
@@ -365,23 +364,23 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 				groupBy: [],
 				aggregatedFields: {
 					min_age: {
-						operator: "MIN",
+						function: "MIN",
 						field: "users.age",
 					},
 					max_age: {
-						operator: "MAX",
+						function: "MAX",
 						field: "users.age",
 					},
 					avg_balance: {
-						operator: "AVG",
+						function: "AVG",
 						field: "users.balance",
 					},
 					total_balance: {
-						operator: "SUM",
+						function: "SUM",
 						field: "users.balance",
 					},
 					user_count: {
-						operator: "COUNT",
+						function: "COUNT",
 						field: "users.id",
 					},
 				},
@@ -408,15 +407,15 @@ describe("Integration Tests - Advanced Aggregations with Type Inference", () => 
 				groupBy: ["users.status"],
 				aggregatedFields: {
 					filtered_count: {
-						operator: "COUNT",
+						function: "COUNT",
 						field: "users.id",
 					},
 					avg_filtered_balance: {
-						operator: "AVG",
+						function: "AVG",
 						field: "users.balance",
 					},
 					max_filtered_age: {
-						operator: "MAX",
+						function: "MAX",
 						field: "users.age",
 					},
 				},

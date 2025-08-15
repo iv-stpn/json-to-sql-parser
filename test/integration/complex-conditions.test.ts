@@ -183,7 +183,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 						{
 							$exists: {
 								table: "posts",
-								conditions: {
+								condition: {
 									$and: [
 										{ "posts.user_id": { $eq: { $field: "users.id" } } },
 										{ "posts.published": true },
@@ -197,7 +197,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 						{
 							$exists: {
 								table: "orders",
-								conditions: {
+								condition: {
 									$and: [
 										{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 										{ "orders.amount": { $gte: 100 } },
@@ -210,7 +210,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 							$not: {
 								$exists: {
 									table: "orders",
-									conditions: {
+									condition: {
 										$and: [
 											{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 											{ "orders.status": "cancelled" },
@@ -419,7 +419,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 								{
 									$exists: {
 										table: "orders",
-										conditions: {
+										condition: {
 											$and: [
 												{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 												{
@@ -510,7 +510,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 								{
 									$exists: {
 										table: "posts",
-										conditions: {
+										condition: {
 											$and: [
 												{ "posts.user_id": { $eq: { $field: "users.id" } } },
 												{ "posts.published": true },
@@ -600,7 +600,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 										{
 											$exists: {
 												table: "posts",
-												conditions: {
+												condition: {
 													$and: [
 														{ "posts.user_id": { $eq: { $field: "users.id" } } },
 														{ "posts.published": true },
@@ -614,7 +614,7 @@ describe("Integration Tests - Complex and Deep Conditions", () => {
 										{
 											$exists: {
 												table: "orders",
-												conditions: {
+												condition: {
 													$and: [
 														{ "orders.customer_id": { $eq: { $field: "users.id" } } },
 														{ "orders.amount": { $gte: 500 } },

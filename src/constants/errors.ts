@@ -1,5 +1,4 @@
 import type { CastType } from "./cast-types";
-import type { FunctionDefinition } from "./functions";
 
 export const JSON_ACCESS_TYPE_ERROR = (path: string, field: string, type: string): string =>
 	`JSON path access '${path}' is only allowed on JSON fields, but field '${field}' is of type '${type}'`;
@@ -24,7 +23,12 @@ export const COMPARISON_TYPE_MISMATCH_ERROR = (
 	receivedType: CastType,
 ): string => `Field type mismatch for '${operator}' comparison on '${fieldName}': expected ${fieldType}, got ${receivedType}`;
 
-export const INVALID_ARGUMENT_COUNT_ERROR = (functionDefinition: FunctionDefinition, argCount: number): string =>
-	`Function '${functionDefinition.name}' requires ${functionDefinition.variadic ? "at least" : "exactly"} ${functionDefinition.argumentTypes.length} argument${functionDefinition.argumentTypes.length !== 1 ? "s" : ""}, got ${argCount}`;
+export const INVALID_ARGUMENT_COUNT_ERROR = (
+	functionName: string,
+	expectedArgCount: number,
+	argCount: number,
+	variadic?: boolean,
+): string =>
+	`Function '${functionName}' requires ${variadic ? "at least" : "exactly"} ${expectedArgCount} argument${expectedArgCount !== 1 ? "s" : ""}, got ${argCount}`;
 
 export const MISSING_AGGREGATION_FIELD = "Aggregation query must have at least one group by field or aggregated field";

@@ -1,25 +1,58 @@
+import z from "zod";
 import { applyFunction } from "../utils/function-call";
+import { castTypes } from "./cast-types";
 
-// TODO: add arguments for aggregation functions
+export const aggregationFunctionSchema = z.object({
+	name: z.string(),
+	expressionType: z.enum(castTypes).or(z.literal("ANY")),
+	additionalArgumentTypes: z.array(z.enum(castTypes).or(z.literal("ANY"))).optional(),
+	variadic: z.boolean().optional(),
+});
+export type AggregationDefinition = z.infer<typeof aggregationFunctionSchema> & {
+	toSQL?: (expression: string, args: string[]) => string;
+};
 
-// Aggregation operators for SQL queries
-export const aggregationOperators = [
-	"COUNT",
-	"SUM",
-	"AVG",
-	"MIN",
-	"MAX",
-	"COUNT_DISTINCT",
-	"STRING_AGG",
-	"STDDEV",
-	"VARIANCE",
-] as const;
+export const aggregationFunctions = [
+	{
+		name: "COUNT",
+		expressionType: "ANY",
+	},
+	{
+		name: "SUM",
+		expressionType: "FLOAT",
+	},
+	{
+		name: "AVG",
+		expressionType: "FLOAT",
+	},
+	{
+		name: "MIN",
+		expressionType: "FLOAT",
+	},
+	{
+		name: "MAX",
+		expressionType: "FLOAT",
+	},
+	{
+		name: "STDDEV",
+		expressionType: "FLOAT",
+	},
+	{
+		name: "VARIANCE",
+		expressionType: "FLOAT",
+	},
+	{
+		name: "COUNT_DISTINCT",
+		expressionType: "ANY",
+		toSQL: (expression) => `COUNT(DISTINCT ${expression})`,
+	},
+	{
+		name: "STRING_AGG",
+		expressionType: "TEXT",
+		additionalArgumentTypes: ["TEXT"],
+		toSQL: (expression, args) => applyFunction("STRING_AGG", [expression, ...args]),
+	},
+] as const satisfies AggregationDefinition[];
 
-export type AggregationOperator = (typeof aggregationOperators)[number];
-
-export function applyAggregationOperator(field: string, operator: AggregationOperator): string {
-	if (!aggregationOperators.includes(operator)) throw new Error(`Invalid aggregation operator: ${operator}`);
-	if (operator === "COUNT_DISTINCT") return `COUNT(DISTINCT ${field})`;
-	if (operator === "STRING_AGG") return applyFunction("STRING_AGG", [field, "','"]);
-	return applyFunction(operator, [field]);
-}
+export const aggregationFunctionNames = aggregationFunctions.map(({ name }) => name);
+export const allowedAggregationFunctions: AggregationDefinition[] = aggregationFunctions;

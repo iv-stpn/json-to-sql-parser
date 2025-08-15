@@ -258,7 +258,7 @@ describe("Expected Failure Tests", () => {
 						groupBy: ["name"],
 						aggregatedFields: {
 							result: {
-								operator: "COUNT", // Use valid operator to test the field validation instead
+								function: "COUNT", // Use valid operator to test the field validation instead
 								field: "nonexistent_field",
 							},
 						},
@@ -276,7 +276,7 @@ describe("Expected Failure Tests", () => {
 					groupBy: ["name"],
 					aggregatedFields: {
 						count_all: {
-							operator: "COUNT",
+							function: "COUNT",
 							field: "*",
 						},
 					},
@@ -314,7 +314,7 @@ describe("Expected Failure Tests", () => {
 					{
 						$exists: {
 							table: "nonexistent",
-							conditions: {
+							condition: {
 								"nonexistent.field": { $eq: "value" },
 							},
 						},

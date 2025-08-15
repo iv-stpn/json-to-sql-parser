@@ -178,7 +178,7 @@ describe("Conditions Parser", () => {
 			const condition: Condition = {
 				$exists: {
 					table: "posts",
-					conditions: {
+					condition: {
 						"posts.user_id": { $eq: { $field: "users.id" } },
 						"posts.published": { $eq: true },
 					},
@@ -277,7 +277,7 @@ describe("Aggregation Parser", () => {
 				table: "users",
 				groupBy: [],
 				aggregatedFields: {
-					total_users: { operator: "COUNT", field: "*" },
+					total_users: { function: "COUNT", field: "*" },
 				},
 			};
 
@@ -293,8 +293,8 @@ describe("Aggregation Parser", () => {
 				table: "users",
 				groupBy: ["users.active"],
 				aggregatedFields: {
-					user_count: { operator: "COUNT", field: "*" },
-					avg_age: { operator: "AVG", field: "users.age" },
+					user_count: { function: "COUNT", field: "*" },
+					avg_age: { function: "AVG", field: "users.age" },
 				},
 			};
 
@@ -319,7 +319,7 @@ describe("Aggregation Parser", () => {
 				groupBy: ["users.active"],
 				aggregatedFields: {
 					max_age_plus_ten: {
-						operator: "MAX",
+						function: "MAX",
 						field: { $func: { ADD: [{ $field: "users.age" }, 10] } },
 					},
 				},
@@ -335,7 +335,7 @@ describe("Aggregation Parser", () => {
 				table: "users",
 				groupBy: ["users.metadata->department"],
 				aggregatedFields: {
-					dept_count: { operator: "COUNT", field: "*" },
+					dept_count: { function: "COUNT", field: "*" },
 				},
 			};
 

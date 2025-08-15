@@ -245,7 +245,7 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 						{
 							$exists: {
 								table: "posts",
-								conditions: {
+								condition: {
 									"posts.published": { $eq: true },
 								},
 							},

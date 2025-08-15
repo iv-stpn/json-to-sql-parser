@@ -298,8 +298,8 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 				const aggregationQuery: AggregationQuery = {
 					table: "orders",
 					aggregatedFields: {
-						total_amount: { field: "amount", operator: "SUM" },
-						order_count: { field: "*", operator: "COUNT" },
+						total_amount: { field: "amount", function: "SUM" },
+						order_count: { field: "*", function: "COUNT" },
 					},
 					groupBy: ["status"],
 				};
@@ -405,8 +405,8 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 				const aggregationQuery: AggregationQuery = {
 					table: "orders",
 					aggregatedFields: {
-						avg_amount: { field: "amount", operator: "AVG" },
-						order_count: { field: "*", operator: "COUNT" },
+						avg_amount: { field: "amount", function: "AVG" },
+						order_count: { field: "*", function: "COUNT" },
 					},
 					groupBy: ["delivered_date"],
 				};
@@ -477,8 +477,8 @@ describe("Integration Tests - UUID, Timestamp, and Date Support", () => {
 				const aggregationQuery: AggregationQuery = {
 					table: "orders",
 					aggregatedFields: {
-						total_revenue: { field: "amount", operator: "SUM" },
-						completed_orders: { field: "*", operator: "COUNT" },
+						total_revenue: { field: "amount", function: "SUM" },
+						completed_orders: { field: "*", function: "COUNT" },
 					},
 					groupBy: ["customer_id"],
 				};

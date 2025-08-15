@@ -154,9 +154,9 @@ describe("Integration Tests - Type Casting and Complex Expressions", () => {
 					table: "orders",
 					groupBy: ["orders.status"],
 					aggregatedFields: {
-						total_amount: { operator: "SUM", field: "orders.amount" },
-						count: { operator: "COUNT", field: "*" },
-						avg_amount: { operator: "AVG", field: "orders.amount" },
+						total_amount: { function: "SUM", field: "orders.amount" },
+						count: { function: "COUNT", field: "*" },
+						avg_amount: { function: "AVG", field: "orders.amount" },
 					},
 					condition: {
 						"orders.amount": { $gt: 100 },

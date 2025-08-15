@@ -239,10 +239,15 @@ const aggregationQuery = {
   table: "orders",
   groupBy: ["orders.status", "orders.region"],
   aggregatedFields: {
-    total_amount: { operator: "SUM", field: "orders.amount" },
-    order_count: { operator: "COUNT", field: "orders.id" },
-    avg_amount: { operator: "AVG", field: "orders.amount" },
-    max_amount: { operator: "MAX", field: "orders.amount" },
+    total_amount: { function: "SUM", field: "orders.amount" },
+    order_count: { function: "COUNT", field: "orders.id" },
+    avg_amount: { function: "AVG", field: "orders.amount" },
+    max_amount: { function: "MAX", field: "orders.amount" },
+    regions: {
+      function: "STRING_AGG",
+      field: "orders.region",
+      additionalArguments: [","],
+    },
   },
 };
 
@@ -530,14 +535,14 @@ const salesReport = {
   table: "orders",
   groupBy: ["orders.region", "orders.product_category"],
   aggregatedFields: {
-    total_revenue: { operator: "SUM", field: "orders.amount" },
-    order_count: { operator: "COUNT", field: "orders.id" },
-    avg_order_value: { operator: "AVG", field: "orders.amount" },
+    total_revenue: { function: "SUM", field: "orders.amount" },
+    order_count: { function: "COUNT", field: "orders.id" },
+    avg_order_value: { function: "AVG", field: "orders.amount" },
     unique_customers: {
       operator: "COUNT_DISTINCT",
       field: "orders.customer_id",
     },
-    top_sale: { operator: "MAX", field: "orders.amount" },
+    top_sale: { function: "MAX", field: "orders.amount" },
   },
 };
 ```

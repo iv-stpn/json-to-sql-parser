@@ -2,9 +2,6 @@ import { z } from "zod";
 import { removeAllWrappingParens } from "../utils/function-call";
 import { castTypes } from "./cast-types";
 
-export const argumentDefinitionSchema = z.object({ type: z.enum(castTypes), variadic: z.boolean().optional() });
-export type ArgumentDefinition = z.infer<typeof argumentDefinitionSchema>;
-
 export const functionDefinitionSchema = z.object({
 	name: z.string(),
 	argumentTypes: z.array(z.enum(castTypes).or(z.literal("ANY"))),
@@ -13,7 +10,7 @@ export const functionDefinitionSchema = z.object({
 });
 export type FunctionDefinition = z.infer<typeof functionDefinitionSchema> & { toSQL?: (args: string[]) => string };
 
-export const allowedFunctions: FunctionDefinition[] = [
+const functions = [
 	{
 		name: "AUTH.UID",
 		argumentTypes: [],
@@ -234,4 +231,7 @@ export const allowedFunctions: FunctionDefinition[] = [
 		returnType: "BOOLEAN",
 		variadic: true,
 	},
-];
+] as const satisfies FunctionDefinition[];
+
+export const functionNames = functions.map(({ name }) => name);
+export const allowedFunctions: FunctionDefinition[] = functions;

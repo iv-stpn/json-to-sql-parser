@@ -432,7 +432,7 @@ describe("Integration Tests - Edge Cases and Comprehensive Type Inference", () =
 						{
 							$exists: {
 								table: "posts",
-								conditions: {
+								condition: {
 									$and: [{ "posts.published": { $eq: true } }, { "posts.published_at": { $ne: null } }],
 								},
 							},
@@ -440,7 +440,7 @@ describe("Integration Tests - Edge Cases and Comprehensive Type Inference", () =
 						{
 							$exists: {
 								table: "orders",
-								conditions: {
+								condition: {
 									$and: [{ "orders.status": { $eq: "pending" } }, { "orders.amount": { $gte: 50 } }],
 								},
 							},

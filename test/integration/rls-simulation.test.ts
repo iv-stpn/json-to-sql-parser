@@ -205,7 +205,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "team_members",
-											conditions: {
+											condition: {
 												$and: [
 													{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
 													{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
@@ -218,7 +218,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "project_access",
-											conditions: {
+											condition: {
 												$and: [
 													{ "project_access.project_id": { $eq: { $field: "projects.id" } } },
 													{ "project_access.user_id": { $eq: { $var: "current_user_id" } } },
@@ -242,7 +242,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 							{
 								$exists: {
 									table: "teams",
-									conditions: {
+									condition: {
 										$and: [
 											{ "teams.id": { $eq: { $field: "projects.team_id" } } },
 											{ "teams.organization_id": { $eq: { $var: "current_tenant_id" } } },
@@ -303,7 +303,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "team_members",
-											conditions: {
+											condition: {
 												$and: [
 													{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
 													{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
@@ -312,7 +312,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 													{
 														$exists: {
 															table: "roles",
-															conditions: {
+															condition: {
 																$and: [
 																	{ "roles.id": { $eq: { $field: "team_members.role_id" } } },
 																	{ "roles.level": { $gte: { $var: "maintainer_role_level" } } },
@@ -327,14 +327,14 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "project_access",
-											conditions: {
+											condition: {
 												$and: [
 													{ "project_access.project_id": { $eq: { $field: "projects.id" } } },
 													{ "project_access.user_id": { $eq: { $var: "current_user_id" } } },
 													{
 														$exists: {
 															table: "roles",
-															conditions: {
+															condition: {
 																$and: [
 																	{ "roles.id": { $eq: { $field: "project_access.role_id" } } },
 																	{ "roles.level": { $gte: { $var: "maintainer_role_level" } } },
@@ -420,12 +420,12 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 										{
 											$exists: {
 												table: "team_members",
-												conditions: {
+												condition: {
 													$and: [
 														{
 															$exists: {
 																table: "projects",
-																conditions: {
+																condition: {
 																	$and: [
 																		{ "projects.id": { $eq: { $field: "tasks.project_id" } } },
 																		{ "projects.team_id": { $eq: { $field: "team_members.team_id" } } },
@@ -438,7 +438,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 														{
 															$exists: {
 																table: "roles",
-																conditions: {
+																condition: {
 																	$and: [
 																		{ "roles.id": { $eq: { $field: "team_members.role_id" } } },
 																		{ "roles.level": { $gte: { $var: "maintainer_role_level" } } },
@@ -463,7 +463,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 							{
 								$exists: {
 									table: "projects",
-									conditions: {
+									condition: {
 										$and: [
 											{ "projects.id": { $eq: { $field: "tasks.project_id" } } },
 											{
@@ -474,7 +474,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 													{
 														$exists: {
 															table: "team_members",
-															conditions: {
+															condition: {
 																$and: [
 																	{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
 																	{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
@@ -487,7 +487,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 													{
 														$exists: {
 															table: "project_access",
-															conditions: {
+															condition: {
 																$and: [
 																	{ "project_access.project_id": { $eq: { $field: "projects.id" } } },
 																	{ "project_access.user_id": { $eq: { $var: "current_user_id" } } },
@@ -515,13 +515,13 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 							{
 								$exists: {
 									table: "projects",
-									conditions: {
+									condition: {
 										$and: [
 											{ "projects.id": { $eq: { $field: "tasks.project_id" } } },
 											{
 												$exists: {
 													table: "teams",
-													conditions: {
+													condition: {
 														$and: [
 															{ "teams.id": { $eq: { $field: "projects.team_id" } } },
 															{ "teams.organization_id": { $eq: { $var: "current_tenant_id" } } },
@@ -588,7 +588,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 						{
 							$exists: {
 								table: "projects",
-								conditions: {
+								condition: {
 									$and: [
 										{ "projects.id": { $eq: { $field: "tasks.project_id" } } },
 										{
@@ -597,7 +597,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 												{
 													$exists: {
 														table: "team_members",
-														conditions: {
+														condition: {
 															$and: [
 																{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
 																{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
@@ -609,7 +609,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 												{
 													$exists: {
 														table: "project_access",
-														conditions: {
+														condition: {
 															$and: [
 																{ "project_access.project_id": { $eq: { $field: "projects.id" } } },
 																{ "project_access.user_id": { $eq: { $var: "current_user_id" } } },
@@ -679,7 +679,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "team_members",
-											conditions: {
+											condition: {
 												$and: [
 													{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
 													{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
@@ -691,7 +691,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "project_access",
-											conditions: {
+											condition: {
 												$and: [
 													{ "project_access.project_id": { $eq: { $field: "projects.id" } } },
 													{ "project_access.user_id": { $eq: { $var: "current_user_id" } } },
@@ -714,20 +714,20 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 					},
 					aggregatedFields: {
 						total_projects: {
-							operator: "COUNT",
+							function: "COUNT",
 							field: "*",
 						},
 						total_budget: {
-							operator: "SUM",
+							function: "SUM",
 							field: "projects.budget",
 						},
 						avg_budget: {
-							operator: "AVG",
+							function: "AVG",
 							field: "projects.budget",
 						},
 						// Count projects user owns vs. has access to
 						owned_projects: {
-							operator: "SUM",
+							function: "SUM",
 							field: {
 								$cond: {
 									if: { "projects.owner_id": { $eq: { $var: "current_user_id" } } },
@@ -738,7 +738,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 						},
 						// Count projects with high budget that user can see
 						high_value_projects: {
-							operator: "SUM",
+							function: "SUM",
 							field: {
 								$cond: {
 									if: { "projects.budget": { $gte: 50000 } },
@@ -789,7 +789,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 						// Apply RLS: only tasks from accessible projects
 						$exists: {
 							table: "projects",
-							conditions: {
+							condition: {
 								$and: [
 									{ "projects.id": { $eq: { $field: "tasks.project_id" } } },
 									{
@@ -798,7 +798,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 											{
 												$exists: {
 													table: "team_members",
-													conditions: {
+													condition: {
 														$and: [
 															{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
 															{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
@@ -810,7 +810,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 											{
 												$exists: {
 													table: "project_access",
-													conditions: {
+													condition: {
 														$and: [
 															{ "project_access.project_id": { $eq: { $field: "projects.id" } } },
 															{ "project_access.user_id": { $eq: { $var: "current_user_id" } } },
@@ -834,24 +834,24 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 					},
 					aggregatedFields: {
 						task_count: {
-							operator: "COUNT",
+							function: "COUNT",
 							field: "*",
 						},
 						total_estimated_hours: {
-							operator: "SUM",
+							function: "SUM",
 							field: "tasks.estimated_hours",
 						},
 						total_actual_hours: {
-							operator: "SUM",
+							function: "SUM",
 							field: "tasks.actual_hours",
 						},
 						avg_estimated_hours: {
-							operator: "AVG",
+							function: "AVG",
 							field: "tasks.estimated_hours",
 						},
 						// Count tasks assigned to current user
 						assigned_to_me: {
-							operator: "SUM",
+							function: "SUM",
 							field: {
 								$cond: {
 									if: { "tasks.assignee_id": { $eq: { $var: "current_user_id" } } },
@@ -862,7 +862,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 						},
 						// Count tasks reported by current user
 						reported_by_me: {
-							operator: "SUM",
+							function: "SUM",
 							field: {
 								$cond: {
 									if: { "tasks.reporter_id": { $eq: { $var: "current_user_id" } } },
@@ -873,7 +873,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 						},
 						// Calculate completion rate for tasks user can see
 						completion_rate: {
-							operator: "AVG",
+							function: "AVG",
 							field: {
 								$cond: {
 									if: { "tasks.status": { $eq: "completed" } },
@@ -953,7 +953,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "team_members",
-											conditions: {
+											condition: {
 												$and: [
 													{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
 													{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
@@ -965,7 +965,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "project_access",
-											conditions: {
+											condition: {
 												$and: [
 													{ "project_access.project_id": { $eq: { $field: "projects.id" } } },
 													{ "project_access.user_id": { $eq: { $var: "current_user_id" } } },
@@ -986,7 +986,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 							{
 								$exists: {
 									table: "teams",
-									conditions: {
+									condition: {
 										$and: [
 											{ "teams.id": { $eq: { $field: "projects.team_id" } } },
 											{ "teams.organization_id": { $eq: { $var: "current_tenant_id" } } },
@@ -1053,7 +1053,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "team_members",
-											conditions: {
+											condition: {
 												$and: [
 													{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
 													{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
@@ -1062,7 +1062,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 													{
 														$exists: {
 															table: "roles",
-															conditions: {
+															condition: {
 																$and: [
 																	{ "roles.id": { $eq: { $field: "team_members.role_id" } } },
 																	{ "roles.level": { $gte: { $var: "maintainer_role_level" } } },
@@ -1136,7 +1136,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "team_members",
-											conditions: {
+											condition: {
 												$and: [
 													{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
 													{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
@@ -1148,7 +1148,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "project_access",
-											conditions: {
+											condition: {
 												$and: [
 													{ "project_access.project_id": { $eq: { $field: "projects.id" } } },
 													{ "project_access.user_id": { $eq: { $var: "current_user_id" } } },
@@ -1169,7 +1169,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 							{
 								$exists: {
 									table: "teams",
-									conditions: {
+									condition: {
 										$and: [
 											{ "teams.id": { $eq: { $field: "projects.team_id" } } },
 											{ "teams.organization_id": { $eq: { $var: "current_tenant_id" } } },
@@ -1238,7 +1238,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 										{
 											$exists: {
 												table: "team_members",
-												conditions: {
+												condition: {
 													$and: [
 														{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
 														{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
@@ -1252,7 +1252,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 								{
 									$exists: {
 										table: "teams",
-										conditions: {
+										condition: {
 											$and: [
 												{ "teams.id": { $eq: { $field: "projects.team_id" } } },
 												{ "teams.organization_id": { $eq: { $var: "current_tenant_id" } } },
@@ -1291,7 +1291,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 						condition: {
 							$exists: {
 								table: "projects",
-								conditions: {
+								condition: {
 									$and: [
 										{ "projects.id": { $eq: { $field: "tasks.project_id" } } },
 										{
@@ -1300,7 +1300,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 												{
 													$exists: {
 														table: "team_members",
-														conditions: {
+														condition: {
 															$and: [
 																{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
 																{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
@@ -1317,7 +1317,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 						},
 						aggregatedFields: {
 							task_count: {
-								operator: "COUNT",
+								function: "COUNT",
 								field: "*",
 							},
 						},
@@ -1376,7 +1376,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 										{
 											$exists: {
 												table: "team_members",
-												conditions: {
+												condition: {
 													$and: [
 														{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
 														{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
@@ -1388,7 +1388,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 										{
 											$exists: {
 												table: "project_access",
-												conditions: {
+												condition: {
 													$and: [
 														{ "project_access.user_id": { $eq: { $var: "current_user_id" } } },
 														{ "project_access.project_id": { $eq: { $field: "projects.id" } } },
@@ -1408,7 +1408,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 								{
 									$exists: {
 										table: "teams",
-										conditions: {
+										condition: {
 											$and: [
 												{ "teams.id": { $eq: { $field: "projects.team_id" } } },
 												{ "teams.organization_id": { $eq: { $var: "current_tenant_id" } } },
@@ -1513,7 +1513,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 											{
 												$exists: {
 													table: "team_members",
-													conditions: {
+													condition: {
 														$and: [
 															{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
 															{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
@@ -1528,7 +1528,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "teams",
-											conditions: {
+											condition: {
 												$and: [
 													{ "teams.id": { $eq: { $field: "projects.team_id" } } },
 													{ "teams.organization_id": { $eq: { $var: "current_tenant_id" } } },
@@ -1620,7 +1620,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 											{
 												$exists: {
 													table: "team_members",
-													conditions: {
+													condition: {
 														$and: [
 															{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
 															{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
@@ -1629,7 +1629,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 															{
 																$exists: {
 																	table: "roles",
-																	conditions: {
+																	condition: {
 																		$and: [
 																			{ "roles.id": { $eq: { $field: "team_members.role_id" } } },
 																			{ "roles.level": { $gte: { $var: "maintainer_role_level" } } },
@@ -1646,7 +1646,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "teams",
-											conditions: {
+											condition: {
 												$and: [
 													{ "teams.id": { $eq: { $field: "projects.team_id" } } },
 													{ "teams.organization_id": { $eq: { $var: "current_tenant_id" } } },
@@ -1727,7 +1727,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 											{
 												$exists: {
 													table: "team_members",
-													conditions: {
+													condition: {
 														$and: [
 															{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
 															{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
@@ -1742,7 +1742,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "teams",
-											conditions: {
+											condition: {
 												$and: [
 													{ "teams.id": { $eq: { $field: "projects.team_id" } } },
 													{ "teams.organization_id": { $eq: { $var: "current_tenant_id" } } },
@@ -1829,7 +1829,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 											{
 												$exists: {
 													table: "team_members",
-													conditions: {
+													condition: {
 														$and: [
 															{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
 															{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
@@ -1843,7 +1843,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "teams",
-											conditions: {
+											condition: {
 												$and: [
 													{ "teams.id": { $eq: { $field: "projects.team_id" } } },
 													{ "teams.organization_id": { $eq: { $var: "current_tenant_id" } } },
@@ -1902,7 +1902,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 											{
 												$exists: {
 													table: "team_members",
-													conditions: {
+													condition: {
 														$and: [
 															{ "team_members.user_id": { $eq: { $var: "current_user_id" } } },
 															{ "team_members.team_id": { $eq: { $field: "projects.team_id" } } },
@@ -1916,7 +1916,7 @@ describe("Integration Tests - RLS Simulation with $exists and current_user_id", 
 									{
 										$exists: {
 											table: "teams",
-											conditions: {
+											condition: {
 												$and: [
 													{ "teams.id": { $eq: { $field: "projects.team_id" } } },
 													{ "teams.organization_id": { $eq: { $var: "current_tenant_id" } } },

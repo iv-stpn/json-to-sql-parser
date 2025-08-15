@@ -38,8 +38,8 @@ describe("Aggregation Edge Cases", () => {
 				table: "sales",
 				groupBy: ["sales.region"],
 				aggregatedFields: {
-					total_sales: { operator: "SUM", field: "sales.amount" },
-					count: { operator: "COUNT", field: "*" },
+					total_sales: { function: "SUM", field: "sales.amount" },
+					count: { function: "COUNT", field: "*" },
 				},
 			};
 
@@ -58,7 +58,7 @@ describe("Aggregation Edge Cases", () => {
 				table: "sales",
 				groupBy: ["sales.product_data->'category'"],
 				aggregatedFields: {
-					avg_amount: { operator: "AVG", field: "sales.amount" },
+					avg_amount: { function: "AVG", field: "sales.amount" },
 				},
 			};
 
@@ -77,7 +77,7 @@ describe("Aggregation Edge Cases", () => {
 				groupBy: [],
 				aggregatedFields: {
 					adjusted_total: {
-						operator: "SUM",
+						function: "SUM",
 						field: {
 							$func: {
 								MULTIPLY: [
@@ -103,15 +103,15 @@ describe("Aggregation Edge Cases", () => {
 				table: "sales",
 				groupBy: ["sales.region"],
 				aggregatedFields: {
-					total: { operator: "SUM", field: "sales.amount" },
-					average: { operator: "AVG", field: "sales.amount" },
-					maximum: { operator: "MAX", field: "sales.amount" },
-					minimum: { operator: "MIN", field: "sales.amount" },
-					count: { operator: "COUNT", field: "*" },
-					unique_customers: { operator: "COUNT_DISTINCT", field: "sales.customer_id" },
-					regions_list: { operator: "STRING_AGG", field: "sales.region" },
-					std_dev: { operator: "STDDEV", field: "sales.amount" },
-					variance: { operator: "VARIANCE", field: "sales.amount" },
+					total: { function: "SUM", field: "sales.amount" },
+					average: { function: "AVG", field: "sales.amount" },
+					maximum: { function: "MAX", field: "sales.amount" },
+					minimum: { function: "MIN", field: "sales.amount" },
+					count: { function: "COUNT", field: "*" },
+					unique_customers: { function: "COUNT_DISTINCT", field: "sales.customer_id" },
+					regions_list: { function: "STRING_AGG", field: "sales.region", additionalArguments: [","] },
+					std_dev: { function: "STDDEV", field: "sales.amount" },
+					variance: { function: "VARIANCE", field: "sales.amount" },
 				},
 			};
 
@@ -135,11 +135,13 @@ describe("Aggregation Edge Cases", () => {
 				table: "sales",
 				groupBy: [],
 				aggregatedFields: {
-					total: { operator: "SUM", field: "*" },
+					total: { function: "SUM", field: "*" },
 				},
 			};
 
-			expect(() => parseAggregationQuery(query, testConfig)).toThrow("Operator 'SUM' cannot be used with '*'");
+			expect(() => parseAggregationQuery(query, testConfig)).toThrow(
+				"Aggregation function 'SUM' cannot be used with '*'. Only COUNT(*) is supported.",
+			);
 		});
 
 		it("should validate table exists", () => {
@@ -147,7 +149,7 @@ describe("Aggregation Edge Cases", () => {
 				table: "invalid_table",
 				groupBy: [],
 				aggregatedFields: {
-					count: { operator: "COUNT", field: "*" },
+					count: { function: "COUNT", field: "*" },
 				},
 			};
 
@@ -171,7 +173,7 @@ describe("Aggregation Edge Cases", () => {
 				table: "sales",
 				groupBy: [],
 				aggregatedFields: {
-					total: { operator: "SUM", field: "sales.invalid_field" },
+					total: { function: "SUM", field: "sales.invalid_field" },
 				},
 			};
 
@@ -195,7 +197,7 @@ describe("Aggregation Edge Cases", () => {
 				table: "sales",
 				groupBy: [],
 				aggregatedFields: {
-					total: { operator: "UNKNOWN", field: "sales.amount" },
+					total: { function: "UNKNOWN", field: "sales.amount" },
 				},
 			} as unknown as AggregationQuery;
 
@@ -244,7 +246,7 @@ describe("Regular table aggregation", () => {
 			table: "sales",
 			groupBy: ["sales.region"],
 			aggregatedFields: {
-				total_sales: { operator: "SUM", field: "sales.amount" },
+				total_sales: { function: "SUM", field: "sales.amount" },
 			},
 		};
 
@@ -262,7 +264,7 @@ describe("Regular table aggregation", () => {
 		const query: AggregationQuery = {
 			table: "sales",
 			groupBy: ["sales.product_data->'category'"],
-			aggregatedFields: { count: { operator: "COUNT", field: "*" } },
+			aggregatedFields: { count: { function: "COUNT", field: "*" } },
 		};
 
 		const result = parseAggregationQuery(query, regularConfig);

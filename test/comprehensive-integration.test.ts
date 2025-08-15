@@ -186,7 +186,7 @@ describe("Comprehensive Integration Tests", () => {
 							{
 								$exists: {
 									table: "posts",
-									conditions: {
+									condition: {
 										"posts.published": { $eq: true },
 										"posts.tags->featured": { $eq: true },
 									},
@@ -261,13 +261,13 @@ describe("Comprehensive Integration Tests", () => {
 							{
 								$exists: {
 									table: "posts",
-									conditions: {
+									condition: {
 										$and: [
 											{ "posts.published": { $eq: true } },
 											{
 												$exists: {
 													table: "comments",
-													conditions: {
+													condition: {
 														"comments.is_approved": { $eq: true },
 													},
 												},
@@ -301,11 +301,11 @@ describe("Comprehensive Integration Tests", () => {
 					table: "posts",
 					groupBy: ["user_id", "published", "category_id"],
 					aggregatedFields: {
-						total_posts: { operator: "COUNT", field: "*" },
-						avg_views: { operator: "AVG", field: "view_count" },
-						max_views: { operator: "MAX", field: "view_count" },
-						min_views: { operator: "MIN", field: "view_count" },
-						total_views: { operator: "SUM", field: "view_count" },
+						total_posts: { function: "COUNT", field: "*" },
+						avg_views: { function: "AVG", field: "view_count" },
+						max_views: { function: "MAX", field: "view_count" },
+						min_views: { function: "MIN", field: "view_count" },
+						total_views: { function: "SUM", field: "view_count" },
 					},
 				},
 				testConfig,
@@ -330,14 +330,14 @@ describe("Comprehensive Integration Tests", () => {
 					table: "users",
 					groupBy: ["status"],
 					aggregatedFields: {
-						user_count: { operator: "COUNT", field: "*" },
+						user_count: { function: "COUNT", field: "*" },
 						avg_name_length: {
-							operator: "AVG",
+							function: "AVG",
 							field: { $func: { LENGTH: [{ $field: "users.name" }] } },
 						},
-						total_balance: { operator: "SUM", field: "balance" },
+						total_balance: { function: "SUM", field: "balance" },
 						max_age: {
-							operator: "MAX",
+							function: "MAX",
 							field: { $func: { COALESCE_NUMBER: [{ $field: "users.age" }, 0] } },
 						},
 					},
@@ -359,10 +359,10 @@ describe("Comprehensive Integration Tests", () => {
 					table: "orders",
 					groupBy: ["status"],
 					aggregatedFields: {
-						order_count: { operator: "COUNT", field: "*" },
-						avg_amount: { operator: "AVG", field: "total_amount" },
+						order_count: { function: "COUNT", field: "*" },
+						avg_amount: { function: "AVG", field: "total_amount" },
 						unique_cities: {
-							operator: "COUNT",
+							function: "COUNT",
 							field: "shipping_address->city",
 						},
 					},
@@ -422,14 +422,14 @@ describe("Comprehensive Integration Tests", () => {
 					{
 						$exists: {
 							table: "posts",
-							conditions: {
+							condition: {
 								$and: [
 									{ "posts.published": { $eq: true } },
 									{ "posts.view_count": { $gt: 100 } },
 									{
 										$exists: {
 											table: "comments",
-											conditions: {
+											condition: {
 												$and: [{ "comments.is_approved": { $eq: true } }, { "comments.content": { $like: "%excellent%" } }],
 											},
 										},
@@ -644,7 +644,7 @@ describe("Comprehensive Integration Tests", () => {
 							{
 								$exists: {
 									table: "posts",
-									conditions: {
+									condition: {
 										$and: [{ "posts.published": { $eq: true } }, { "posts.view_count": { $gt: 100 } }],
 									},
 								},

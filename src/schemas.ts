@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: we use `then` and `else` for conditional expressions */
 import { z } from "zod";
-import { aggregationOperators } from "./constants/aggregation-functions";
+import { aggregationFunctionNames } from "./constants/aggregation-functions";
 import { isField } from "./utils/validators";
 
 // Primitive value types
@@ -26,7 +26,9 @@ export const expressionObjectSchema: z.ZodType<ExpressionObject> = z.lazy(() =>
 				else: z.lazy(() => anyExpressionSchema),
 			}),
 		}),
-		z.object({ $func: z.record(z.string(), z.array(z.lazy(() => anyExpressionSchema))) }), // Function call
+		z.object({
+			$func: z.record(z.string(), z.array(z.lazy(() => anyExpressionSchema))),
+		}), // Function call
 		z.object({ $field: z.string() }), // Field reference
 		z.object({ $var: z.string() }), // Variable reference
 		z.object({ $timestamp: z.string() }), // Timestamp value
@@ -37,6 +39,11 @@ export const expressionObjectSchema: z.ZodType<ExpressionObject> = z.lazy(() =>
 
 export type AnyExpression = ExpressionObject | ScalarValue;
 export const anyExpressionSchema: z.ZodType<AnyExpression> = z.lazy(() => z.union([expressionObjectSchema, scalarValueSchema]));
+
+export type AnyBooleanExpression = ExpressionObject | boolean;
+export const anyBooleanExpressionSchema: z.ZodType<AnyBooleanExpression> = z.lazy(() =>
+	z.union([expressionObjectSchema, z.boolean()]),
+);
 
 const $func = anyExpressionSchema.optional();
 const comparisonOperators = { $eq: $func, $ne: $func, $gt: $func, $gte: $func, $lt: $func, $lte: $func };
@@ -62,7 +69,8 @@ export type Condition =
 	| { $and: Condition[] } // Logical AND
 	| { $or: Condition[] } // Logical OR
 	| { $not: Condition } // Logical NOT
-	| { $exists: { table: string; conditions: Condition } } // EXISTS subquery
+	| { $exists: { table: string; condition: Condition } } // EXISTS subquery as (SELECT 1 FROM <table> WHERE <condition>)
+	| AnyBooleanExpression // Expression evaluating to TRUE or FALSE
 	| Record<FieldName, FieldCondition>; // Field conditions
 
 export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
@@ -70,7 +78,8 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
 		z.object({ $and: z.array(z.lazy(() => conditionSchema)) }),
 		z.object({ $or: z.array(z.lazy(() => conditionSchema)) }),
 		z.object({ $not: z.lazy(() => conditionSchema) }),
-		z.object({ $exists: z.object({ table: z.string(), conditions: z.lazy(() => conditionSchema) }) }),
+		z.object({ $exists: z.object({ table: z.string(), condition: z.lazy(() => conditionSchema) }) }),
+		anyBooleanExpressionSchema, // Expression evaluating to TRUE or FALSE
 		z.record(fieldNameSchema, fieldConditionSchema),
 	]),
 );
@@ -96,8 +105,9 @@ export type SelectQuery = z.infer<typeof selectQuerySchema>;
 
 // Aggregation schemas
 export const aggregatedFieldSchema = z.object({
-	operator: z.enum(aggregationOperators),
 	field: z.union([z.string(), expressionObjectSchema]),
+	function: z.enum(aggregationFunctionNames),
+	additionalArguments: z.array(anyExpressionSchema).optional(),
 });
 
 export type AggregatedField = z.infer<typeof aggregatedFieldSchema>;

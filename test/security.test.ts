@@ -271,7 +271,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 							table: "users",
 							groupBy: [maliciousField],
 							aggregatedFields: {
-								count: { operator: "COUNT", field: "*" },
+								count: { function: "COUNT", field: "*" },
 							},
 						},
 						testConfig,
@@ -313,7 +313,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 							groupBy: ["name"],
 							aggregatedFields: {
 								result: {
-									operator: maliciousOp as "COUNT",
+									function: maliciousOp as "COUNT",
 									field: "age",
 								},
 							},
