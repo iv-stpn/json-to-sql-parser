@@ -14,6 +14,12 @@ export const functionDefinitionSchema = z.object({
 export type FunctionDefinition = z.infer<typeof functionDefinitionSchema> & { toSQL?: (args: string[]) => string };
 
 export const allowedFunctions: FunctionDefinition[] = [
+	{
+		name: "AUTH.UID",
+		argumentTypes: [],
+		returnType: "UUID",
+		toSQL: () => "auth.uid()",
+	},
 	// Logical functions (9.1 / https://www.postgresql.org/docs/current/functions-logical.html)
 	{
 		name: "AND",
@@ -124,6 +130,59 @@ export const allowedFunctions: FunctionDefinition[] = [
 		name: "REPLACE",
 		argumentTypes: ["TEXT", "TEXT", "TEXT"],
 		returnType: "TEXT",
+	},
+	// Date/time functions (9.9 / https://www.postgresql.org/docs/current/functions-datetime.html)
+	{
+		name: "NOW",
+		argumentTypes: [],
+		returnType: "TIMESTAMP",
+	},
+	{
+		name: "CURRENT_DATE",
+		argumentTypes: [],
+		returnType: "DATE",
+	},
+	{
+		name: "EXTRACT_YEAR",
+		toSQL: (args: string[]) => `EXTRACT(YEAR FROM ${args[0]})`,
+		argumentTypes: ["TIMESTAMP"],
+		returnType: "FLOAT",
+	},
+	{
+		name: "EXTRACT_MONTH",
+		toSQL: (args: string[]) => `EXTRACT(MONTH FROM ${args[0]})`,
+		argumentTypes: ["TIMESTAMP"],
+		returnType: "FLOAT",
+	},
+	{
+		name: "EXTRACT_DAY",
+		toSQL: (args: string[]) => `EXTRACT(DAY FROM ${args[0]})`,
+		argumentTypes: ["TIMESTAMP"],
+		returnType: "FLOAT",
+	},
+	{
+		name: "EXTRACT_HOUR",
+		toSQL: (args: string[]) => `EXTRACT(HOUR FROM ${args[0]})`,
+		argumentTypes: ["TIMESTAMP"],
+		returnType: "FLOAT",
+	},
+	{
+		name: "EXTRACT_MINUTE",
+		toSQL: (args: string[]) => `EXTRACT(MINUTE FROM ${args[0]})`,
+		argumentTypes: ["TIMESTAMP"],
+		returnType: "FLOAT",
+	},
+	{
+		name: "EXTRACT_EPOCH",
+		toSQL: (args: string[]) => `EXTRACT(EPOCH FROM ${args[0]})`,
+		argumentTypes: ["TIMESTAMP"],
+		returnType: "FLOAT",
+	},
+	// UUID functions (9.14 / https://www.postgresql.org/docs/current/functions-uuid.html)
+	{
+		name: "GEN_RANDOM_UUID",
+		argumentTypes: [],
+		returnType: "UUID",
 	},
 	// Conditional expressions (9.18 / https://www.postgresql.org/docs/current/functions-conditional.html)
 	{
