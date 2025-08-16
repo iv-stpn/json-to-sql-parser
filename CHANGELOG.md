@@ -1,5 +1,11 @@
 # json-to-sql-parser
 
+## 2.1.0
+
+### Minor Changes
+
+- [`b2112c3`](https://github.com/iv-stpn/json-to-sql-parser/commit/b2112c3edfb5c258cd4e6550db40a82609844fb3) Thanks [@iv-stpn](https://github.com/iv-stpn)! - Improve aggregation functions spec and minor refactors
+
 ## 2.0.0
 
 ### Major Changes
