@@ -284,7 +284,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 		it("should prevent injection in aggregation fields", () => {
 			const maliciousAggFields = {
 				total: {
-					operator: "SUM" as const,
+					function: "SUM" as const,
 					field: "age'; DROP TABLE users; --",
 				},
 			};

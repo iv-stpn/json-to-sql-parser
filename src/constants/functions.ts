@@ -231,7 +231,7 @@ const functions = [
 		returnType: "BOOLEAN",
 		variadic: true,
 	},
-] as const satisfies FunctionDefinition[];
+] satisfies FunctionDefinition[];
 
 export const functionNames = functions.map(({ name }) => name);
 export const allowedFunctions: FunctionDefinition[] = functions;

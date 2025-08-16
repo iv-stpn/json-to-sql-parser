@@ -3,6 +3,10 @@ export { buildAggregationQuery } from "./builders/aggregate";
 export { buildSelectQuery } from "./builders/select";
 export { buildWhereClause } from "./builders/where";
 
+// Allowed functions
+export { aggregationFunctionNames, allowedAggregationFunctions } from "./constants/aggregation-functions";
+export { allowedFunctions, functionNames } from "./constants/functions";
+
 // Expression and field parsing
 export { parseExpression, parseFieldPath } from "./parsers";
 

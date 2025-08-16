@@ -52,7 +52,7 @@ export const aggregationFunctions = [
 		additionalArgumentTypes: ["TEXT"],
 		toSQL: (expression, args) => applyFunction("STRING_AGG", [expression, ...args]),
 	},
-] as const satisfies AggregationDefinition[];
+] satisfies AggregationDefinition[];
 
 export const aggregationFunctionNames = aggregationFunctions.map(({ name }) => name);
 export const allowedAggregationFunctions: AggregationDefinition[] = aggregationFunctions;
