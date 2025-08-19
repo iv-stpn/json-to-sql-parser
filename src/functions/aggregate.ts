@@ -1,18 +1,15 @@
-import z from "zod";
+import type { castTypes } from "../constants/cast-types";
 import { applyFunction } from "../utils/function-call";
-import { castTypes } from "./cast-types";
 
-export const aggregationFunctionSchema = z.object({
-	name: z.string(),
-	expressionType: z.enum(castTypes).or(z.literal("ANY")),
-	additionalArgumentTypes: z.array(z.enum(castTypes).or(z.literal("ANY"))).optional(),
-	variadic: z.boolean().optional(),
-});
-export type AggregationDefinition = z.infer<typeof aggregationFunctionSchema> & {
+export type AggregationDefinition = {
+	name: string;
+	expressionType: (typeof castTypes)[number] | "ANY";
+	additionalArgumentTypes?: (typeof castTypes)[number][];
+	variadic?: boolean;
 	toSQL?: (expression: string, args: string[]) => string;
 };
 
-export const aggregationFunctions = [
+const aggregationFunctions = [
 	{
 		name: "COUNT",
 		expressionType: "ANY",

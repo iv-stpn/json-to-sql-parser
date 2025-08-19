@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { compileAggregationQuery, parseAggregationQuery } from "../src/builders/aggregate";
-import { compileSelectQuery, parseSelectQuery } from "../src/builders/select";
-import { parseExpression } from "../src/parsers";
+import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
+import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
+import { parseExpression } from "../../src/parsers";
 
-import type { AggregationQuery, Condition } from "../src/schemas";
-import type { Config, ParserState } from "../src/types";
-import { ExpressionTypeMap } from "../src/utils/expression-map";
-import { extractSelectWhereClause } from "./_helpers";
+import type { AggregationQuery, Condition } from "../../src/schemas";
+import type { Config, ParserState } from "../../src/types";
+import { ExpressionTypeMap } from "../../src/utils/expression-map";
+import { extractSelectWhereClause } from "../_helpers";
 
-describe("Data Table Configuration Tests", () => {
+describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () => {
 	let regularConfig: Config;
 	let dataTableConfig: Config;
 
@@ -102,7 +102,7 @@ describe("Data Table Configuration Tests", () => {
 		};
 	});
 
-	describe("Basic Conditions - Regular vs Data Table", () => {
+	describe("Basic Field Conditions - Regular vs Data Table Architecture", () => {
 		const condition: Condition = { "users.active": true };
 
 		it("should parse simple condition without data table", () => {
@@ -120,7 +120,7 @@ describe("Data Table Configuration Tests", () => {
 		});
 	});
 
-	describe("Complex Conditions - Regular vs Data Table", () => {
+	describe("Complex AND/OR Conditions - Regular vs Data Table Architecture", () => {
 		const complexCondition: Condition = {
 			$and: [{ "users.active": true }, { "users.age": { $gte: 18 } }, { "users.email": { $ne: null } }],
 		};
@@ -140,7 +140,7 @@ describe("Data Table Configuration Tests", () => {
 		});
 	});
 
-	describe("OR Conditions - Regular vs Data Table", () => {
+	describe("OR Logic Conditions - Regular vs Data Table Architecture", () => {
 		const orCondition: Condition = {
 			$or: [{ "users.active": true }, { "users.name": { $like: "Admin%" } }],
 		};
@@ -160,7 +160,7 @@ describe("Data Table Configuration Tests", () => {
 		});
 	});
 
-	describe("JSON Field Access - Regular vs Data Table", () => {
+	describe("JSON Field Access - Regular vs Data Table Architecture", () => {
 		const jsonCondition: Condition = {
 			"users.metadata->settings->theme": "dark",
 		};

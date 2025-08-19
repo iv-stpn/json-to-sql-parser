@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { compileAggregationQuery, parseAggregationQuery } from "../src/builders/aggregate";
-import { compileSelectQuery, parseSelectQuery } from "../src/builders/select";
-import type { Condition } from "../src/schemas";
-import type { Config } from "../src/types";
+import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
+import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
+import type { Condition } from "../../src/schemas";
+import type { Config } from "../../src/types";
 
 // Helper function to extract WHERE clause from parsed select query
 function extractSelectWhereClause(condition: Condition, config: Config, rootTable: string): { sql: string; params: unknown[] } {
@@ -15,7 +15,7 @@ function extractSelectWhereClause(condition: Condition, config: Config, rootTabl
 	return { sql: parsedQuery.where || "", params: parsedQuery.params };
 }
 
-describe("Security Tests - SQL Injection Prevention", () => {
+describe("Security - SQL Injection Prevention and Input Validation", () => {
 	let testConfig: Config;
 
 	beforeEach(() => {
@@ -40,7 +40,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 		};
 	});
 
-	describe("SQL Injection in Field Names", () => {
+	describe("Field Name Injection Attack Prevention", () => {
 		it("should reject field names with SQL injection attempts", () => {
 			const maliciousFieldNames = [
 				"name'; DROP TABLE users; --",
@@ -98,7 +98,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 		});
 	});
 
-	describe("SQL Injection in Values", () => {
+	describe("Value Injection Attack Prevention", () => {
 		it("should properly escape string values with SQL injection attempts", () => {
 			const maliciousValues = [
 				"'; DROP TABLE users; --",
@@ -175,7 +175,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 		});
 	});
 
-	describe("SQL Injection in Expressions", () => {
+	describe("Expression Injection Attack Prevention", () => {
 		it("should reject malicious function names", () => {
 			const maliciousFunctions = [
 				"UPPER'; DROP TABLE users; --",
@@ -219,7 +219,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 		});
 	});
 
-	describe("SQL Injection in Select Queries", () => {
+	describe("Select Query Injection Attack Prevention", () => {
 		it("should prevent injection in select fields", () => {
 			const maliciousSelections = {
 				"name'; DROP TABLE users; --": true,
@@ -260,7 +260,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 		});
 	});
 
-	describe("SQL Injection in Aggregation Queries", () => {
+	describe("Aggregation Query Injection Attack Prevention", () => {
 		it("should prevent injection in group by fields", () => {
 			const maliciousGroupBy = ["name'; DROP TABLE users; --", "name OR 1=1", "name UNION SELECT password FROM admin"];
 
@@ -326,7 +326,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 		});
 	});
 
-	describe("Edge Cases for SQL Injection", () => {
+	describe("Advanced Injection Attack Edge Cases", () => {
 		it("should handle unicode and encoded injection attempts", () => {
 			const unicodeInjections = [
 				"name\u0027; DROP TABLE users; --", // Unicode single quote
@@ -400,7 +400,7 @@ describe("Security Tests - SQL Injection Prevention", () => {
 		});
 	});
 
-	describe("Boundary Value Testing", () => {
+	describe("Input Boundary Value Security Testing", () => {
 		it("should handle extremely long field names", () => {
 			const longFieldName = "a".repeat(10000);
 			const condition: Condition = {

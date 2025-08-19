@@ -1,9 +1,9 @@
-import { type AggregationDefinition, allowedAggregationFunctions } from "../constants/aggregation-functions";
 import { type CastType, castMap } from "../constants/cast-types";
-import { FUNCTION_TYPE_MISMATCH_ERROR, INVALID_ARGUMENT_COUNT_ERROR } from "../constants/errors";
+import { FUNCTION_TYPE_MISMATCH_ERROR, INVALID_ARGUMENT_COUNT_ERROR, MISSING_AGGREGATION_FIELD_ERROR } from "../constants/errors";
+import { type AggregationDefinition, allowedAggregationFunctions } from "../functions/aggregate";
 import { aliasValue, castValue, getExpressionCastType, parseExpression, parseField } from "../parsers";
-import type { AggregatedField, AggregationQuery } from "../schemas";
-import type { BaseParsedQuery, Config, ParserState, Primitive } from "../types";
+import type { AggregatedField, AggregationQuery, ScalarPrimitive } from "../schemas";
+import type { Config, ParserState } from "../types";
 import { objectEntries } from "../utils";
 import { ExpressionTypeMap } from "../utils/expression-map";
 import { applyFunction } from "../utils/function-call";
@@ -90,17 +90,15 @@ function parseAggregation(alias: string, aggregation: AggregatedField, state: Pa
 				index >= additionalArgumentTypes.length ? additionalArgumentTypes.at(-1) : additionalArgumentTypes[index];
 			if (!expectedType) throw new Error(`No argument type defined for function '${name}' at index ${index}`);
 
-			const expression = parseExpression(arg, state);
+			const argumentExpression = parseExpression(arg, state);
 
-			if (expectedType === "ANY") return expression;
 			const actualType = getExpressionCastType(arg, state);
-
 			if (actualType !== expectedType && actualType !== null) {
-				if (expectedType === "TEXT") return castValue(expression, "TEXT"); // Every type can be cast to TEXT, automatically cast in this case
+				if (expectedType === "TEXT") return castValue(argumentExpression, "TEXT"); // Every type can be cast to TEXT, automatically cast in this case
 				throw new Error(FUNCTION_TYPE_MISMATCH_ERROR(name, expectedType, actualType));
 			}
 
-			return expression;
+			return argumentExpression;
 		});
 
 		return applyAggregationOperator(aggregationFunction, alias, expression, resolvedArguments);
@@ -112,7 +110,14 @@ function parseAggregation(alias: string, aggregation: AggregatedField, state: Pa
 	return applyAggregationOperator(aggregationFunction, alias, expression, []);
 }
 
-type ParsedAggregationQuery = BaseParsedQuery & { groupBy: string[]; joins: string[] };
+type ParsedAggregationQuery = {
+	select: string[];
+	from: string;
+	where?: string;
+	params: ScalarPrimitive[];
+	groupBy: string[];
+	joins: string[];
+};
 export function parseAggregationQuery(query: AggregationQuery, config: Config): ParsedAggregationQuery {
 	const expressions = new ExpressionTypeMap();
 	const processedTables = new Set<string>([query.table]);
@@ -121,8 +126,7 @@ export function parseAggregationQuery(query: AggregationQuery, config: Config): 
 	const { table, groupBy, aggregatedFields } = query;
 
 	const aggregatedFieldEntries = objectEntries(aggregatedFields ?? {});
-	if (aggregatedFieldEntries.length === 0 && groupBy.length === 0)
-		throw new Error("Aggregation query must have at least one group by field or aggregated field");
+	if (aggregatedFieldEntries.length === 0 && groupBy.length === 0) throw new Error(MISSING_AGGREGATION_FIELD_ERROR);
 
 	const tableConfig = config.tables[table];
 	if (!tableConfig) throw new Error(`Table '${table}' is not allowed`);
@@ -166,7 +170,7 @@ export function compileAggregationQuery(query: ParsedAggregationQuery): string {
 	return sql;
 }
 
-export function buildAggregationQuery(query: AggregationQuery, config: Config): { sql: string; params: Primitive[] } {
+export function buildAggregationQuery(query: AggregationQuery, config: Config): { sql: string; params: ScalarPrimitive[] } {
 	const parsedQuery = parseAggregationQuery(query, config);
 	const sql = compileAggregationQuery(parsedQuery);
 	return { sql, params: parsedQuery.params };

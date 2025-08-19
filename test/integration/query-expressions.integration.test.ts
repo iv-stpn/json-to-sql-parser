@@ -1,15 +1,22 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
 import { buildSelectQuery } from "../../src";
 import type { Condition, SelectQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
-import { DatabaseHelper, setupTestEnvironment } from "./_helpers";
+import { DatabaseHelper, setupTestEnvironment } from "../_helpers";
 
-describe("Integration Tests - Complex Expressions and Type Casting", () => {
+describe("Integration - Complex Expression Processing and Type Casting", () => {
 	let db: DatabaseHelper;
 
 	const config: Config = {
-		variables: {},
+		variables: {
+			current_user_id: "550e8400-e29b-41d4-a716-446655440000",
+			adminRole: "admin",
+			testPattern: "test_%",
+			maxResults: 100,
+			score_threshold: 85.5,
+		},
 		tables: {
 			users: {
 				allowedFields: [
@@ -63,7 +70,6 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 
 	afterAll(async () => {
 		await db.disconnect();
-		// await teardownTestEnvironment(); // Keep running for subsequent tests
 	});
 
 	describe("Mathematical Expressions with Type Casting", () => {
@@ -356,6 +362,52 @@ describe("Integration Tests - Complex Expressions and Type Casting", () => {
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
 			expect(result.sql).toContain("created_at");
+		});
+	});
+
+	describe("Complex Aggregation Performance", () => {
+		it("should execute aggregations with complex field expressions", async () => {
+			const query = parseAggregationQuery(
+				{
+					table: "users",
+					groupBy: ["status", "active"],
+					aggregatedFields: {
+						total_users: { function: "COUNT", field: "*" },
+						avg_age: { function: "AVG", field: "age" },
+						min_age: { function: "MIN", field: "age" },
+						max_age: { function: "MAX", field: "age" },
+						name_lengths: {
+							function: "AVG",
+							field: { $func: { LENGTH: [{ $field: "name" }] } },
+						},
+						complex_calc: {
+							function: "SUM",
+							field: {
+								$func: {
+									ADD: [{ $func: { MULTIPLY: [{ $field: "age" }, 2] } }, { $func: { LENGTH: [{ $field: "name" }] } }],
+								},
+							},
+						},
+					},
+				},
+				config,
+			);
+
+			const sql = compileAggregationQuery(query);
+			const rows = await db.query(sql, query.params);
+
+			expect(rows).toBeDefined();
+			expect(Array.isArray(rows)).toBe(true);
+
+			// Verify aggregation structure
+			expect(sql).toContain("GROUP BY");
+			expect(sql).toContain("COUNT(*)");
+			expect(sql).toContain("AVG(");
+			expect(sql).toContain("MIN(");
+			expect(sql).toContain("MAX(");
+			expect(sql).toContain("LENGTH");
+			expect(sql).toContain("+"); // ADD becomes +
+			expect(sql).toContain("*"); // MULTIPLY becomes *
 		});
 	});
 });

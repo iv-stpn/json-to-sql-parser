@@ -12,6 +12,7 @@ CREATE TABLE users (
     active BOOLEAN NOT NULL DEFAULT true,
     balance DECIMAL(10,2) DEFAULT 0.00,
     status VARCHAR(50) NOT NULL DEFAULT 'active',
+    role VARCHAR(50) NOT NULL DEFAULT 'user',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     birth_date DATE,
@@ -24,6 +25,7 @@ CREATE TABLE posts (
     content TEXT NOT NULL,
     user_id UUID REFERENCES users(id),
     published BOOLEAN NOT NULL DEFAULT false,
+    priority INTEGER,
     tags JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     published_at TIMESTAMP
@@ -34,12 +36,13 @@ CREATE TABLE orders (
     amount DECIMAL(10,2) NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     customer_id UUID REFERENCES users(id),
+    items JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     shipped_at TIMESTAMP,
     delivered_date DATE
 );
 
--- Create data table for JSON-based storage (multi-tenant style)
+-- Create data table for key-value storage 
 CREATE TABLE data_storage (
     id SERIAL PRIMARY KEY,
     table_name VARCHAR(100) NOT NULL,

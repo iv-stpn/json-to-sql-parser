@@ -31,4 +31,9 @@ export const INVALID_ARGUMENT_COUNT_ERROR = (
 ): string =>
 	`Function '${functionName}' requires ${variadic ? "at least" : "exactly"} ${expectedArgCount} argument${expectedArgCount !== 1 ? "s" : ""}, got ${argCount}`;
 
-export const MISSING_AGGREGATION_FIELD = "Aggregation query must have at least one group by field or aggregated field";
+export const MISSING_AGGREGATION_FIELD_ERROR = "Aggregation query must have at least one group by field or aggregated field";
+
+export const FORBIDDEN_EXISTING_ROW_EVALUATION_ON_INSERT_ERROR =
+	"Evaluations on existing rows are not allowed during INSERT. Use 'NEW_ROW' as a prefix for evaluating new row values, or $exists to apply a condition on existing rows.";
+
+export const NON_EMPTY_CONDITION_ARRAY_ERROR = (operator: string) => `${operator} condition should be a non-empty array.`;

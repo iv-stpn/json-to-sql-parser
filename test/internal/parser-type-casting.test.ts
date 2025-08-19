@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { compileSelectQuery, parseSelectQuery } from "../src/builders/select";
-import { parseExpression } from "../src/parsers";
-import type { AnyExpression, Condition } from "../src/schemas";
-import type { Config, ParserState } from "../src/types";
-import { ExpressionTypeMap } from "../src/utils/expression-map";
-import { extractSelectWhereClause } from "./_helpers";
+import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
+import { parseExpression } from "../../src/parsers";
+import type { Condition } from "../../src/schemas";
+import type { Config, ParserState } from "../../src/types";
+import { ExpressionTypeMap } from "../../src/utils/expression-map";
+import { extractSelectWhereClause } from "../_helpers";
 
-describe("UUID, Timestamp, and Date Tests", () => {
+describe("Parser - Type Casting and Temporal Data Validation", () => {
 	let testConfig: Config;
 	let testState: ParserState;
 
@@ -62,28 +62,18 @@ describe("UUID, Timestamp, and Date Tests", () => {
 		};
 	});
 
-	describe("UUID Expression Tests", () => {
-		it("should parse valid UUID expression", () => {
-			const uuidExpression: AnyExpression = {
-				$uuid: "550e8400-e29b-41d4-a716-446655440000",
-			};
-
-			const result = parseExpression(uuidExpression, testState);
-			expect(result).toBe("'550e8400-e29b-41d4-a716-446655440000'");
-			expect(testState.expressions.get(uuidExpression)).toBe("UUID");
-		});
-
-		it("should parse UUID in WHERE clause", () => {
+	describe("UUID Type Validation and Casting", () => {
+		it("should parse and cast UUID literals in WHERE conditions", () => {
 			const condition: Condition = {
 				"users.id": { $eq: { $uuid: "550e8400-e29b-41d4-a716-446655440000" } },
 			};
 
 			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.id = '550e8400-e29b-41d4-a716-446655440000'");
+			expect(result.sql).toBe("users.id = '550e8400-e29b-41d4-a716-446655440000'::UUID");
 			expect(result.params).toEqual([]);
 		});
 
-		it("should parse UUID with different operators", () => {
+		it("should handle UUID values with comparison operators", () => {
 			const conditions: Condition[] = [
 				{ "users.id": { $ne: { $uuid: "550e8400-e29b-41d4-a716-446655440000" } } },
 				{
@@ -101,7 +91,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 			}
 		});
 
-		it("should handle UUID variables", () => {
+		it("should resolve and cast UUID variables", () => {
 			const condition: Condition = {
 				"users.id": { $eq: { $var: "auth.uid" } },
 			};
@@ -152,29 +142,8 @@ describe("UUID, Timestamp, and Date Tests", () => {
 		});
 	});
 
-	describe("Timestamp Expression Tests", () => {
-		it("should parse valid timestamp expressions", () => {
-			const validTimestamps = [
-				"2024-01-15T10:30:45",
-				"2024-01-15 10:30:45",
-				"2024-12-31T23:59:59",
-				"2024-01-01T00:00:00",
-				"2024-06-15T14:30:45.123",
-				"2024-06-15T14:30:45.123456",
-			];
-
-			for (const timestamp of validTimestamps) {
-				const timestampExpression: AnyExpression = { $timestamp: timestamp };
-				const result = parseExpression(timestampExpression, testState);
-
-				// Should convert T to space for SQL
-				const expectedTimestamp = timestamp.replace("T", " ");
-				expect(result).toBe(`'${expectedTimestamp}'::TIMESTAMP`);
-				expect(testState.expressions.get(timestampExpression)).toBe("TIMESTAMP");
-			}
-		});
-
-		it("should parse timestamp in WHERE clause", () => {
+	describe("DateTime/Timestamp Type Validation and Casting", () => {
+		it("should parse and cast timestamp literals in WHERE conditions", () => {
 			const condition: Condition = {
 				"users.created_at": { $gte: { $timestamp: "2024-01-01T00:00:00" } },
 			};
@@ -184,7 +153,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 			expect(result.params).toEqual([]);
 		});
 
-		it("should parse timestamp with comparison operators", () => {
+		it("should handle timestamp values with comparison operators", () => {
 			const conditions = [
 				{ "users.created_at": { $gt: { $timestamp: "2024-01-01T00:00:00" } } } as Condition,
 				{ "users.updated_at": { $lt: { $timestamp: "2024-12-31T23:59:59" } } } as Condition,
@@ -199,7 +168,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 			}
 		});
 
-		it("should handle timestamp variables", () => {
+		it("should resolve and cast timestamp variables", () => {
 			const condition: Condition = {
 				"users.created_at": { $lt: { $var: "current_timestamp" } },
 			};
@@ -245,25 +214,8 @@ describe("UUID, Timestamp, and Date Tests", () => {
 		});
 	});
 
-	describe("Date Expression Tests", () => {
-		it("should parse valid date expressions", () => {
-			const validDates = [
-				"2024-01-15",
-				"2024-12-31",
-				"2024-02-29", // leap year
-				"2023-02-28", // non-leap year
-				"2024-06-30",
-			];
-
-			for (const date of validDates) {
-				const dateExpression: AnyExpression = { $date: date };
-				const result = parseExpression(dateExpression, testState);
-				expect(result).toBe(`'${date}'::DATE`);
-				expect(testState.expressions.get(dateExpression)).toBe("DATE");
-			}
-		});
-
-		it("should parse date in WHERE clause", () => {
+	describe("Date Type Validation and Casting", () => {
+		it("should parse and cast date literals in WHERE conditions", () => {
 			const condition: Condition = {
 				"users.birth_date": { $eq: { $date: "1990-05-15" } },
 			};
@@ -273,7 +225,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 			expect(result.params).toEqual([]);
 		});
 
-		it("should parse date with comparison operators", () => {
+		it("should handle date values with comparison operators", () => {
 			const conditions = [
 				{ "users.birth_date": { $gt: { $date: "1990-01-01" } } },
 				{ "users.birth_date": { $lt: { $date: "2000-12-31" } } },
@@ -288,7 +240,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 			}
 		});
 
-		it("should handle date variables", () => {
+		it("should resolve and cast date variables", () => {
 			const condition: Condition = {
 				"events.scheduled_date": { $eq: { $var: "current_date" } },
 			};
@@ -333,7 +285,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 		});
 	});
 
-	describe("Complex Queries with Multiple Date Types", () => {
+	describe("Multi-Type Temporal Query Scenarios", () => {
 		it("should handle queries with UUID, timestamp, and date together", () => {
 			const condition: Condition = {
 				$and: [
@@ -345,7 +297,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 
 			const result = extractSelectWhereClause(condition, testConfig, "events");
 			expect(result.sql).toBe(
-				"(events.user_id = '550e8400-e29b-41d4-a716-446655440000' AND events.occurred_at >= '2024-01-01 00:00:00'::TIMESTAMP AND events.scheduled_date = '2024-01-15'::DATE)",
+				"(events.user_id = '550e8400-e29b-41d4-a716-446655440000'::UUID AND events.occurred_at >= '2024-01-01 00:00:00'::TIMESTAMP AND events.scheduled_date = '2024-01-15'::DATE)",
 			);
 			expect(result.params).toEqual([]);
 		});
@@ -400,7 +352,7 @@ describe("UUID, Timestamp, and Date Tests", () => {
 		});
 	});
 
-	describe("Edge Cases and Error Handling", () => {
+	describe("Type Casting Edge Cases and Error Validation", () => {
 		it("should handle empty string values", () => {
 			const expressions = [{ $uuid: "" }, { $timestamp: "" }, { $date: "" }];
 

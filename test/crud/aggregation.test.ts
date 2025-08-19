@@ -1,9 +1,9 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 
 import { beforeEach, describe, expect, it } from "bun:test";
-import type { AggregationQuery } from "../src";
-import { compileAggregationQuery, parseAggregationQuery } from "../src/builders/aggregate";
-import type { Config } from "../src/types";
+import type { AggregationQuery } from "../../src";
+import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
+import type { Config } from "../../src/types";
 
 let testConfig: Config;
 
@@ -31,8 +31,8 @@ beforeEach(() => {
 	};
 });
 
-describe("Aggregation Edge Cases", () => {
-	describe("Schema-less data table aggregation", () => {
+describe("CRUD - AGGREGATION Query Operations", () => {
+	describe("Schema-less Data Table Aggregation", () => {
 		it("should handle aggregation on schema-less data table", () => {
 			const query: AggregationQuery = {
 				table: "sales",
@@ -164,7 +164,7 @@ describe("Aggregation Edge Cases", () => {
 			};
 
 			expect(() => parseAggregationQuery(query, testConfig)).toThrow(
-				"Field 'invalid_field' is not allowed or does not exist for table 'sales'",
+				"Field 'invalid_field' is not allowed or does not exist in 'sales'",
 			);
 		});
 
@@ -178,7 +178,7 @@ describe("Aggregation Edge Cases", () => {
 			};
 
 			expect(() => parseAggregationQuery(query, testConfig)).toThrow(
-				"Field 'invalid_field' is not allowed or does not exist for table 'sales'",
+				"Field 'invalid_field' is not allowed or does not exist in 'sales'",
 			);
 		});
 

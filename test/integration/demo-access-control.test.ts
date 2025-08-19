@@ -4,10 +4,9 @@ import { buildSelectQuery } from "../../src";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
 import type { AggregationQuery, Condition, SelectQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
-import { extractSelectWhereClause } from "../_helpers";
-import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
+import { DatabaseHelper, extractSelectWhereClause, setupTestEnvironment, teardownTestEnvironment } from "../_helpers";
 
-describe("Integration Tests - RLS Simulation with $exists and current_user_id", () => {
+describe("Integration - Row-Level Security (RLS) Access Control Simulation", () => {
 	let db: DatabaseHelper;
 	let config: Config;
 

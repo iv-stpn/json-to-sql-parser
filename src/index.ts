@@ -1,36 +1,48 @@
 // Main parsers
-export { buildAggregationQuery } from "./builders/aggregate";
-export { buildSelectQuery } from "./builders/select";
-export { buildWhereClause } from "./builders/where";
-
+export { buildAggregationQuery, compileAggregationQuery, parseAggregationQuery } from "./builders/aggregate";
+export { buildInsertQuery, compileInsertQuery, parseInsertQuery } from "./builders/insert";
+export { buildSelectQuery, compileSelectQuery, parseSelectQuery } from "./builders/select";
+export { buildUpdateQuery, compileUpdateQuery, parseUpdateQuery } from "./builders/update";
+export { buildDataTableWhereClause, buildWhereClause } from "./builders/where";
+export { allowedFunctions, functionNames } from "./functions";
 // Allowed functions
-export { aggregationFunctionNames, allowedAggregationFunctions } from "./constants/aggregation-functions";
-export { allowedFunctions, functionNames } from "./constants/functions";
+export { aggregationFunctionNames, allowedAggregationFunctions } from "./functions/aggregate";
 
 // Expression and field parsing
 export { parseExpression, parseFieldPath } from "./parsers";
 
+// Issues
+export { findIssueInConditionSchema, findIssueInExpressionSchema } from "./parsers/issues";
+
 // Schema types
 export type {
-	AggregatedField as Aggregation,
 	AggregationQuery,
 	AnyExpression,
+	AnyScalar,
 	Condition,
 	ConditionExpression,
+	ConditionFieldName,
 	ExpressionObject,
 	FieldCondition,
 	FieldSelection,
-	ScalarValue,
+	InsertQuery,
+	ScalarExpression,
+	ScalarPrimitive,
 	SelectQuery,
+	UpdateQuery,
 } from "./schemas";
 
 // Schemas
 export {
 	aggregationQuerySchema,
+	//
 	anyExpressionSchema,
 	conditionSchema,
 	expressionObjectSchema,
 	fieldSelectionSchema,
+	insertQuerySchema,
+	selectQuerySchema,
+	updateQuerySchema,
 } from "./schemas";
 
 // Types
@@ -39,6 +51,5 @@ export type {
 	Field,
 	FieldPath,
 	ParserState,
-	Primitive,
 	Relationship,
 } from "./types";

@@ -1,8 +1,9 @@
-import { aliasValue, castValue, parseExpressionObject, parseField } from "../parsers";
-import type { FieldName, FieldSelection, SelectQuery } from "../schemas";
-import type { BaseParsedQuery, Config, ParserState, Primitive } from "../types";
+import { aliasValue, castValue, parseExpressionObject, parseField, parseScalarExpression } from "../parsers";
+import type { FieldName, FieldSelection, ScalarPrimitive, SelectQuery } from "../schemas";
+import type { Config, ParserState } from "../types";
+import { objectSize } from "../utils";
 import { ExpressionTypeMap } from "../utils/expression-map";
-import { isExpressionObject } from "../utils/validators";
+import { isExpressionObject, isScalarExpression } from "../utils/validators";
 import { buildJoinClause } from "./joins";
 import { buildWhereClause } from "./where";
 
@@ -11,6 +12,12 @@ function processField(fieldName: string, selection: FieldSelection, table: strin
 	if (selection === true) {
 		const { select } = parseField(fieldName, state);
 		state.select.push(aliasValue(castValue(select.field, select.cast), select.alias));
+		return;
+	}
+
+	if (isScalarExpression(selection)) {
+		const expression = parseScalarExpression(selection);
+		state.select.push(aliasValue(expression, fieldName));
 		return;
 	}
 
@@ -31,7 +38,7 @@ function processField(fieldName: string, selection: FieldSelection, table: strin
 const isRelationship = (relationshipName: string, table: string, fromTable: string, toTable: string): boolean =>
 	(relationshipName === fromTable && table === toTable) || (relationshipName === toTable && table === fromTable);
 
-type Selection = { [key: FieldName]: FieldSelection };
+type Selection = Record<FieldName, FieldSelection>;
 function processRelationship(table: string, selection: Selection, fromTable: string, state: SelectState): void {
 	const relationship = state.config.relationships.find(({ table: relationshipTable, toTable }) =>
 		isRelationship(table, relationshipTable, fromTable, toTable),
@@ -44,12 +51,13 @@ function processRelationship(table: string, selection: Selection, fromTable: str
 
 	// Process nested selection
 	state.processedTables.add(table);
-	for (const [fieldName, fieldValue] of Object.entries(selection))
+	for (const [fieldName, fieldValue] of Object.entries(selection)) {
 		processField(`${table}.${fieldName}`, fieldValue, table, state);
+	}
 }
 
 // Result of parsing a SELECT query
-type ParsedSelectQuery = BaseParsedQuery & { joins: string[] };
+type ParsedSelectQuery = { select: string[]; from: string; where?: string; params: ScalarPrimitive[]; joins: string[] };
 export function parseSelectQuery(selectQuery: SelectQuery, config: Config): ParsedSelectQuery {
 	const { rootTable, selection, condition } = selectQuery;
 
@@ -57,7 +65,7 @@ export function parseSelectQuery(selectQuery: SelectQuery, config: Config): Pars
 	if (!config.tables[rootTable] && !config.dataTable) throw new Error(`Table '${rootTable}' is not allowed`);
 
 	// Validate selection is not empty
-	if (Object.keys(selection).length === 0) throw new Error("Selection cannot be empty");
+	if (objectSize(selection) === 0) throw new Error("Selection cannot be empty");
 
 	// Process the selection starting from the main table
 	const processedTables = new Set([rootTable]);
@@ -80,7 +88,7 @@ export function compileSelectQuery(query: ParsedSelectQuery): string {
 	return sql;
 }
 
-export function buildSelectQuery(selectQuery: SelectQuery, config: Config): { sql: string; params: Primitive[] } {
+export function buildSelectQuery(selectQuery: SelectQuery, config: Config): { sql: string; params: ScalarPrimitive[] } {
 	const parsedQuery = parseSelectQuery(selectQuery, config);
 	const sql = compileSelectQuery(parsedQuery);
 	return { sql, params: parsedQuery.params };

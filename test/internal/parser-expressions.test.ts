@@ -1,12 +1,15 @@
+/** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 import { beforeEach, describe, expect, it } from "bun:test";
-import { compileAggregationQuery, parseAggregationQuery } from "../src/builders/aggregate";
-import { compileSelectQuery, parseSelectQuery } from "../src/builders/select";
+import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
+import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
+import { parseExpression } from "../../src/parsers";
 
-import type { Condition } from "../src/schemas";
-import type { Config } from "../src/types";
-import { extractSelectWhereClause } from "./_helpers";
+import type { AnyExpression, Condition } from "../../src/schemas";
+import type { Config, ParserState } from "../../src/types";
+import { ExpressionTypeMap } from "../../src/utils/expression-map";
+import { extractSelectWhereClause } from "../_helpers";
 
-describe("Comprehensive Integration Tests", () => {
+describe("Parser - Complex Queries and Expressions", () => {
 	let testConfig: Config;
 
 	beforeEach(() => {
@@ -117,8 +120,8 @@ describe("Comprehensive Integration Tests", () => {
 		};
 	});
 
-	describe("Complex Select Queries", () => {
-		it("should handle multi-table joins with complex conditions", () => {
+	describe("Select Queries - Multi-table Operations", () => {
+		it("should parse and compile multi-table joins with complex conditions", () => {
 			const query = parseSelectQuery(
 				{
 					rootTable: "users",
@@ -164,7 +167,7 @@ describe("Comprehensive Integration Tests", () => {
 			expect(query.params).toEqual([true, 18, "premium", 100]);
 		});
 
-		it("should handle JSON path selections with complex filtering", () => {
+		it("should parse and compile JSON path selections with complex filtering", () => {
 			const query = parseSelectQuery(
 				{
 					rootTable: "users",
@@ -210,7 +213,7 @@ describe("Comprehensive Integration Tests", () => {
 			expect(query.params).toEqual([true, "enabled", true, true]);
 		});
 
-		it("should handle expressions in selections", () => {
+		it("should parse and compile expressions in field selections", () => {
 			const query = parseSelectQuery(
 				{
 					rootTable: "users",
@@ -237,7 +240,7 @@ describe("Comprehensive Integration Tests", () => {
 			expect(sql).toContain("/");
 		});
 
-		it("should handle complex nested relationships", () => {
+		it("should parse and compile complex nested relationship queries", () => {
 			const query = parseSelectQuery(
 				{
 					rootTable: "categories",
@@ -294,8 +297,8 @@ describe("Comprehensive Integration Tests", () => {
 		});
 	});
 
-	describe("Advanced Aggregation Queries", () => {
-		it("should handle complex aggregation with multiple group by fields", () => {
+	describe("Aggregation Queries - Advanced Operations", () => {
+		it("should parse and compile complex aggregation with multiple group by fields", () => {
 			const query = parseAggregationQuery(
 				{
 					table: "posts",
@@ -324,7 +327,7 @@ describe("Comprehensive Integration Tests", () => {
 			expect(sql).toContain("posts.category_id");
 		});
 
-		it("should handle aggregation with expression fields", () => {
+		it("should parse and compile aggregation with expression fields", () => {
 			const query = parseAggregationQuery(
 				{
 					table: "users",
@@ -353,7 +356,7 @@ describe("Comprehensive Integration Tests", () => {
 			expect(sql).toContain("MAX(COALESCE(users.age, 0))");
 		});
 
-		it("should handle aggregation with JSON field access", () => {
+		it("should parse and compile aggregation with JSON field access", () => {
 			const query = parseAggregationQuery(
 				{
 					table: "orders",
@@ -379,8 +382,8 @@ describe("Comprehensive Integration Tests", () => {
 		});
 	});
 
-	describe("Complex Condition Combinations", () => {
-		it("should handle deeply nested logical operations", () => {
+	describe("Condition Parsing - Complex Combinations", () => {
+		it("should parse deeply nested logical operations", () => {
 			const condition: Condition = {
 				$or: [
 					{
@@ -415,7 +418,7 @@ describe("Comprehensive Integration Tests", () => {
 			expect(result.params).toEqual([true, 21, "premium", "vip", 1000, "admin", true]);
 		});
 
-		it("should handle EXISTS conditions with complex subqueries", () => {
+		it("should parse EXISTS conditions with complex subqueries", () => {
 			const condition: Condition = {
 				$and: [
 					{ "users.active": { $eq: true } },
@@ -450,7 +453,7 @@ describe("Comprehensive Integration Tests", () => {
 			expect(result.params).toEqual([true, true, 100, true, "%excellent%"]);
 		});
 
-		it("should handle mixed comparison operators", () => {
+		it("should parse mixed comparison operators correctly", () => {
 			const condition: Condition = {
 				$and: [
 					{ "users.age": { $gte: 18, $lte: 65 } },
@@ -474,7 +477,7 @@ describe("Comprehensive Integration Tests", () => {
 			expect(result.params).toEqual([18, 65, 999.99, 0, "%@company.com", "^[a-z]+@", "active", "premium", "banned", "suspended"]);
 		});
 
-		it("should handle conditions with variable references", () => {
+		it("should parse conditions with variable references correctly", () => {
 			const condition: Condition = {
 				$and: [
 					{ "users.id": { $eq: { $var: "auth.uid" } } },
@@ -493,8 +496,8 @@ describe("Comprehensive Integration Tests", () => {
 		});
 	});
 
-	describe("Expression Integration Tests", () => {
-		it("should handle complex mathematical expressions", () => {
+	describe("Expression Parsing - Advanced Integration", () => {
+		it("should parse complex mathematical expressions", () => {
 			const condition: Condition = {
 				$and: [
 					{
@@ -532,7 +535,7 @@ describe("Comprehensive Integration Tests", () => {
 			expect(result.sql).toContain("CONCAT");
 		});
 
-		it("should handle string manipulation functions", () => {
+		it("should parse string manipulation functions", () => {
 			const condition: Condition = {
 				$and: [
 					{
@@ -564,7 +567,7 @@ describe("Comprehensive Integration Tests", () => {
 			expect(result.sql).toContain("SUBSTRING");
 		});
 
-		it("should handle aggregation functions in expressions", () => {
+		it("should parse aggregation functions in expressions", () => {
 			const condition: Condition = {
 				"users.balance": {
 					$gt: {
@@ -582,8 +585,8 @@ describe("Comprehensive Integration Tests", () => {
 		});
 	});
 
-	describe("Performance and Scalability Tests", () => {
-		it("should handle large numbers of parameters efficiently", () => {
+	describe("Performance Testing - Large Scale Operations", () => {
+		it("should handle large parameter arrays efficiently", () => {
 			const largeInArray = Array.from({ length: 500 }, (_, i) => `user_${i}`);
 			const condition: Condition = {
 				$and: [{ "users.name": { $in: largeInArray } }, { "users.age": { $in: Array.from({ length: 100 }, (_, i) => i + 18) } }],
@@ -595,7 +598,7 @@ describe("Comprehensive Integration Tests", () => {
 			expect(result.sql).toContain("IN");
 		});
 
-		it("should handle deeply nested field structures", () => {
+		it("should handle deeply nested JSON field structures efficiently", () => {
 			const deepJsonCondition: Condition = {
 				"users.metadata->level1->level2->level3->level4->level5": { $eq: "deep_value" },
 			};
@@ -608,7 +611,7 @@ describe("Comprehensive Integration Tests", () => {
 			expect(result.params).toEqual(["deep_value"]);
 		});
 
-		it("should handle complex query with all features combined", () => {
+		it("should handle comprehensive query with all parser features combined", () => {
 			const query = parseSelectQuery(
 				{
 					rootTable: "users",
@@ -677,6 +680,223 @@ describe("Comprehensive Integration Tests", () => {
 
 			// Verify parameter count
 			expect(query.params.length).toBeGreaterThan(0);
+		});
+	});
+
+	describe("Expression Parser - Advanced Operations", () => {
+		describe("Nested Expression Structures", () => {
+			it("should parse deeply nested conditional expressions", () => {
+				const condition: Condition = {
+					"users.status": {
+						$eq: {
+							$cond: {
+								if: {
+									$and: [{ "users.active": { $eq: true } }, { "users.age": { $gte: 18 } }],
+								},
+								then: {
+									$cond: {
+										if: { "users.age": { $gte: 65 } },
+										then: "senior",
+										else: "adult",
+									},
+								},
+								else: "inactive",
+							},
+						},
+					},
+				};
+
+				const result = extractSelectWhereClause(condition, testConfig, "users");
+				expect(result.sql).toContain("CASE WHEN");
+				expect(result.sql).toContain("CASE WHEN users.age >= $3 THEN 'senior' ELSE 'adult' END");
+				expect(result.params).toEqual([true, 18, 65]);
+			});
+
+			it("should parse expressions with mixed argument types", () => {
+				const condition: Condition = {
+					"users.name": {
+						$eq: {
+							$func: {
+								CONCAT: [{ $field: "users.name" }, " (", { $var: "auth.uid" }, ")"],
+							},
+						},
+					},
+				};
+
+				const result = extractSelectWhereClause(condition, testConfig, "users");
+				expect(result.sql).toBe("users.name = CONCAT(users.name, ' (', '123', ')')");
+			});
+
+			it("should parse function calls with nested expression arguments", () => {
+				const condition: Condition = {
+					"users.age": {
+						$gt: {
+							$func: {
+								ADD: [{ $func: { LENGTH: [{ $field: "users.name" }] } }, 5],
+							},
+						},
+					},
+				};
+				const result = extractSelectWhereClause(condition, testConfig, "users");
+				expect(result.sql).toBe("users.age > (LENGTH(users.name) + 5)");
+			});
+		});
+
+		describe("Literal Value Processing", () => {
+			it("should parse string literals in expressions correctly", () => {
+				const condition: Condition = {
+					"users.name": {
+						$eq: { $func: { CONCAT: ["Hello", "World"] } },
+					},
+				};
+
+				const result = extractSelectWhereClause(condition, testConfig, "users");
+				expect(result.sql).toBe("users.name = CONCAT('Hello', 'World')");
+			});
+
+			it("should parse numeric literals in expressions correctly", () => {
+				const condition: Condition = {
+					"users.age": {
+						$eq: { $func: { ADD: [25, 5.5] } },
+					},
+				};
+
+				const result = extractSelectWhereClause(condition, testConfig, "users");
+				expect(result.sql).toBe("users.age = (25 + 5.5)");
+			});
+		});
+
+		describe("Error Handling and Validation", () => {
+			it("should reject invalid expression structure", () => {
+				const condition: Condition = {
+					"users.name": {
+						$eq: { $func: {} },
+					},
+				};
+
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow("$func must contain exactly one function");
+			});
+
+			it("should reject multiple functions in single $func", () => {
+				const condition: Condition = {
+					"users.name": {
+						$eq: { $func: { UPPER: ["test"], LOWER: ["test"] } },
+					},
+				};
+
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow("$func must contain exactly one function");
+			});
+
+			it("should reject empty function names", () => {
+				const condition: Condition = {
+					"users.name": {
+						$eq: { $func: { "": ["test"] } },
+					},
+				};
+
+				expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow('Unknown function or operator: ""');
+			});
+		});
+
+		describe("Direct Expression Evaluation", () => {
+			let testState: ParserState;
+
+			beforeEach(() => {
+				testState = { config: testConfig, params: [], expressions: new ExpressionTypeMap(), rootTable: "users" };
+			});
+
+			it("should evaluate scalar values correctly", () => {
+				expect(parseExpression("test", testState)).toBe("'test'");
+				expect(parseExpression(42, testState)).toBe("42");
+				expect(parseExpression(true, testState)).toBe("TRUE");
+				expect(parseExpression(null, testState)).toBe("NULL");
+			});
+
+			it("should reject invalid expression types", () => {
+				const invalidExpr = { $invalid: "test" } as unknown as AnyExpression;
+				expect(() => parseExpression(invalidExpr, testState)).toThrow('Invalid expression object: {"$invalid":"test"}');
+			});
+		});
+	});
+
+	describe("Logical Condition Parsing - Complex Operations", () => {
+		describe("Nested Logical Operators", () => {
+			it("should parse complex AND/OR combinations", () => {
+				const condition: Condition = {
+					$or: [
+						{
+							$and: [{ "users.active": { $eq: true } }, { "users.age": { $gte: 18 } }],
+						},
+						{
+							$and: [{ "users.name": { $like: "Admin%" } }, { "users.email": { $ne: null } }],
+						},
+					],
+				};
+
+				const result = extractSelectWhereClause(condition, testConfig, "users");
+				expect(result.sql).toBe("((users.active = $1 AND users.age >= $2) OR (users.name LIKE $3 AND users.email IS NOT NULL))");
+				expect(result.params).toEqual([true, 18, "Admin%"]);
+			});
+
+			it("should parse nested NOT conditions correctly", () => {
+				const condition: Condition = {
+					$not: {
+						$or: [{ "users.active": { $eq: false } }, { "users.email": { $eq: null } }],
+					},
+				};
+
+				const result = extractSelectWhereClause(condition, testConfig, "users");
+				expect(result.sql).toBe("NOT ((users.active = $1 OR users.email IS NULL))");
+				expect(result.params).toEqual([false]);
+			});
+		});
+
+		describe("Mixed Operator Combinations", () => {
+			it("should parse multiple operators on same field", () => {
+				const condition: Condition = {
+					"users.age": { $gte: 18, $lte: 65, $ne: 30 },
+				};
+
+				const result = extractSelectWhereClause(condition, testConfig, "users");
+				expect(result.sql).toBe("(users.age != $1 AND users.age >= $2 AND users.age <= $3)");
+				expect(result.params).toEqual([30, 18, 65]);
+			});
+
+			it("should parse array operations with embedded expressions", () => {
+				const condition: Condition = {
+					"users.id": {
+						$in: ["1", { $var: "auth.uid" }, { $var: "current_user" }],
+					},
+				};
+
+				const result = extractSelectWhereClause(condition, testConfig, "users");
+				expect(result.sql).toBe("(users.id)::TEXT IN ($1, '123', '456')");
+				expect(result.params).toEqual(["1"]);
+			});
+		});
+	});
+
+	describe("Null Value Processing", () => {
+		describe("Null Comparisons", () => {
+			it("should convert null equality to IS NULL", () => {
+				const condition: Condition = {
+					"users.email": { $eq: null },
+				};
+
+				const result = extractSelectWhereClause(condition, testConfig, "users");
+				expect(result.sql).toBe("users.email IS NULL");
+				expect(result.params).toEqual([]);
+			});
+
+			it("should convert null inequality to IS NOT NULL", () => {
+				const condition: Condition = {
+					"users.email": { $ne: null },
+				};
+
+				const result = extractSelectWhereClause(condition, testConfig, "users");
+				expect(result.sql).toBe("users.email IS NOT NULL");
+				expect(result.params).toEqual([]);
+			});
 		});
 	});
 });

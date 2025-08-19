@@ -4,10 +4,9 @@ import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select"
 
 import type { AggregationQuery, Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
-import { extractSelectWhereClause } from "../_helpers";
-import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "./_helpers";
+import { DatabaseHelper, extractSelectWhereClause, setupTestEnvironment, teardownTestEnvironment } from "../_helpers";
 
-describe("Integration Tests - Data Table Configuration", () => {
+describe("Integration - Data Table Configuration and Multi-Tenant Architecture", () => {
 	let db: DatabaseHelper;
 	let config: Config;
 
@@ -72,7 +71,7 @@ describe("Integration Tests - Data Table Configuration", () => {
 		await teardownTestEnvironment();
 	});
 
-	describe("Condition Queries with Data Table", () => {
+	describe("Multi-Tenant Condition Queries with Schema-less Storage", () => {
 		it("should execute simple equality condition on data table", async () => {
 			await db.executeInTransaction(async () => {
 				const selection = {
@@ -151,7 +150,7 @@ describe("Integration Tests - Data Table Configuration", () => {
 		});
 	});
 
-	describe("Select Queries with Data Table", () => {
+	describe("Schema-less Data Selection and Field Projection", () => {
 		it("should execute basic select query on data table", async () => {
 			await db.executeInTransaction(async () => {
 				const selection = { id: true, name: true, email: true };
@@ -181,7 +180,7 @@ describe("Integration Tests - Data Table Configuration", () => {
 		});
 	});
 
-	describe("Aggregation Queries with Data Table", () => {
+	describe("Schema-less Aggregation Operations", () => {
 		it("should execute simple aggregation on data table", async () => {
 			await db.executeInTransaction(async () => {
 				const aggregationQuery: AggregationQuery = {
@@ -229,7 +228,7 @@ describe("Integration Tests - Data Table Configuration", () => {
 		});
 	});
 
-	describe("Data Table vs Regular Table Comparison", () => {
+	describe("Storage Architecture Comparison and SQL Generation", () => {
 		it("should produce different SQL for same logical query", () => {
 			const condition: Condition = { "users.active": true };
 

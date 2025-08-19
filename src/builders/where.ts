@@ -1,5 +1,5 @@
 import { mergeConditions, parseCondition } from "../parsers";
-import { conditionSchema } from "../schemas";
+import { ensureConditionObject } from "../parsers/issues";
 import type { ParserState } from "../types";
 
 export function buildDataTableWhereClause(state: ParserState, whereClause?: string): string {
@@ -9,7 +9,7 @@ export function buildDataTableWhereClause(state: ParserState, whereClause?: stri
 	const fieldWhereConditions = (dataTable.whereConditions ?? []).map((condition) => `${state.rootTable}.${condition}`);
 	const whereConditions = [...fieldWhereConditions, ...(whereClause ? [whereClause] : [])];
 	const baseCondition = `${state.rootTable}.${dataTable.tableField} = '${state.rootTable}'`;
-	return mergeConditions([baseCondition, ...whereConditions], "data table conditions");
+	return mergeConditions([baseCondition, ...whereConditions]);
 }
 
 export function buildWhereClause(condition: unknown, state: ParserState) {
@@ -19,6 +19,6 @@ export function buildWhereClause(condition: unknown, state: ParserState) {
 		return undefined;
 	}
 
-	const whereClause = parseCondition(conditionSchema.parse(condition), state);
+	const whereClause = parseCondition(ensureConditionObject(condition), state);
 	return state.config.dataTable ? buildDataTableWhereClause(state, whereClause) : whereClause;
 }

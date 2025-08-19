@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { parseFieldPath } from "../src/parsers";
-import type { Config, ParserState } from "../src/types";
-import { ExpressionTypeMap } from "../src/utils/expression-map";
+import { parseFieldPath } from "../../src/parsers";
+import type { Config, ParserState } from "../../src/types";
+import { ExpressionTypeMap } from "../../src/utils/expression-map";
 
 // Regex patterns used in tests
 const TABLE_NOT_ALLOWED_REGEX = /Table .* is not allowed or does not exist/;
@@ -9,7 +9,7 @@ const FIELD_NOT_ALLOWED_REGEX = /Field .* is not allowed or does not exist/;
 const INVALID_FIELD_PATH_REGEX = /Invalid field name.*in table.*/;
 const INVALID_JSON_ACCESS_REGEX = /Invalid JSON access path .* Expected format:/;
 
-describe("Field Path Parsing Tests", () => {
+describe("Parser - Field Path Validation and Processing", () => {
 	let testConfig: Config;
 	let testState: ParserState;
 
@@ -45,8 +45,8 @@ describe("Field Path Parsing Tests", () => {
 		};
 	});
 
-	describe("Valid Field Paths", () => {
-		it("should parse simple field names", () => {
+	describe("Valid Field Path Structures", () => {
+		it("should parse simple field names correctly", () => {
 			const validSimpleFields = [
 				"id",
 				"name",
@@ -61,14 +61,14 @@ describe("Field Path Parsing Tests", () => {
 			];
 
 			for (const field of validSimpleFields) {
-				const result = parseFieldPath({ field: `users.${field}`, state: testState });
+				const result = parseFieldPath(`users.${field}`, testState.rootTable, testState.config);
 				expect(result.table).toBe("users");
 				expect(result.field).toBe(field);
 				expect(result.jsonAccess).toEqual([]);
 			}
 		});
 
-		it("should parse valid JSON paths without quotes", () => {
+		it("should parse JSON paths without quotes correctly", () => {
 			const validJsonPaths = [
 				"metadata->key",
 				"metadata->level1->level2",
@@ -78,13 +78,13 @@ describe("Field Path Parsing Tests", () => {
 			];
 
 			for (const fieldPath of validJsonPaths) {
-				const result = parseFieldPath({ field: `users.${fieldPath}`, state: testState });
+				const result = parseFieldPath(`users.${fieldPath}`, testState.rootTable, testState.config);
 				expect(result.table).toBe("users");
 				expect(result.jsonAccess.length).toBeGreaterThan(0);
 			}
 		});
 
-		it("should parse JSON paths with quoted segments", () => {
+		it("should parse JSON paths with quoted segments correctly", () => {
 			const validQuotedPaths = [
 				"metadata->'key'",
 				"metadata->'level1'->'level2'",
@@ -96,13 +96,13 @@ describe("Field Path Parsing Tests", () => {
 			];
 
 			for (const fieldPath of validQuotedPaths) {
-				const result = parseFieldPath({ field: `users.${fieldPath}`, state: testState });
+				const result = parseFieldPath(`users.${fieldPath}`, testState.rootTable, testState.config);
 				expect(result.table).toBe("users");
 				expect(result.jsonAccess.length).toBeGreaterThan(0);
 			}
 		});
 
-		it("should parse alphanumeric and underscore field names", () => {
+		it("should parse alphanumeric and underscore field names correctly", () => {
 			const validFieldNames = ["field1", "field_2", "field_with_numbers123", "field_", "a", "z"];
 
 			// Add these fields to config for testing
@@ -124,15 +124,15 @@ describe("Field Path Parsing Tests", () => {
 
 			const extendedState = { ...testState, config: extendedConfig };
 			for (const fieldName of validFieldNames) {
-				const result = parseFieldPath({ field: `users.${fieldName}`, state: extendedState });
+				const result = parseFieldPath(`users.${fieldName}`, extendedState.rootTable, extendedState.config);
 				expect(result.table).toBe("users");
 				expect(result.field).toBe(fieldName);
 			}
 		});
 	});
 
-	describe("Invalid Field Paths - Should Fail", () => {
-		it("should reject field paths with malformed JSON arrows", () => {
+	describe("Invalid Field Path Validation", () => {
+		it("should reject malformed JSON arrow syntax", () => {
 			const invalidArrowPaths = [
 				"'->start'->foo", // Starting with arrow
 				"foo->bar->", // Ending with arrow
@@ -145,7 +145,7 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const invalidPath of invalidArrowPaths) {
 				expect(() => {
-					parseFieldPath({ field: `users.${invalidPath}`, state: testState });
+					parseFieldPath(`users.${invalidPath}`, testState.rootTable, testState.config);
 				}).toThrow();
 			}
 		});
@@ -162,7 +162,7 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const emptyField of emptyFieldNames) {
 				expect(() => {
-					parseFieldPath({ field: emptyField, state: testState });
+					parseFieldPath(emptyField, testState.rootTable, testState.config);
 				}).toThrow();
 			}
 		});
@@ -172,7 +172,7 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const invalidField of numericStartFields) {
 				expect(() => {
-					parseFieldPath({ field: `users.${invalidField}`, state: testState });
+					parseFieldPath(`users.${invalidField}`, testState.rootTable, testState.config);
 				}).toThrow();
 			}
 		});
@@ -207,7 +207,7 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const invalidField of specialCharFields) {
 				expect(() => {
-					parseFieldPath({ field: `users.${invalidField}`, state: testState });
+					parseFieldPath(`users.${invalidField}`, testState.rootTable, testState.config);
 				}).toThrow();
 			}
 		});
@@ -217,7 +217,7 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const invalidField of underscoreOnlyFields) {
 				expect(() => {
-					parseFieldPath({ field: `users.${invalidField}`, state: testState });
+					parseFieldPath(`users.${invalidField}`, testState.rootTable, testState.config);
 				}).toThrow();
 			}
 		});
@@ -234,7 +234,7 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const invalidPath of malformedQuotedPaths) {
 				expect(() => {
-					parseFieldPath({ field: `users.${invalidPath}`, state: testState });
+					parseFieldPath(`users.${invalidPath}`, testState.rootTable, testState.config);
 				}).toThrow();
 			}
 		});
@@ -248,7 +248,7 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const invalidPath of invalidJsonOnNonObject) {
 				expect(() => {
-					parseFieldPath({ field: `users.${invalidPath}`, state: testState });
+					parseFieldPath(`users.${invalidPath}`, testState.rootTable, testState.config);
 				}).toThrow();
 			}
 		});
@@ -264,7 +264,7 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const invalidPath of consecutiveArrowPaths) {
 				expect(() => {
-					parseFieldPath({ field: `users.${invalidPath}`, state: testState });
+					parseFieldPath(`users.${invalidPath}`, testState.rootTable, testState.config);
 				}).toThrow();
 			}
 		});
@@ -274,7 +274,7 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const invalidPath of arrowBoundaryPaths) {
 				expect(() => {
-					parseFieldPath({ field: `users.${invalidPath}`, state: testState });
+					parseFieldPath(`users.${invalidPath}`, testState.rootTable, testState.config);
 				}).toThrow();
 			}
 		});
@@ -302,19 +302,19 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const invalidPath of completelyInvalidPaths) {
 				expect(() => {
-					parseFieldPath({ field: `users.${invalidPath}`, state: testState });
+					parseFieldPath(`users.${invalidPath}`, testState.rootTable, testState.config);
 				}).toThrow();
 			}
 		});
 	});
 
-	describe("Table Validation", () => {
+	describe("Table and Field Reference Validation", () => {
 		it("should reject unknown table references", () => {
 			const unknownTables = ["unknown_table.field", "posts.title", "orders.amount", "admin.users"];
 
 			for (const fieldPath of unknownTables) {
 				expect(() => {
-					parseFieldPath({ field: fieldPath, state: testState });
+					parseFieldPath(fieldPath, testState.rootTable, testState.config);
 				}).toThrow(TABLE_NOT_ALLOWED_REGEX);
 			}
 		});
@@ -324,14 +324,14 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const fieldPath of unknownFields) {
 				expect(() => {
-					parseFieldPath({ field: fieldPath, state: testState });
+					parseFieldPath(fieldPath, testState.rootTable, testState.config);
 				}).toThrow(FIELD_NOT_ALLOWED_REGEX);
 			}
 		});
 	});
 
-	describe("JSON Path Segment Validation", () => {
-		it("should handle deeply nested valid paths", () => {
+	describe("JSON Path Processing and Validation", () => {
+		it("should parse deeply nested valid JSON paths", () => {
 			const deepPaths = [
 				"metadata->a->b->c->d->e",
 				"profile->user->contact->address->street->number",
@@ -339,7 +339,7 @@ describe("Field Path Parsing Tests", () => {
 			];
 
 			for (const fieldPath of deepPaths) {
-				const result = parseFieldPath({ field: `users.${fieldPath}`, state: testState });
+				const result = parseFieldPath(`users.${fieldPath}`, testState.rootTable, testState.config);
 				expect(result.jsonAccess.length).toBeGreaterThan(4);
 			}
 		});
@@ -349,21 +349,21 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const invalidPath of emptySegmentPaths) {
 				expect(() => {
-					parseFieldPath({ field: `users.${invalidPath}`, state: testState });
+					parseFieldPath(`users.${invalidPath}`, testState.rootTable, testState.config);
 				}).toThrow(INVALID_JSON_ACCESS_REGEX);
 			}
 		});
 
 		it("should properly strip quotes from JSON path segments", () => {
 			const quotedPath = "metadata->'level1'->'level2'->'level3'";
-			const result = parseFieldPath({ field: `users.${quotedPath}`, state: testState });
+			const result = parseFieldPath(`users.${quotedPath}`, testState.rootTable, testState.config);
 
 			expect(result.jsonAccess).toEqual(["level1", "level2", "level3"]);
 		});
 
 		it("should handle mixed quoted and unquoted segments", () => {
 			const mixedPath = "metadata->level1->'level2'->level3->'level4'";
-			const result = parseFieldPath({ field: `users.${mixedPath}`, state: testState });
+			const result = parseFieldPath(`users.${mixedPath}`, testState.rootTable, testState.config);
 
 			expect(result.jsonAccess).toEqual(["level1", "level2", "level3", "level4"]);
 		});
@@ -374,7 +374,7 @@ describe("Field Path Parsing Tests", () => {
 			const invalidPath = "users.123invalid";
 
 			expect(() => {
-				parseFieldPath({ field: invalidPath, state: testState });
+				parseFieldPath(invalidPath, testState.rootTable, testState.config);
 			}).toThrow(INVALID_FIELD_PATH_REGEX);
 		});
 
@@ -382,7 +382,7 @@ describe("Field Path Parsing Tests", () => {
 			const invalidPath = "users.name->invalid";
 
 			expect(() => {
-				parseFieldPath({ field: invalidPath, state: testState });
+				parseFieldPath(invalidPath, testState.rootTable, testState.config);
 			}).toThrow();
 		});
 
@@ -390,7 +390,7 @@ describe("Field Path Parsing Tests", () => {
 			const invalidPath = "users.metadata->''";
 
 			expect(() => {
-				parseFieldPath({ field: invalidPath, state: testState });
+				parseFieldPath(invalidPath, testState.rootTable, testState.config);
 			}).toThrow(INVALID_JSON_ACCESS_REGEX);
 		});
 
@@ -398,7 +398,7 @@ describe("Field Path Parsing Tests", () => {
 			const invalidPath = "users.unknown_field";
 
 			expect(() => {
-				parseFieldPath({ field: invalidPath, state: testState });
+				parseFieldPath(invalidPath, testState.rootTable, testState.config);
 			}).toThrow(FIELD_NOT_ALLOWED_REGEX);
 		});
 
@@ -406,7 +406,7 @@ describe("Field Path Parsing Tests", () => {
 			const invalidPath = "unknown_table.field";
 
 			expect(() => {
-				parseFieldPath({ field: invalidPath, state: testState });
+				parseFieldPath(invalidPath, testState.rootTable, testState.config);
 			}).toThrow(TABLE_NOT_ALLOWED_REGEX);
 		});
 	});
@@ -416,7 +416,7 @@ describe("Field Path Parsing Tests", () => {
 			const longFieldName = "a".repeat(1000);
 
 			expect(() => {
-				parseFieldPath({ field: `users.${longFieldName}`, state: testState });
+				parseFieldPath(`users.${longFieldName}`, testState.rootTable, testState.config);
 			}).toThrow();
 		});
 
@@ -425,7 +425,7 @@ describe("Field Path Parsing Tests", () => {
 
 			// Long paths should be allowed but might be impractical
 			expect(() => {
-				parseFieldPath({ field: `users.${longPath}`, state: testState });
+				parseFieldPath(`users.${longPath}`, testState.rootTable, testState.config);
 			}).not.toThrow();
 		});
 
@@ -440,7 +440,7 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const unicodeField of unicodeFields) {
 				expect(() => {
-					parseFieldPath({ field: `users.${unicodeField}`, state: testState });
+					parseFieldPath(`users.${unicodeField}`, testState.rootTable, testState.config);
 				}).toThrow();
 			}
 		});
@@ -457,7 +457,7 @@ describe("Field Path Parsing Tests", () => {
 
 			for (const controlField of controlCharFields) {
 				expect(() => {
-					parseFieldPath({ field: `users.${controlField}`, state: testState });
+					parseFieldPath(`users.${controlField}`, testState.rootTable, testState.config);
 				}).toThrow();
 			}
 		});

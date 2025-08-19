@@ -22,6 +22,5 @@ export function removeAllWrappingParens(expression: string): string {
 }
 
 export function applyFunction(functionName: string, args: string[]): string {
-	if (args.length === 0) throw new Error(`Function '${functionName}' requires at least one argument`);
 	return `${functionName}(${args.map((arg) => removeAllWrappingParens(arg)).join(", ")})`;
 }

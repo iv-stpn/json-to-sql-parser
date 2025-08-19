@@ -1,11 +1,13 @@
-export const isEmpty = (str: string) => str.trim() === "";
-
 export function isNotNull<T>(value: T | null): value is T {
 	return value !== null;
 }
 
-export function isInArray<_T, U extends readonly unknown[]>(array: U, value: unknown): value is U[number] {
-	return array.includes(value as U[number]);
+export function isNonEmptyArray<T>(value: unknown): value is [T, ...T[]] {
+	return Array.isArray(value) && value.length > 0;
+}
+
+export function objectSize<T extends object>(obj: T): number {
+	return Object.keys(obj).length;
 }
 
 export function objectKeys<T extends object>(obj: T): (keyof T)[] {
@@ -17,6 +19,7 @@ export function objectEntries<T extends Record<string, unknown>>(obj: T): [keyof
 }
 
 export const quote = (str: string): string => `'${str.replaceAll(/'/g, "''")}'`;
+export const doubleQuote = (str: string): string => `"${str.replaceAll(/"/g, '""')}"`;
 
 export const getErrorMessage = (error: unknown): string => {
 	if (error instanceof AggregateError) return error.errors.map(getErrorMessage).join(", ");

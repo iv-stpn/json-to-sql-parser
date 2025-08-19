@@ -1,69 +1,74 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: we use `then` and `else` for conditional expressions */
 import { z } from "zod";
-import { aggregationFunctionNames } from "./constants/aggregation-functions";
+import { aggregationFunctionNames } from "./functions/aggregate";
 import { isField } from "./utils/validators";
 
-// Primitive value types
-export const scalarValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
-export type ScalarValue = z.infer<typeof scalarValueSchema>;
+// Scalar value types
+const scalarPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+export type ScalarPrimitive = z.infer<typeof scalarPrimitiveSchema>;
+
+// Scalar expression types (timestamp, date, uuid, jsonb)
+const scalarExpressionSchema = z.union([
+	z.strictObject({ $date: z.string() }),
+	z.strictObject({ $timestamp: z.string() }),
+	z.strictObject({ $jsonb: z.looseObject({}) }),
+	z.strictObject({ $uuid: z.uuid({ message: "Invalid UUID format" }) }),
+]);
+export type ScalarExpression = z.infer<typeof scalarExpressionSchema>;
 
 export type ConditionExpression = { if: Condition; then: AnyExpression; else: AnyExpression };
 export type ExpressionObject =
 	| { $field: string } // Field reference
 	| { $var: string } // Variable reference
 	| { $func: { [functionName: string]: AnyExpression[] } } // Function call with arguments
-	| { $timestamp: string } // Timestamp value
-	| { $date: string } // Date value
-	| { $uuid: string } // UUID value
-	| { $cond: ConditionExpression };
+	| { $cond: ConditionExpression } // Conditional expression
+	| ScalarExpression; // Scalar expressions (timestamp, date, uuid, jsonb)
 
 export const expressionObjectSchema: z.ZodType<ExpressionObject> = z.lazy(() =>
 	z.union([
-		z.object({
-			$cond: z.object({
+		z.strictObject({
+			$cond: z.strictObject({
 				if: z.lazy(() => conditionSchema),
 				then: z.lazy(() => anyExpressionSchema),
 				else: z.lazy(() => anyExpressionSchema),
 			}),
 		}),
-		z.object({
-			$func: z.record(z.string(), z.array(z.lazy(() => anyExpressionSchema))),
-		}), // Function call
-		z.object({ $field: z.string() }), // Field reference
-		z.object({ $var: z.string() }), // Variable reference
-		z.object({ $timestamp: z.string() }), // Timestamp value
-		z.object({ $date: z.string() }), // Date value
-		z.object({ $uuid: z.uuid({ error: "Invalid UUID format" }) }), // UUID value
+		z.strictObject({ $var: z.string() }), // Variable reference
+		z.strictObject({ $field: z.string() }), // Field reference
+		z.strictObject({ $func: z.record(z.string(), z.array(z.lazy(() => anyExpressionSchema))) }), // Function call
+		scalarExpressionSchema, // Scalar expressions (timestamp, date, uuid)
 	]),
 );
 
-export type AnyExpression = ExpressionObject | ScalarValue;
-export const anyExpressionSchema: z.ZodType<AnyExpression> = z.lazy(() => z.union([expressionObjectSchema, scalarValueSchema]));
-
-export type AnyBooleanExpression = ExpressionObject | boolean;
-export const anyBooleanExpressionSchema: z.ZodType<AnyBooleanExpression> = z.lazy(() =>
-	z.union([expressionObjectSchema, z.boolean()]),
+export type AnyExpression = ExpressionObject | ScalarPrimitive;
+export const anyExpressionSchema: z.ZodType<AnyExpression> = z.lazy(() =>
+	z.union([expressionObjectSchema, scalarPrimitiveSchema]),
 );
 
-const $func = anyExpressionSchema.optional();
-const comparisonOperators = { $eq: $func, $ne: $func, $gt: $func, $gte: $func, $lt: $func, $lte: $func };
-const stringOperators = { $like: $func, $ilike: $func, $regex: $func };
+type AnyBooleanExpression = ExpressionObject | boolean;
+const anyBooleanExpressionSchema: z.ZodType<AnyBooleanExpression> = z.lazy(() => z.union([expressionObjectSchema, z.boolean()]));
 
-const $arrayExpr = z.array(anyExpressionSchema).optional();
-const arrayOperators = { $in: $arrayExpr, $nin: $arrayExpr };
+const anyExpr = anyExpressionSchema.optional();
+const anyArrayExpr = z.array(anyExpressionSchema).optional();
+export const comparisonOperators = { $eq: anyExpr, $ne: anyExpr, $gt: anyExpr, $gte: anyExpr, $lt: anyExpr, $lte: anyExpr };
+export const stringOperators = { $like: anyExpr, $ilike: anyExpr, $regex: anyExpr };
+export const arrayOperators = { $in: anyArrayExpr, $nin: anyArrayExpr };
 
 // All conditions that can be applied to a field (multiple conditions can be combined)
-const fieldConditionSchema = z.union([
-	z.object({ ...comparisonOperators, ...stringOperators, ...arrayOperators }),
-	anyExpressionSchema,
-]);
-
+const fieldConditionSchema = z.strictObject({ ...comparisonOperators, ...stringOperators, ...arrayOperators });
+export type FieldOperator = keyof typeof fieldConditionSchema.shape;
 export type FieldCondition = z.infer<typeof fieldConditionSchema>;
+export type AnyFieldCondition = FieldCondition | AnyExpression;
 
-// Ensures field starts with lowercase letter
-const fieldNameSchema = z.string().refine(isField, "Field name must be a valid identifier");
+// Ensures field starts with lowercase letter or is a NEW_ROW prefixed field
+const fieldNameSchema = z
+	.string()
+	.refine((field) => isField(field) || field.startsWith("NEW_ROW."), "Field name must be a valid identifier'");
+
 export type FieldName =
 	`${"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"}${string}`;
+
+export type ConditionFieldName = FieldName | `NEW_ROW.${string}`;
 
 export type Condition =
 	| { $and: Condition[] } // Logical AND
@@ -71,16 +76,16 @@ export type Condition =
 	| { $not: Condition } // Logical NOT
 	| { $exists: { table: string; condition: Condition } } // EXISTS subquery as (SELECT 1 FROM <table> WHERE <condition>)
 	| AnyBooleanExpression // Expression evaluating to TRUE or FALSE
-	| Record<FieldName, FieldCondition>; // Field conditions
+	| Record<ConditionFieldName, AnyFieldCondition>; // Field conditions
 
 export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
 	z.union([
-		z.object({ $and: z.array(z.lazy(() => conditionSchema)) }),
-		z.object({ $or: z.array(z.lazy(() => conditionSchema)) }),
-		z.object({ $not: z.lazy(() => conditionSchema) }),
-		z.object({ $exists: z.object({ table: z.string(), condition: z.lazy(() => conditionSchema) }) }),
+		z.strictObject({ $not: z.lazy(() => conditionSchema) }),
+		z.strictObject({ $or: z.array(z.lazy(() => conditionSchema)) }),
+		z.strictObject({ $and: z.array(z.lazy(() => conditionSchema)) }),
+		z.strictObject({ $exists: z.strictObject({ table: z.string(), condition: z.lazy(() => conditionSchema) }) }),
+		z.record(fieldNameSchema, z.union([fieldConditionSchema, anyExpressionSchema])),
 		anyBooleanExpressionSchema, // Expression evaluating to TRUE or FALSE
-		z.record(fieldNameSchema, fieldConditionSchema),
 	]),
 );
 
@@ -95,7 +100,7 @@ export const fieldSelectionSchema: z.ZodType<FieldSelection> = z.union([
 	),
 ]);
 
-export const selectQuerySchema = z.object({
+export const selectQuerySchema = z.strictObject({
 	rootTable: z.string(),
 	selection: z.record(z.string(), fieldSelectionSchema),
 	condition: conditionSchema.optional(),
@@ -104,7 +109,7 @@ export const selectQuerySchema = z.object({
 export type SelectQuery = z.infer<typeof selectQuerySchema>;
 
 // Aggregation schemas
-export const aggregatedFieldSchema = z.object({
+const aggregatedFieldSchema = z.strictObject({
 	field: z.union([z.string(), expressionObjectSchema]),
 	function: z.enum(aggregationFunctionNames),
 	additionalArguments: z.array(anyExpressionSchema).optional(),
@@ -113,7 +118,7 @@ export const aggregatedFieldSchema = z.object({
 export type AggregatedField = z.infer<typeof aggregatedFieldSchema>;
 
 // Schema for aggregation query
-export const aggregationQuerySchema = z.object({
+export const aggregationQuerySchema = z.strictObject({
 	table: z.string(),
 	groupBy: z.array(z.string()),
 	condition: conditionSchema.optional(),
@@ -121,3 +126,25 @@ export const aggregationQuerySchema = z.object({
 });
 
 export type AggregationQuery = z.infer<typeof aggregationQuerySchema>;
+
+// Union of scalar values and scalar expressions
+export const anyScalarSchema = z.union([scalarPrimitiveSchema, scalarExpressionSchema]);
+export type AnyScalar = z.infer<typeof anyScalarSchema>;
+
+// Insert query schema
+export const insertQuerySchema = z.strictObject({
+	table: z.string(),
+	newRow: z.record(z.string(), anyScalarSchema),
+	condition: conditionSchema.optional(),
+});
+
+export type InsertQuery = z.infer<typeof insertQuerySchema>;
+
+// Update query schema
+export const updateQuerySchema = z.strictObject({
+	table: z.string(),
+	updates: z.record(z.string(), anyScalarSchema),
+	condition: conditionSchema.optional(),
+});
+
+export type UpdateQuery = z.infer<typeof updateQuerySchema>;

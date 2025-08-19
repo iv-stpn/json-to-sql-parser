@@ -58,7 +58,8 @@
 	"license": "MIT",
 	"author": "Ivan Stepanian <iv.stpn@gmail.com>",
 	"dependencies": {
-		"zod": "^4"
+		"zod": "^4",
+		"uuid": "^11"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.1.4",

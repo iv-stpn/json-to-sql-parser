@@ -86,7 +86,7 @@ interface Config {
       allowedFields: Field[];
     };
   };
-  variables: { [varName: string]: Primitive };
+  variables: { [varName: string]: ScalarPrimitive };
   relationships: Relationship[];
   dataTable?: DataTableConfig; // For schema-less storage
 }
