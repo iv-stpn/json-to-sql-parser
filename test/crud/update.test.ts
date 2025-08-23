@@ -82,10 +82,8 @@ describe("CRUD - UPDATE Mixed Row Condition Processing", () => {
 			},
 		};
 
-		const result = buildUpdateQuery(updateQuery, mockConfig);
-
-		expect(result.sql).toBe('UPDATE users SET \"name\" = $1, \"age\" = $2 WHERE users.active = $3');
-		expect(result.params).toEqual(["John Updated", 25, true]);
+		const sql = buildUpdateQuery(updateQuery, mockConfig);
+		expect(sql).toBe('UPDATE users SET \"name\" = \'John Updated\', \"age\" = 25 WHERE users.active = TRUE');
 	});
 
 	it("should make NEW_ROW field conditions apply to existing values if those fields are not updated", () => {
@@ -102,10 +100,9 @@ describe("CRUD - UPDATE Mixed Row Condition Processing", () => {
 			},
 		};
 
-		const result = buildUpdateQuery(updateQuery, mockConfig);
+		const sql = buildUpdateQuery(updateQuery, mockConfig);
 
-		expect(result.sql).toBe('UPDATE users SET \"name\" = $1 WHERE (users.age >= $2 AND users.active = $3)');
-		expect(result.params).toEqual(["John Updated", 18, true]);
+		expect(sql).toBe("UPDATE users SET \"name\" = 'John Updated' WHERE (users.age >= 18 AND users.active = TRUE)");
 	});
 
 	it("should short-circuit when NEW_ROW condition in AND fails", () => {
@@ -142,10 +139,9 @@ describe("CRUD - UPDATE Mixed Row Condition Processing", () => {
 			},
 		};
 
-		const result = buildUpdateQuery(updateQuery, mockConfig);
+		const sql = buildUpdateQuery(updateQuery, mockConfig);
 
-		expect(result.sql).toBe('UPDATE users SET "name" = $1, "age" = $2');
-		expect(result.params).toEqual(["John Updated", 25]);
+		expect(sql).toBe('UPDATE users SET "name" = \'John Updated\', "age" = 25');
 	});
 
 	it("should handle pure NEW_ROW conditions", () => {
@@ -160,10 +156,9 @@ describe("CRUD - UPDATE Mixed Row Condition Processing", () => {
 			},
 		};
 
-		const result = buildUpdateQuery(updateQuery, mockConfig);
+		const sql = buildUpdateQuery(updateQuery, mockConfig);
 
-		expect(result.sql).toBe('UPDATE users SET "name" = $1, "age" = $2');
-		expect(result.params).toEqual(["John Updated", 25]);
+		expect(sql).toBe('UPDATE users SET "name" = \'John Updated\', "age" = 25');
 	});
 
 	it("should handle pure old row conditions", () => {
@@ -179,10 +174,11 @@ describe("CRUD - UPDATE Mixed Row Condition Processing", () => {
 			},
 		};
 
-		const result = buildUpdateQuery(updateQuery, mockConfig);
+		const sql = buildUpdateQuery(updateQuery, mockConfig);
 
-		expect(result.sql).toBe('UPDATE users SET \"name\" = $1, \"age\" = $2 WHERE (users.active = $3 AND users.status = $4)');
-		expect(result.params).toEqual(["John Updated", 25, true, "premium"]);
+		expect(sql).toBe(
+			"UPDATE users SET \"name\" = 'John Updated', \"age\" = 25 WHERE (users.active = TRUE AND users.status = 'premium')",
+		);
 	});
 });
 
@@ -218,12 +214,10 @@ describe("CRUD - UPDATE Query Complex Operations", () => {
 				},
 			};
 
-			const result = buildUpdateQuery(updateQuery, testConfig);
+			const sql = buildUpdateQuery(updateQuery, testConfig);
 
-			// NEW_ROW condition should short-circuit to true, old row conditions in WHERE
-			expect(result.sql).toContain('UPDATE users SET "status" = $1');
-			expect(result.sql).toContain("WHERE NOT");
-			expect(result.params[0]).toBe("updated");
+			expect(sql).toContain("UPDATE users SET \"status\" = 'updated'");
+			expect(sql).toContain("WHERE NOT");
 		});
 
 		test("should handle complex object field operations in conditions", () => {
@@ -250,11 +244,10 @@ describe("CRUD - UPDATE Query Complex Operations", () => {
 				},
 			};
 
-			const result = buildUpdateQuery(updateQuery, testConfig);
-			expect(result.sql).toBe(
-				'UPDATE users SET "metadata" = \'{"updated":true,"processed_at":"2024-01-01"}\'::JSONB WHERE (users.role = $1 OR users.role = $2)',
+			const sql = buildUpdateQuery(updateQuery, testConfig);
+			expect(sql).toBe(
+				'UPDATE users SET "metadata" = \'{"updated":true,"processed_at":"2024-01-01"}\'::JSONB WHERE (users.role = \'admin\' OR users.role = \'ADMIN\')',
 			);
-			expect(result.params).toEqual(["admin", "ADMIN"]);
 		});
 	});
 
@@ -274,10 +267,9 @@ describe("CRUD - UPDATE Query Complex Operations", () => {
 				},
 			};
 
-			const result = buildUpdateQuery(updateQuery, testConfig);
+			const sql = buildUpdateQuery(updateQuery, testConfig);
 
-			expect(result.sql).toBe('UPDATE users SET "score" = NULL, "metadata" = \'{"info":"test"}\'::JSONB WHERE users.id = $1');
-			expect(result.params).toEqual(["user123"]);
+			expect(sql).toBe('UPDATE users SET "score" = NULL, "metadata" = \'{"info":"test"}\'::JSONB WHERE users.id = \'user123\'');
 		});
 
 		test("should handle type coercion in complex conditional expressions", () => {
@@ -310,11 +302,11 @@ describe("CRUD - UPDATE Query Complex Operations", () => {
 				},
 			};
 
-			const result = buildUpdateQuery(updateQuery, testConfig);
+			const sql = buildUpdateQuery(updateQuery, testConfig);
 
 			// Should handle type coercion and generate appropriate WHERE clause
-			expect(result.sql).toContain("UPDATE users SET");
-			expect(result.sql).toContain("WHERE");
+			expect(sql).toContain("UPDATE users SET");
+			expect(sql).toContain("WHERE");
 		});
 	});
 
@@ -358,11 +350,10 @@ describe("CRUD - UPDATE Query Complex Operations", () => {
 				},
 			};
 
-			const result = buildUpdateQuery(updateQuery, testConfig);
+			const sql = buildUpdateQuery(updateQuery, testConfig);
 
 			// Should short-circuit the $or since first condition is true
-			expect(result.sql).toBe('UPDATE users SET "active" = $1');
-			expect(result.params).toEqual([false]);
+			expect(sql).toBe('UPDATE users SET "active" = FALSE');
 		});
 	});
 });

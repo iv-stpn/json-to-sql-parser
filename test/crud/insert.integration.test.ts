@@ -58,21 +58,21 @@ describe("Integration - INSERT Operations and Data Persistence", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, config);
-			expect(result.sql).toBe(
-				`INSERT INTO users ("id", "name", "email", "active", "status", "age", "balance", "birth_date", "created_at", "metadata") VALUES ('01234567-89ab-4cde-a123-456789abcdef'::UUID, $1, $2, $3, $4, NULL, NULL, NULL, NULL, NULL)`,
+			const sql = buildInsertQuery(insertQuery, config);
+			expect(sql).toBe(
+				`INSERT INTO users ("id", "name", "email", "active", "status", "age", "balance", "birth_date", "created_at", "metadata") VALUES ('01234567-89ab-4cde-a123-456789abcdef'::UUID, 'Integration Test User', 'test@example.com', TRUE, 'active', NULL, NULL, NULL, NULL, NULL)`,
 			);
-			expect(result.params).toEqual(["Integration Test User", "test@example.com", true, "active"]);
 
 			// Execute the insert
-			await db.query(result.sql, result.params);
+			await db.query(sql);
 
 			// Verify the data was inserted
-			const rows = await db.query("SELECT id, name, email, active, status FROM users WHERE id = $1", [
-				"01234567-89ab-4cde-a123-456789abcdef",
-			]);
+			const rows = await db.query(
+				"SELECT id, name, email, active, status FROM users WHERE id = '01234567-89ab-4cde-a123-456789abcdef'",
+			);
 
 			expect(rows.length).toBe(1);
+
 			const user = rows[0] as Record<string, unknown>;
 			expect(user.id).toBe("01234567-89ab-4cde-a123-456789abcdef");
 			expect(user.name).toBe("Integration Test User");
@@ -96,19 +96,18 @@ describe("Integration - INSERT Operations and Data Persistence", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, config);
-			expect(result.sql).toBe(
-				`INSERT INTO users ("id", "name", "active", "status", "birth_date", "created_at", "email", "age", "balance", "metadata") VALUES ('12345678-9abc-4def-b456-789abcdef012'::UUID, $1, $2, $3, '1994-08-19'::DATE, '2024-08-19 10:00:00'::TIMESTAMP, NULL, NULL, NULL, NULL)`,
+			const sql = buildInsertQuery(insertQuery, config);
+			expect(sql).toBe(
+				`INSERT INTO users ("id", "name", "active", "status", "birth_date", "created_at", "email", "age", "balance", "metadata") VALUES ('12345678-9abc-4def-b456-789abcdef012'::UUID, 'Date Test User', TRUE, 'active', '1994-08-19'::DATE, '2024-08-19 10:00:00'::TIMESTAMP, NULL, NULL, NULL, NULL)`,
 			);
-			expect(result.params).toEqual(["Date Test User", true, "active"]);
 
 			// Execute the insert
-			await db.query(result.sql, result.params);
+			await db.query(sql);
 
 			// Verify the data was inserted
-			const rows = await db.query("SELECT id, name, birth_date, created_at FROM users WHERE id = $1", [
-				"12345678-9abc-4def-b456-789abcdef012",
-			]);
+			const rows = await db.query(
+				"SELECT id, name, birth_date, created_at FROM users WHERE id = '12345678-9abc-4def-b456-789abcdef012'",
+			);
 
 			expect(rows.length).toBe(1);
 			const user = rows[0] as Record<string, unknown>;
@@ -149,15 +148,15 @@ describe("Integration - INSERT Operations and Data Persistence", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, config);
+			const sql = buildInsertQuery(insertQuery, config);
 
 			// Execute the insert
-			await db.query(result.sql, result.params);
+			await db.query(sql);
 
 			// Verify the data was inserted with null values
-			const rows = await db.query("SELECT name, email, age, balance FROM users WHERE id = $1", [
-				"23456789-abcd-4ef4-8567-89abcdef0123",
-			]);
+			const rows = await db.query(
+				"SELECT name, email, age, balance FROM users WHERE id = '23456789-abcd-4ef4-8567-89abcdef0123'",
+			);
 			expect(rows.length).toBe(1);
 			const user = rows[0] as Record<string, unknown>;
 			expect(user.name).toBe("Null Test User");

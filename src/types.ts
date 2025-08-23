@@ -1,5 +1,5 @@
 import type { FieldType } from "./constants/cast-types";
-import type { AnyExpression, AnyScalar, ScalarPrimitive } from "./schemas";
+import type { AnyExpression, AnyScalar } from "./schemas";
 import type { ExpressionTypeMap } from "./utils/expression-map";
 
 export type Field = { name: string; type: FieldType; nullable: boolean; default?: AnyExpression };
@@ -14,4 +14,4 @@ type Variables = { [varName: string]: AnyScalar };
 type DataTableConfig = { table: string; dataField: string; tableField: string; whereConditions?: string[] };
 export type Config = { tables: Tables; variables: Variables; relationships: Relationship[]; dataTable?: DataTableConfig };
 
-export type ParserState = { config: Config; params: ScalarPrimitive[]; rootTable: string; expressions: ExpressionTypeMap };
+export type ParserState = { config: Config; rootTable: string; expressions: ExpressionTypeMap };

@@ -1,14 +1,14 @@
 import { ensureConditionObject } from "../parsers/issues";
 import type { EvaluationContext } from "../parsers/mutations";
 import { evaluateCondition, parseNewRow, processMutationFields } from "../parsers/mutations";
-import type { Condition, ScalarPrimitive, UpdateQuery } from "../schemas";
+import type { Condition, UpdateQuery } from "../schemas";
 import type { Config, ParserState } from "../types";
 import { doubleQuote } from "../utils";
 import { ExpressionTypeMap } from "../utils/expression-map";
 import { buildWhereClause } from "./where";
 
 type UpdateState = ParserState & { updates: string[] };
-type ParsedUpdateQuery = { table: string; params: ScalarPrimitive[]; updates: Record<string, unknown>; where?: string };
+type ParsedUpdateQuery = { table: string; updates: Record<string, unknown>; where?: string };
 
 export function parseUpdateQuery(updateQuery: UpdateQuery, config: Config): ParsedUpdateQuery {
 	const { table, updates, condition } = updateQuery;
@@ -24,7 +24,7 @@ export function parseUpdateQuery(updateQuery: UpdateQuery, config: Config): Pars
 
 	// Initialize state
 	const expressions = new ExpressionTypeMap();
-	const state: UpdateState = { config, rootTable: table, params: [], expressions, updates: [] };
+	const state: UpdateState = { config, rootTable: table, expressions, updates: [] };
 
 	// Process update fields and generate WHERE clause
 	const processedFields = processMutationFields(updates, state);
@@ -36,8 +36,8 @@ export function parseUpdateQuery(updateQuery: UpdateQuery, config: Config): Pars
 	}
 
 	if (conditionResult === false) throw new Error("Update condition not met.");
-	if (conditionResult === true) return { table, params: state.params, updates: processedFields };
-	return { table, params: state.params, updates: processedFields, where: buildWhereClause(conditionResult, state) };
+	if (conditionResult === true) return { table, updates: processedFields };
+	return { table, updates: processedFields, where: buildWhereClause(conditionResult, state) };
 }
 
 export function compileUpdateQuery(query: ParsedUpdateQuery): string {
@@ -50,11 +50,8 @@ export function compileUpdateQuery(query: ParsedUpdateQuery): string {
 	return sql;
 }
 
-export function buildUpdateQuery(
-	updateQuery: UpdateQuery,
-	config: Config,
-): { sql: string; params: ScalarPrimitive[]; conditionResult?: Condition } {
+export function buildUpdateQuery(updateQuery: UpdateQuery, config: Config): string {
 	const parsedQuery = parseUpdateQuery(updateQuery, config);
 	const sql = compileUpdateQuery(parsedQuery);
-	return { sql, params: parsedQuery.params };
+	return sql;
 }

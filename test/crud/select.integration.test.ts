@@ -84,10 +84,10 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 		it("should execute simple equality condition", async () => {
 			await db.executeInTransaction(async () => {
 				const condition: Condition = { "users.active": true };
-				const result = extractSelectWhereClause(condition, config, "users");
+				const whereSql = extractSelectWhereClause(condition, config, "users");
 
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const sql = `SELECT * FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(4); // 4 active users
 				expect(rows.every((row: unknown) => (row as Record<string, unknown>).active === true)).toBe(true);
@@ -99,10 +99,10 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 				const condition: Condition = {
 					$and: [{ "users.active": true }, { "users.age": { $gte: 30 } }],
 				};
-				const result = extractSelectWhereClause(condition, config, "users");
+				const whereSql = extractSelectWhereClause(condition, config, "users");
 
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const sql = `SELECT * FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(2); // John (30) and Charlie (32)
 				expect(
@@ -119,10 +119,10 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 				const condition: Condition = {
 					$or: [{ "users.status": "premium" }, { "users.age": { $lt: 26 } }],
 				};
-				const result = extractSelectWhereClause(condition, config, "users");
+				const whereSql = extractSelectWhereClause(condition, config, "users");
 
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const sql = `SELECT * FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(3); // John & Alice (premium) + Jane (age 25)
 			});
@@ -133,10 +133,10 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 				const condition: Condition = {
 					"users.metadata->department": "engineering",
 				};
-				const result = extractSelectWhereClause(condition, config, "users");
+				const whereSql = extractSelectWhereClause(condition, config, "users");
 
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const sql = `SELECT * FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(2); // John and Alice
 				expect(
@@ -153,10 +153,10 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 				const condition: Condition = {
 					"users.email": { $eq: null },
 				};
-				const result = extractSelectWhereClause(condition, config, "users");
+				const whereSql = extractSelectWhereClause(condition, config, "users");
 
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const sql = `SELECT * FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(1); // Charlie has null email
 				expect((rows[0] as Record<string, unknown>).email).toBe(null);
@@ -168,10 +168,9 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 		it("should execute basic select query", async () => {
 			await db.executeInTransaction(async () => {
 				const selection = { id: true, name: true, email: true };
-				const result = parseSelectQuery({ rootTable: "users", selection }, config);
-				const sql = compileSelectQuery(result);
+				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection }, config));
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(5);
 				expect(rows[0]).toHaveProperty("id");
@@ -184,10 +183,9 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 			await db.executeInTransaction(async () => {
 				const selection = { id: true, name: true, status: true };
 				const condition: Condition = { "users.status": "premium" };
-				const result = parseSelectQuery({ rootTable: "users", selection, condition }, config);
-				const sql = compileSelectQuery(result);
+				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection, condition }, config));
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(2); // John and Alice
 				expect(
@@ -206,10 +204,9 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 					name: true,
 					department: { $field: "users.metadata->department" },
 				};
-				const result = parseSelectQuery({ rootTable: "users", selection }, config);
-				const sql = compileSelectQuery(result);
+				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection }, config));
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(5);
 				expect(rows[0]).toHaveProperty("department");
@@ -230,10 +227,9 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 					},
 				};
 
-				const result = parseAggregationQuery(aggregationQuery, config);
-				const sql = compileAggregationQuery(result);
+				const sql = compileAggregationQuery(parseAggregationQuery(aggregationQuery, config));
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBeGreaterThan(0);
 				expect(rows[0]).toHaveProperty("status");
@@ -262,10 +258,9 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 					},
 				};
 
-				const result = parseAggregationQuery(aggregationQuery, config);
-				const sql = compileAggregationQuery(result);
+				const sql = compileAggregationQuery(parseAggregationQuery(aggregationQuery, config));
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBeGreaterThan(0);
 				expect(rows[0]).toHaveProperty("metadata->department");
@@ -304,8 +299,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 			const conditionResult = extractSelectWhereClause(condition, config, "orders");
 			const aggregationResult = parseAggregationQuery(aggregationQuery, config);
 
-			expect(conditionResult.sql).toContain("orders.status IN");
-			expect(conditionResult.params).toEqual(["completed", "shipped"]);
+			expect(conditionResult).toContain("orders.status IN");
 
 			const sql = compileAggregationQuery(aggregationResult);
 			expect(sql).toContain("GROUP BY");
@@ -457,8 +451,8 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(selectQuery, config);
-				const rows = await db.query(sql, params);
+				const sql = buildSelectQuery(selectQuery, config);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -603,8 +597,8 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 					condition,
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
-				const rows = await db.query(sql, params);
+				const sql = buildSelectQuery(query, config);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -701,8 +695,8 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(selectQuery, config);
-				const rows = await db.query(sql, params);
+				const sql = buildSelectQuery(selectQuery, config);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -917,8 +911,8 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(selectQuery, config);
-				const rows = await db.query(sql, params);
+				const sql = buildSelectQuery(selectQuery, config);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);

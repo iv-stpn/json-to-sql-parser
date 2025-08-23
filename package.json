@@ -2,7 +2,7 @@
 	"name": "json-to-sql-parser",
 	"type": "module",
 	"version": "2.1.0",
-	"description": "A TypeScript library that converts JSON-based query specifications into safe, parameterized SQL queries",
+	"description": "A TypeScript library that converts JSON-based query specifications into safe SQL queries",
 	"keywords": [
 		"sql",
 		"json",
@@ -11,7 +11,6 @@
 		"database",
 		"query",
 		"safe",
-		"parameterized",
 		"zod",
 		"validation"
 	],

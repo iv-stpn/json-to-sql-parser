@@ -1,5 +1,5 @@
 import { aliasValue, castValue, parseExpressionObject, parseField, parseScalarExpression } from "../parsers";
-import type { FieldName, FieldSelection, ScalarPrimitive, SelectQuery } from "../schemas";
+import type { FieldName, FieldSelection, SelectQuery } from "../schemas";
 import type { Config, ParserState } from "../types";
 import { objectSize } from "../utils";
 import { ExpressionTypeMap } from "../utils/expression-map";
@@ -57,7 +57,7 @@ function processRelationship(table: string, selection: Selection, fromTable: str
 }
 
 // Result of parsing a SELECT query
-type ParsedSelectQuery = { select: string[]; from: string; where?: string; params: ScalarPrimitive[]; joins: string[] };
+type ParsedSelectQuery = { select: string[]; from: string; where?: string; joins: string[] };
 export function parseSelectQuery(selectQuery: SelectQuery, config: Config): ParsedSelectQuery {
 	const { rootTable, selection, condition } = selectQuery;
 
@@ -71,13 +71,13 @@ export function parseSelectQuery(selectQuery: SelectQuery, config: Config): Pars
 	const processedTables = new Set([rootTable]);
 	const expressions = new ExpressionTypeMap();
 
-	const state: SelectState = { config, rootTable, params: [], expressions, select: [], joins: [], processedTables };
+	const state: SelectState = { config, rootTable, expressions, select: [], joins: [], processedTables };
 	for (const [fieldName, fieldValue] of Object.entries(selection)) processField(fieldName, fieldValue, rootTable, state);
 
 	const from = config.dataTable ? aliasValue(config.dataTable.table, rootTable) : rootTable;
 	const where = buildWhereClause(condition, state);
 
-	return { select: state.select, from, where, joins: state.joins, params: state.params };
+	return { select: state.select, from, where, joins: state.joins };
 }
 
 export function compileSelectQuery(query: ParsedSelectQuery): string {
@@ -88,8 +88,8 @@ export function compileSelectQuery(query: ParsedSelectQuery): string {
 	return sql;
 }
 
-export function buildSelectQuery(selectQuery: SelectQuery, config: Config): { sql: string; params: ScalarPrimitive[] } {
+export function buildSelectQuery(selectQuery: SelectQuery, config: Config): string {
 	const parsedQuery = parseSelectQuery(selectQuery, config);
 	const sql = compileSelectQuery(parsedQuery);
-	return { sql, params: parsedQuery.params };
+	return sql;
 }

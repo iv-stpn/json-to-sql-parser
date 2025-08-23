@@ -56,7 +56,6 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 
 		testState = {
 			config: testConfig,
-			params: [],
 			rootTable: "users",
 			expressions: new ExpressionTypeMap(),
 		};
@@ -68,9 +67,8 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				"users.id": { $eq: { $uuid: "550e8400-e29b-41d4-a716-446655440000" } },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.id = '550e8400-e29b-41d4-a716-446655440000'::UUID");
-			expect(result.params).toEqual([]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("users.id = '550e8400-e29b-41d4-a716-446655440000'::UUID");
 		});
 
 		it("should handle UUID values with comparison operators", () => {
@@ -84,10 +82,9 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			];
 
 			for (const condition of conditions) {
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBeTruthy();
-				// UUID expressions generate literal SQL, not parameters
-				expect(result.sql).toContain("550e8400-e29b-41d4-a716-446655440000");
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBeTruthy();
+				expect(sql).toContain("550e8400-e29b-41d4-a716-446655440000");
 			}
 		});
 
@@ -96,10 +93,8 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				"users.id": { $eq: { $var: "auth.uid" } },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			// Variables get casted and rendered as literals, not parameters
-			expect(result.sql).toBe("(users.id)::TEXT = '550e8400-e29b-41d4-a716-446655440000'");
-			expect(result.params).toEqual([]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("(users.id)::TEXT = '550e8400-e29b-41d4-a716-446655440000'");
 		});
 
 		it("should reject invalid UUID formats", () => {
@@ -135,10 +130,8 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				},
 			};
 
-			const result = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(result);
+			const sql = compileSelectQuery(parseSelectQuery(query, testConfig));
 			expect(sql).toContain("users.profile_id = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'");
-			expect(result.params).toEqual([]);
 		});
 	});
 
@@ -148,9 +141,8 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				"users.created_at": { $gte: { $timestamp: "2024-01-01T00:00:00" } },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.created_at >= '2024-01-01 00:00:00'::TIMESTAMP");
-			expect(result.params).toEqual([]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("users.created_at >= '2024-01-01 00:00:00'::TIMESTAMP");
 		});
 
 		it("should handle timestamp values with comparison operators", () => {
@@ -162,9 +154,9 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			];
 
 			for (const condition of conditions) {
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBeTruthy();
-				expect(result.sql).toContain("::TIMESTAMP");
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBeTruthy();
+				expect(sql).toContain("::TIMESTAMP");
 			}
 		});
 
@@ -173,10 +165,8 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				"users.created_at": { $lt: { $var: "current_timestamp" } },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			// Variables get casted and rendered as literals, not parameters
-			expect(result.sql).toBe("(users.created_at)::TEXT < '2024-01-15T10:30:45'");
-			expect(result.params).toEqual([]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("(users.created_at)::TEXT < '2024-01-15T10:30:45'");
 		});
 
 		it("should reject invalid timestamp formats", () => {
@@ -207,8 +197,8 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				],
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "events");
-			expect(result.sql).toBe(
+			const sql = extractSelectWhereClause(condition, testConfig, "events");
+			expect(sql).toBe(
 				"(events.occurred_at >= '2024-01-01 00:00:00'::TIMESTAMP AND events.occurred_at < '2024-02-01 00:00:00'::TIMESTAMP)",
 			);
 		});
@@ -220,9 +210,8 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				"users.birth_date": { $eq: { $date: "1990-05-15" } },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.birth_date = '1990-05-15'::DATE");
-			expect(result.params).toEqual([]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("users.birth_date = '1990-05-15'::DATE");
 		});
 
 		it("should handle date values with comparison operators", () => {
@@ -234,9 +223,9 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			];
 
 			for (const condition of conditions) {
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBeTruthy();
-				expect(result.sql).toContain("::DATE");
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBeTruthy();
+				expect(sql).toContain("::DATE");
 			}
 		});
 
@@ -245,10 +234,8 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				"events.scheduled_date": { $eq: { $var: "current_date" } },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "events");
-			// Variables get casted and rendered as literals, not parameters
-			expect(result.sql).toBe("(events.scheduled_date)::TEXT = '2024-01-15'");
-			expect(result.params).toEqual([]);
+			const sql = extractSelectWhereClause(condition, testConfig, "events");
+			expect(sql).toBe("(events.scheduled_date)::TEXT = '2024-01-15'");
 		});
 
 		it("should reject invalid date formats", () => {
@@ -280,8 +267,8 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				],
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("(users.birth_date >= '1980-01-01'::DATE AND users.birth_date < '2000-01-01'::DATE)");
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("(users.birth_date >= '1980-01-01'::DATE AND users.birth_date < '2000-01-01'::DATE)");
 		});
 	});
 
@@ -295,11 +282,10 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				],
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "events");
-			expect(result.sql).toBe(
+			const sql = extractSelectWhereClause(condition, testConfig, "events");
+			expect(sql).toBe(
 				"(events.user_id = '550e8400-e29b-41d4-a716-446655440000'::UUID AND events.occurred_at >= '2024-01-01 00:00:00'::TIMESTAMP AND events.scheduled_date = '2024-01-15'::DATE)",
 			);
-			expect(result.params).toEqual([]);
 		});
 
 		it("should handle NULL comparisons with date types", () => {
@@ -310,8 +296,8 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			];
 
 			for (const condition of conditions) {
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBeTruthy();
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBeTruthy();
 			}
 		});
 
@@ -322,8 +308,8 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				},
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "events");
-			expect(result.sql).toBe("events.scheduled_date IN ('2024-01-15'::DATE, '2024-01-16'::DATE, '2024-01-17'::DATE)");
+			const sql = extractSelectWhereClause(condition, testConfig, "events");
+			expect(sql).toBe("events.scheduled_date IN ('2024-01-15'::DATE, '2024-01-16'::DATE, '2024-01-17'::DATE)");
 		});
 
 		it("should parse SELECT query with date type fields", () => {
@@ -343,12 +329,10 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				},
 			};
 
-			const result = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(result);
+			const sql = compileSelectQuery(parseSelectQuery(query, testConfig));
 			expect(sql).toContain("events.user_id");
 			expect(sql).toContain("(events.user_id)::TEXT = '550e8400-e29b-41d4-a716-446655440000'");
 			expect(sql).toContain("events.occurred_at >= '2024-01-01 00:00:00'::TIMESTAMP");
-			expect(result.params).toEqual([]);
 		});
 	});
 
@@ -394,21 +378,6 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			if (invalidTimestamp) {
 				expect(() => parseExpression(invalidTimestamp, testState)).toThrow("Invalid timestamp format");
 			}
-		});
-
-		it("should preserve original parameter order in complex queries", () => {
-			const condition: Condition = {
-				$and: [
-					{ "events.user_id": { $eq: { $uuid: "550e8400-e29b-41d4-a716-446655440000" } } },
-					{ "events.session_id": { $eq: { $uuid: "6ba7b810-9dad-11d1-80b4-00c04fd430c8" } } },
-				],
-			};
-
-			const result = extractSelectWhereClause(condition, testConfig, "events");
-			// UUID expressions are literals, not parameters
-			expect(result.params).toEqual([]);
-			expect(result.sql).toContain("550e8400-e29b-41d4-a716-446655440000");
-			expect(result.sql).toContain("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
 		});
 	});
 });

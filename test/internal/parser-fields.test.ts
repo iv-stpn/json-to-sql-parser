@@ -40,7 +40,6 @@ describe("Parser - Field Path Validation and Processing", () => {
 		testState = {
 			config: testConfig,
 			rootTable: "users",
-			params: [],
 			expressions: new ExpressionTypeMap(),
 		};
 	});

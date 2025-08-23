@@ -110,16 +110,15 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					condition,
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
-				const rows = await db.query(sql, params);
+				const sql = buildSelectQuery(query, config);
+				const rows = await db.query(sql);
+
+				expect(sql).toBe(
+					'SELECT users.name AS "name", users.age AS "age", users.active AS "active" FROM users WHERE (users.age >= 25 AND users.active = TRUE AND users.status = \'premium\')',
+				);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
-
-				// Verify proper type casting in generated SQL
-				expect(sql).toContain("users.age >= $");
-				expect(sql).toContain("users.active = $");
-				expect(sql).toContain("users.status = $");
 			});
 		});
 
@@ -145,13 +144,11 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					condition,
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
-				const rows = await db.query(sql, params);
+				const sql = buildSelectQuery(query, config);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
-				expect(params).toContain(18);
-				expect(params).toContain(65);
 			});
 		});
 	});
@@ -172,8 +169,8 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildAggregationQuery(aggregation, config);
-				const rows = await db.query(sql, params);
+				const sql = buildAggregationQuery(aggregation, config);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -181,7 +178,6 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 				// Verify mathematical operations in SQL
 				expect(sql).toContain("SUM");
 				expect(sql).toContain("AVG");
-				expect(params).toContain(100);
 			});
 		});
 	});
@@ -205,8 +201,8 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
-				const rows = await db.query(sql, params);
+				const sql = buildSelectQuery(query, config);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -238,8 +234,8 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
-				const rows = await db.query(sql, params);
+				const sql = buildSelectQuery(query, config);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -276,8 +272,8 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					condition,
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
-				const rows = await db.query(sql, params);
+				const sql = buildSelectQuery(query, config);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -309,9 +305,9 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					condition,
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 
-				const rows = await db.query(sql, params);
+				const rows = await db.query(sql);
 				expect(rows).toHaveLength(1);
 				expect((rows[0] as DbRow).name).toBe("John Doe");
 				expect((rows[0] as DbRow).id).toBe("550e8400-e29b-41d4-a716-446655440000");
@@ -341,10 +337,10 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 				const sqlWithOrderBy = `${sql} ORDER BY name`;
 
-				const rows = await db.query(sqlWithOrderBy, params);
+				const rows = await db.query(sqlWithOrderBy);
 				expect(rows).toHaveLength(2);
 				expect((rows[0] as DbRow).name).toBe("Jane Smith");
 				expect((rows[1] as DbRow).name).toBe("John Doe");
@@ -372,9 +368,9 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 
-				const rows = await db.query(sql, params);
+				const rows = await db.query(sql);
 				expect(rows).toHaveLength(1);
 				expect((rows[0] as DbRow).name).toBe("John Doe");
 			});
@@ -399,9 +395,9 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 
-				const rows = await db.query(sql, params);
+				const rows = await db.query(sql);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(rows.every((row) => (row as DbRow).user_id === "550e8400-e29b-41d4-a716-446655440000")).toBe(true);
 			});
@@ -428,9 +424,9 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 
-				const rows = await db.query(sql, params);
+				const rows = await db.query(sql);
 				expect(rows).toHaveLength(1);
 				expect((rows[0] as DbRow).title).toBe("Getting Started with PostgreSQL");
 			});
@@ -453,10 +449,10 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 				const sqlWithOrderBy = `${sql} ORDER BY published_at`;
 
-				const rows = await db.query(sqlWithOrderBy, params);
+				const rows = await db.query(sqlWithOrderBy);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(
 					rows.every((row) => {
@@ -485,9 +481,9 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 
-				const rows = await db.query(sql, params);
+				const rows = await db.query(sql);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(rows.every((row) => (row as DbRow).published_at === null)).toBe(true);
 			});
@@ -504,9 +500,9 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					groupBy: ["status"],
 				};
 
-				const { sql, params } = buildAggregationQuery(aggregationQuery, config);
+				const sql = buildAggregationQuery(aggregationQuery, config);
 
-				const rows = await db.query(sql, params);
+				const rows = await db.query(sql);
 				expect(rows.length).toBeGreaterThan(0);
 
 				expect(
@@ -535,9 +531,9 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 
-				const rows = await db.query(sql, params);
+				const rows = await db.query(sql);
 				expect(rows).toHaveLength(1);
 				expect((rows[0] as DbRow).name).toBe("John Doe");
 				expect(((rows[0] as DbRow).birth_date as Date).toISOString().split("T")[0]).toBe("1994-01-15");
@@ -561,10 +557,10 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 				const sqlWithOrderBy = `${sql} ORDER BY birth_date`;
 
-				const rows = await db.query(sqlWithOrderBy, params);
+				const rows = await db.query(sqlWithOrderBy);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(
 					rows.every((row) => {
@@ -589,10 +585,10 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 				const sqlWithOrderBy = `${sql} ORDER BY delivered_date`;
 
-				const rows = await db.query(sqlWithOrderBy, params);
+				const rows = await db.query(sqlWithOrderBy);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(rows.every((row) => (row as DbRow).delivered_date !== null)).toBe(true);
 			});
@@ -609,9 +605,9 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					groupBy: ["delivered_date"],
 				};
 
-				const { sql, params } = buildAggregationQuery(aggregationQuery, config);
+				const sql = buildAggregationQuery(aggregationQuery, config);
 
-				const rows = await db.query(sql, params);
+				const rows = await db.query(sql);
 				expect(rows.length).toBeGreaterThan(0);
 
 				expect(
@@ -650,9 +646,9 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 
-				const rows = await db.query(sql, params);
+				const rows = await db.query(sql);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(
 					rows.every((row) => {
@@ -679,9 +675,9 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					groupBy: ["customer_id"],
 				};
 
-				const { sql, params } = buildAggregationQuery(aggregationQuery, config);
+				const sql = buildAggregationQuery(aggregationQuery, config);
 
-				const rows = await db.query(sql, params);
+				const rows = await db.query(sql);
 				expect(rows.length).toBeGreaterThan(0);
 
 				expect(
@@ -715,10 +711,10 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 				const sqlWithOrderBy = `${sql} ORDER BY shipped_at`;
 
-				const rows = await db.query(sqlWithOrderBy, params);
+				const rows = await db.query(sqlWithOrderBy);
 				expect(rows.length).toBeGreaterThan(0);
 				expect(
 					rows.every((row) => {
@@ -758,11 +754,11 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 				};
 
 				const startTime = Date.now();
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 				const parseTime = Date.now() - startTime;
 
 				const queryStartTime = Date.now();
-				const rows = await db.query(sql, params);
+				const rows = await db.query(sql);
 				const queryTime = Date.now() - queryStartTime;
 
 				expect(rows.length).toBeGreaterThan(0);
@@ -771,7 +767,7 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 			});
 		});
 
-		it("should maintain parameter order in complex queries", async () => {
+		it("should maintain order in complex queries", async () => {
 			await db.executeInTransaction(async () => {
 				const query: SelectQuery = {
 					rootTable: "users",
@@ -791,15 +787,9 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					},
 				};
 
-				const { sql, params } = buildSelectQuery(query, config);
+				const sql = buildSelectQuery(query, config);
 
-				// Verify parameter count matches placeholders in SQL
-				const placeholderCount = (sql.match(/\$\d+/g) || []).length;
-				expect(params.length).toBe(placeholderCount);
-
-				const rows = await db.query(sql, params);
-
-				// Should work without parameter binding errors
+				const rows = await db.query(sql);
 				expect(() => rows).not.toThrow();
 			});
 		});
@@ -817,7 +807,7 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 					ORDER BY table_name, column_name;
 				`;
 
-				const rows = await db.query(schemaQuery, []);
+				const rows = await db.query(schemaQuery);
 				expect(rows.length).toBeGreaterThan(0);
 
 				// Verify that all id columns are UUID type
@@ -831,11 +821,7 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 				const postsQuery = `SELECT id, user_id, title FROM posts LIMIT 3`;
 				const ordersQuery = `SELECT id, customer_id, amount FROM orders LIMIT 3`;
 
-				const [users, posts, orders] = await Promise.all([
-					db.query(usersQuery, []),
-					db.query(postsQuery, []),
-					db.query(ordersQuery, []),
-				]);
+				const [users, posts, orders] = await Promise.all([db.query(usersQuery), db.query(postsQuery), db.query(ordersQuery)]);
 
 				// Verify UUID format (36 characters with hyphens)
 				users.forEach((user) => {

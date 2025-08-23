@@ -109,19 +109,19 @@ describe("Integration - Complex Query Condition Processing", () => {
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, config, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(condition, config, "users");
+				const sql = `SELECT * FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				// Verify the SQL generates correctly without errors
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify complex nesting structure
-				expect(result.sql).toContain("AND");
-				expect(result.sql).toContain("OR");
-				expect(result.sql).toContain("NOT");
-				expect(result.sql.split("(").length - 1).toBeGreaterThan(5); // Multiple nested levels
+				expect(sql).toContain("AND");
+				expect(sql).toContain("OR");
+				expect(sql).toContain("NOT");
+				expect(sql.split("(").length - 1).toBeGreaterThan(5); // Multiple nested levels
 			});
 		});
 
@@ -159,21 +159,21 @@ describe("Integration - Complex Query Condition Processing", () => {
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, config, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(condition, config, "users");
+				const sql = `SELECT * FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify all operators are present
-				expect(result.sql).toContain(">=");
-				expect(result.sql).toContain("<=");
-				expect(result.sql).toContain("IN");
-				expect(result.sql).toContain("NOT IN");
-				expect(result.sql).toContain("LIKE");
-				expect(result.sql).toContain("IS NOT NULL");
-				expect(result.sql).toContain("NOT");
+				expect(sql).toContain(">=");
+				expect(sql).toContain("<=");
+				expect(sql).toContain("IN");
+				expect(sql).toContain("NOT IN");
+				expect(sql).toContain("LIKE");
+				expect(sql).toContain("IS NOT NULL");
+				expect(sql).toContain("NOT");
 			});
 		});
 
@@ -225,16 +225,16 @@ describe("Integration - Complex Query Condition Processing", () => {
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, config, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(condition, config, "users");
+				const sql = `SELECT * FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify EXISTS statements
-				expect(result.sql.split("EXISTS").length - 1).toBe(3); // Three EXISTS clauses
-				expect(result.sql).toContain("NOT (EXISTS");
+				expect(sql.split("EXISTS").length - 1).toBe(3); // Three EXISTS clauses
+				expect(sql).toContain("NOT (EXISTS");
 			});
 		});
 	});
@@ -274,18 +274,18 @@ describe("Integration - Complex Query Condition Processing", () => {
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, config, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(condition, config, "users");
+				const sql = `SELECT * FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify JSON path operations
-				expect(result.sql).toContain("metadata");
-				expect(result.sql).toContain("->");
-				expect(result.sql).toContain("profile");
-				expect(result.sql).toContain("settings");
+				expect(sql).toContain("metadata");
+				expect(sql).toContain("->");
+				expect(sql).toContain("profile");
+				expect(sql).toContain("settings");
 			});
 		});
 
@@ -317,17 +317,17 @@ describe("Integration - Complex Query Condition Processing", () => {
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, config, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(condition, config, "users");
+				const sql = `SELECT * FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify mixed conditions
-				expect(result.sql).toContain("users.status");
-				expect(result.sql).toContain("metadata");
-				expect(result.sql).toContain(">=");
+				expect(sql).toContain("users.status");
+				expect(sql).toContain("metadata");
+				expect(sql).toContain(">=");
 			});
 		});
 	});
@@ -364,17 +364,17 @@ describe("Integration - Complex Query Condition Processing", () => {
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, config, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(condition, config, "users");
+				const sql = `SELECT * FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify basic conditions work
-				expect(result.sql).toContain("LIKE");
-				expect(result.sql).toContain("AND");
-				expect(result.sql).toContain("OR");
+				expect(sql).toContain("LIKE");
+				expect(sql).toContain("AND");
+				expect(sql).toContain("OR");
 			});
 		});
 
@@ -442,18 +442,18 @@ describe("Integration - Complex Query Condition Processing", () => {
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, config, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(condition, config, "users");
+				const sql = `SELECT * FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify variable substitution
-				expect(result.sql).toContain("'550e8400-e29b-41d4-a716-446655440000'"); // current_user_id
-				expect(result.sql).toContain("18"); // minAge
-				expect(result.sql).toContain("65"); // maxAge
-				expect(result.sql).toContain("1000"); // premiumThreshold
+				expect(sql).toContain("'550e8400-e29b-41d4-a716-446655440000'"); // current_user_id
+				expect(sql).toContain("18"); // minAge
+				expect(sql).toContain("65"); // maxAge
+				expect(sql).toContain("1000"); // premiumThreshold
 			});
 		});
 	});
@@ -530,7 +530,7 @@ describe("Integration - Complex Query Condition Processing", () => {
 				);
 
 				const sql = compileSelectQuery(query);
-				const rows = await db.query(sql, query.params);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -634,7 +634,7 @@ describe("Integration - Complex Query Condition Processing", () => {
 				);
 
 				const sql = compileSelectQuery(query);
-				const rows = await db.query(sql, query.params);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -650,7 +650,7 @@ describe("Integration - Complex Query Condition Processing", () => {
 	});
 
 	describe("Performance and Edge Cases", () => {
-		it("should handle conditions with large parameter lists", async () => {
+		it("should handle conditions with large array field conditions", async () => {
 			await db.executeInTransaction(async () => {
 				const largeInArray = Array.from({ length: 100 }, (_, i) => `user_${i}`);
 				const anotherLargeArray = Array.from(
@@ -675,78 +675,13 @@ describe("Integration - Complex Query Condition Processing", () => {
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, config, "users");
-				const sql = `SELECT count(*) as total FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(condition, config, "users");
+				const sql = `SELECT count(*) as total FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 				expect(rows.length).toBe(1);
-				expect(result.params.length).toBeGreaterThan(150); // Should have lots of parameters
-			});
-		});
-
-		it("should handle conditions with 200+ parameters efficiently", async () => {
-			await db.executeInTransaction(async () => {
-				const largeNameArray = Array.from({ length: 50 }, (_, i) => `user_${i}`);
-				const largeIdArray = Array.from(
-					{ length: 50 },
-					(_, i) => `550e840${i.toString().padStart(1, "0")}-e29b-41d4-a716-44665544000${i.toString().padStart(1, "0")}`,
-				);
-				const largeStatusArray = Array.from({ length: 20 }, (_, i) => `status_${i}`);
-				const largeAgeArray = Array.from({ length: 30 }, (_, i) => i + 18);
-
-				const condition: Condition = {
-					$and: [
-						{
-							$or: [
-								{ "users.name": { $in: largeNameArray } },
-								{ "users.id": { $in: largeIdArray } },
-								{ "users.status": { $in: largeStatusArray } },
-								{ "users.age": { $in: largeAgeArray } },
-							],
-						},
-						{
-							$and: [
-								{ "users.active": true },
-								{ "users.email": { $ne: null } },
-								{
-									$or: [
-										{ "users.name": { $like: "test%" } },
-										{ "users.email": { $like: "%@test.com" } },
-										{ "users.metadata->category": { $in: ["premium", "gold", "platinum"] } },
-									],
-								},
-							],
-						},
-						{
-							$not: {
-								$or: [
-									{ "users.status": { $in: ["banned", "suspended", "deleted"] } },
-									{ "users.metadata->flags->restricted": true },
-								],
-							},
-						},
-					],
-				};
-
-				const startTime = Date.now();
-				const result = extractSelectWhereClause(condition, config, "users");
-				const parseTime = Date.now() - startTime;
-
-				const queryStartTime = Date.now();
-				const sql = `SELECT count(*) as total FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
-				const queryTime = Date.now() - queryStartTime;
-
-				expect(rows).toBeDefined();
-				expect(Array.isArray(rows)).toBe(true);
-				expect(rows.length).toBe(1);
-				expect(result.params.length).toBeGreaterThan(150); // Should have lots of parameters
-
-				// Performance assertions
-				expect(parseTime).toBeLessThan(1000); // Should parse in under 1 second
-				expect(queryTime).toBeLessThan(5000); // Should execute in under 5 seconds
 			});
 		});
 
@@ -766,17 +701,17 @@ describe("Integration - Complex Query Condition Processing", () => {
 					};
 				}
 
-				const result = extractSelectWhereClause(deepCondition, config, "users");
-				const sql = `SELECT count(*) as total FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(deepCondition, config, "users");
+				const sql = `SELECT count(*) as total FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 				expect(rows.length).toBe(1);
 
 				// Verify deep nesting in SQL
-				expect(result.sql.split("(").length).toBeGreaterThan(20);
-				expect(result.sql.split("AND").length).toBeGreaterThan(15);
+				expect(sql.split("(").length).toBeGreaterThan(20);
+				expect(sql.split("AND").length).toBeGreaterThan(15);
 			});
 		});
 
@@ -807,12 +742,12 @@ describe("Integration - Complex Query Condition Processing", () => {
 				const deepCondition = createNestedCondition(20);
 
 				const startTime = Date.now();
-				const result = extractSelectWhereClause(deepCondition, config, "users");
+				const whereSql = extractSelectWhereClause(deepCondition, config, "users");
 				const parseTime = Date.now() - startTime;
 
 				const queryStartTime = Date.now();
-				const sql = `SELECT count(*) as total FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const sql = `SELECT count(*) as total FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 				const queryTime = Date.now() - queryStartTime;
 
 				expect(rows).toBeDefined();
@@ -820,8 +755,8 @@ describe("Integration - Complex Query Condition Processing", () => {
 				expect(rows.length).toBe(1);
 
 				// Verify deep nesting
-				expect(result.sql.split("(").length).toBeGreaterThan(30);
-				expect(result.sql.split("AND").length).toBeGreaterThan(20);
+				expect(sql.split("(").length).toBeGreaterThan(30);
+				expect(sql.split("AND").length).toBeGreaterThan(20);
 
 				// Performance assertions
 				expect(parseTime).toBeLessThan(2000); // Should parse in under 2 seconds
@@ -873,19 +808,19 @@ describe("Integration - Complex Query Condition Processing", () => {
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, config, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql} LIMIT 5`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(condition, config, "users");
+				const sql = `SELECT * FROM users WHERE ${whereSql} LIMIT 5`;
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify JSON path operations are present
-				expect(result.sql).toContain("metadata");
-				expect(result.sql).toContain("->");
-				expect(result.sql).toContain("profile");
-				expect(result.sql).toContain("settings");
-				expect(result.sql).toContain("account");
+				expect(sql).toContain("metadata");
+				expect(sql).toContain("->");
+				expect(sql).toContain("profile");
+				expect(sql).toContain("settings");
+				expect(sql).toContain("account");
 			});
 		});
 
@@ -923,17 +858,17 @@ describe("Integration - Complex Query Condition Processing", () => {
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, config, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql} LIMIT 3`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(condition, config, "users");
+				const sql = `SELECT * FROM users WHERE ${whereSql} LIMIT 3`;
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify JSON operations
-				expect(result.sql).toContain("LIKE");
-				expect(result.sql).toContain(">=");
-				expect(result.sql).toContain("NOT");
+				expect(sql).toContain("LIKE");
+				expect(sql).toContain(">=");
+				expect(sql).toContain("NOT");
 			});
 		});
 
@@ -1034,27 +969,27 @@ describe("Integration - Complex Query Condition Processing", () => {
 				};
 
 				const startTime = Date.now();
-				const result = extractSelectWhereClause(condition, config, "users");
+				const whereSql = extractSelectWhereClause(condition, config, "users");
 				const parseTime = Date.now() - startTime;
 
 				const queryStartTime = Date.now();
-				const sql = `SELECT count(*) as total FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const sql = `SELECT count(*) as total FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 				const queryTime = Date.now() - queryStartTime;
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify complex expressions are present
-				expect(result.sql).toContain("UPPER");
-				expect(result.sql).toContain("CONCAT");
-				expect(result.sql).toContain("SUBSTRING");
-				expect(result.sql).toContain("LOWER");
-				expect(result.sql).toContain("LENGTH");
-				expect(result.sql).toContain("+"); // ADD becomes +
-				expect(result.sql).toContain("*"); // MULTIPLY becomes *
-				expect(result.sql).toContain("/"); // DIVIDE becomes /
-				expect(result.sql).toContain("CASE WHEN");
+				expect(sql).toContain("UPPER");
+				expect(sql).toContain("CONCAT");
+				expect(sql).toContain("SUBSTRING");
+				expect(sql).toContain("LOWER");
+				expect(sql).toContain("LENGTH");
+				expect(sql).toContain("+"); // ADD becomes +
+				expect(sql).toContain("*"); // MULTIPLY becomes *
+				expect(sql).toContain("/"); // DIVIDE becomes /
+				expect(sql).toContain("CASE WHEN");
 
 				// Performance assertions
 				expect(parseTime).toBeLessThan(1500); // Should parse complex expressions quickly
@@ -1187,12 +1122,12 @@ describe("Integration - Complex Query Condition Processing", () => {
 				};
 
 				const startTime = Date.now();
-				const result = extractSelectWhereClause(maxComplexityCondition, config, "users");
+				const whereSql = extractSelectWhereClause(maxComplexityCondition, config, "users");
 				const parseTime = Date.now() - startTime;
 
 				const queryStartTime = Date.now();
-				const sql = `SELECT count(*) as total FROM users WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const sql = `SELECT count(*) as total FROM users WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 				const queryTime = Date.now() - queryStartTime;
 
 				expect(rows).toBeDefined();
@@ -1200,8 +1135,7 @@ describe("Integration - Complex Query Condition Processing", () => {
 				expect(rows.length).toBe(1);
 
 				// Should handle extreme complexity
-				expect(result.params.length).toBeGreaterThan(150);
-				expect(result.sql.length).toBeGreaterThan(1000);
+				expect(sql.length).toBeGreaterThan(1000);
 
 				// Performance should still be reasonable
 				expect(parseTime).toBeLessThan(3000); // 3 seconds max for parsing
@@ -1238,9 +1172,9 @@ describe("Integration - Complex Query Condition Processing", () => {
 
 			const queries = Array.from({ length: 5 }, async () => {
 				return await db.executeInTransaction(async () => {
-					const result = extractSelectWhereClause(complexCondition, config, "users");
-					const sql = `SELECT count(*) as total FROM users WHERE ${result.sql}`;
-					const rows = await db.query(sql, result.params);
+					const whereSql = extractSelectWhereClause(complexCondition, config, "users");
+					const sql = `SELECT count(*) as total FROM users WHERE ${whereSql}`;
+					const rows = await db.query(sql);
 					return rows;
 				});
 			});
@@ -1301,18 +1235,12 @@ describe("Integration - Complex Query Condition Processing", () => {
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, config, "users");
-				const sql = `SELECT * FROM users WHERE ${result.sql} LIMIT 10`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(condition, config, "users");
+				const sql = `SELECT * FROM users WHERE ${whereSql} LIMIT 10`;
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
-
-				// Verify all data types are handled
-				expect(result.params).toContain("550e8400-e29b-41d4-a716-446655440000"); // UUID
-				expect(result.params).toContain("Alice"); // string
-				expect(result.params).toContain(true); // boolean
-				expect(result.params).toContain(85.5); // float
 			});
 		});
 	});

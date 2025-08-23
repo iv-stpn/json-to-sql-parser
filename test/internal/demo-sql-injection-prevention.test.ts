@@ -3,16 +3,17 @@ import { compileAggregationQuery, parseAggregationQuery } from "../../src/builde
 import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
 import type { Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
+import { quote } from "../../src/utils";
 
 // Helper function to extract WHERE clause from parsed select query
-function extractSelectWhereClause(condition: Condition, config: Config, rootTable: string): { sql: string; params: unknown[] } {
+function extractSelectWhereClause(condition: Condition, config: Config, rootTable: string): string {
 	const query = {
 		rootTable,
 		selection: { [`${rootTable}.id`]: true }, // minimal selection
 		condition,
 	};
 	const parsedQuery = parseSelectQuery(query, config);
-	return { sql: parsedQuery.where || "", params: parsedQuery.params };
+	return parsedQuery.where ?? "";
 }
 
 describe("Security - SQL Injection Prevention and Input Validation", () => {
@@ -118,19 +119,8 @@ describe("Security - SQL Injection Prevention and Input Validation", () => {
 					"users.name": { $eq: maliciousValue },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-
-				// Verify the malicious SQL is properly escaped and not injectable
-				expect(result.sql).toBe("users.name = $1");
-				expect(result.params).toEqual([maliciousValue]);
-
-				// Ensure no raw SQL injection is possible
-				expect(result.sql).not.toContain("DROP");
-				expect(result.sql).not.toContain("INSERT");
-				expect(result.sql).not.toContain("UPDATE");
-				expect(result.sql).not.toContain("DELETE");
-				expect(result.sql).not.toContain("UNION");
-				expect(result.sql).not.toContain("SLEEP");
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe(`users.name = ${quote(maliciousValue)}`);
 			}
 		});
 
@@ -164,13 +154,10 @@ describe("Security - SQL Injection Prevention and Input Validation", () => {
 					"users.name": { $in: maliciousArray },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
 
-				// Verify parameters are properly escaped
-				expect(result.params).toEqual(maliciousArray);
-				expect(result.sql).toContain("IN");
-				expect(result.sql).not.toContain("DROP");
-				expect(result.sql).not.toContain("UNION");
+				// Verify values are properly escaped
+				expect(sql).toContain(maliciousArray.map((value) => quote(value)).join(", "));
 			}
 		});
 	});
@@ -393,9 +380,8 @@ describe("Security - SQL Injection Prevention and Input Validation", () => {
 					"users.name": { $eq: stackedQuery },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBe("users.name = $1");
-				expect(result.params).toEqual([stackedQuery]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe(`users.name = ${quote(stackedQuery)}`);
 			}
 		});
 	});
@@ -416,9 +402,8 @@ describe("Security - SQL Injection Prevention and Input Validation", () => {
 				"users.name": { $eq: longValue },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.name = $1");
-			expect(result.params).toEqual([longValue]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toContain(`${quote(longValue)}`);
 		});
 
 		it("should handle null bytes and special characters", () => {
@@ -429,9 +414,8 @@ describe("Security - SQL Injection Prevention and Input Validation", () => {
 					"users.name": { $eq: specialValue },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBe("users.name = $1");
-				expect(result.params).toEqual([specialValue]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe(`users.name = ${quote(specialValue)}`);
 			}
 		});
 	});

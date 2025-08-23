@@ -305,8 +305,8 @@ export class DatabaseHelper {
 		await this.client.end();
 	}
 
-	async query(sql: string, params?: unknown[]): Promise<unknown[]> {
-		const result = await this.client.query(sql, params);
+	async query(sql: string): Promise<unknown[]> {
+		const result = await this.client.query(sql);
 		return result.rows;
 	}
 
@@ -369,16 +369,12 @@ async function getContainerLogs(serviceName = "postgres", lines = 50): Promise<s
 	}
 }
 
-export function extractSelectWhereClause(
-	condition: Condition,
-	config: Config,
-	rootTable: string,
-): { sql: string; params: unknown[] } {
+export function extractSelectWhereClause(condition: Condition, config: Config, rootTable: string): string {
 	const query = {
 		rootTable,
 		selection: { [`${rootTable}.id`]: true }, // minimal selection
 		condition,
 	};
 	const parsedQuery = parseSelectQuery(query, config);
-	return { sql: parsedQuery.where || "", params: parsedQuery.params };
+	return parsedQuery.where || "";
 }

@@ -2,7 +2,7 @@ import { type CastType, castMap } from "../constants/cast-types";
 import { FUNCTION_TYPE_MISMATCH_ERROR, INVALID_ARGUMENT_COUNT_ERROR, MISSING_AGGREGATION_FIELD_ERROR } from "../constants/errors";
 import { type AggregationDefinition, allowedAggregationFunctions } from "../functions/aggregate";
 import { aliasValue, castValue, getExpressionCastType, parseExpression, parseField } from "../parsers";
-import type { AggregatedField, AggregationQuery, ScalarPrimitive } from "../schemas";
+import type { AggregatedField, AggregationQuery } from "../schemas";
 import type { Config, ParserState } from "../types";
 import { objectEntries } from "../utils";
 import { ExpressionTypeMap } from "../utils/expression-map";
@@ -114,7 +114,6 @@ type ParsedAggregationQuery = {
 	select: string[];
 	from: string;
 	where?: string;
-	params: ScalarPrimitive[];
 	groupBy: string[];
 	joins: string[];
 };
@@ -122,7 +121,7 @@ export function parseAggregationQuery(query: AggregationQuery, config: Config): 
 	const expressions = new ExpressionTypeMap();
 	const processedTables = new Set<string>([query.table]);
 
-	const state: AggregationState = { config, params: [], expressions, rootTable: query.table, joins: [], processedTables };
+	const state: AggregationState = { config, expressions, rootTable: query.table, joins: [], processedTables };
 	const { table, groupBy, aggregatedFields } = query;
 
 	const aggregatedFieldEntries = objectEntries(aggregatedFields ?? {});
@@ -159,7 +158,7 @@ export function parseAggregationQuery(query: AggregationQuery, config: Config): 
 
 	const from = config.dataTable ? aliasValue(config.dataTable.table, table) : table;
 	const where = buildWhereClause(query.condition, state);
-	return { select: selectFields, from, where, groupBy: groupByFields, joins: state.joins, params: state.params };
+	return { select: selectFields, from, where, groupBy: groupByFields, joins: state.joins };
 }
 
 export function compileAggregationQuery(query: ParsedAggregationQuery): string {
@@ -170,8 +169,8 @@ export function compileAggregationQuery(query: ParsedAggregationQuery): string {
 	return sql;
 }
 
-export function buildAggregationQuery(query: AggregationQuery, config: Config): { sql: string; params: ScalarPrimitive[] } {
+export function buildAggregationQuery(query: AggregationQuery, config: Config): string {
 	const parsedQuery = parseAggregationQuery(query, config);
 	const sql = compileAggregationQuery(parsedQuery);
-	return { sql, params: parsedQuery.params };
+	return sql;
 }

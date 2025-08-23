@@ -106,17 +106,15 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 		const condition: Condition = { "users.active": true };
 
 		it("should parse simple condition without data table", () => {
-			const result = extractSelectWhereClause(condition, regularConfig, "users");
-			expect(result.sql).toBe("users.active = $1");
-			expect(result.params).toEqual([true]);
+			const sql = extractSelectWhereClause(condition, regularConfig, "users");
+			expect(sql).toBe("users.active = TRUE");
 		});
 
 		it("should parse simple condition with data table", () => {
-			const result = extractSelectWhereClause(condition, dataTableConfig, "users");
-			expect(result.sql).toBe(
-				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (users.data->>'active')::BOOLEAN = $1)",
+			const sql = extractSelectWhereClause(condition, dataTableConfig, "users");
+			expect(sql).toBe(
+				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (users.data->>'active')::BOOLEAN = TRUE)",
 			);
-			expect(result.params).toEqual([true]);
 		});
 	});
 
@@ -126,17 +124,15 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 		};
 
 		it("should parse complex AND condition without data table", () => {
-			const result = extractSelectWhereClause(complexCondition, regularConfig, "users");
-			expect(result.sql).toBe("(users.active = $1 AND users.age >= $2 AND users.email IS NOT NULL)");
-			expect(result.params).toEqual([true, 18]);
+			const sql = extractSelectWhereClause(complexCondition, regularConfig, "users");
+			expect(sql).toBe("(users.active = TRUE AND users.age >= 18 AND users.email IS NOT NULL)");
 		});
 
 		it("should parse complex AND condition with data table", () => {
-			const result = extractSelectWhereClause(complexCondition, dataTableConfig, "users");
-			expect(result.sql).toBe(
-				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND ((users.data->>'active')::BOOLEAN = $1 AND (users.data->>'age')::FLOAT >= $2 AND users.data->>'email' IS NOT NULL))",
+			const sql = extractSelectWhereClause(complexCondition, dataTableConfig, "users");
+			expect(sql).toBe(
+				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND ((users.data->>'active')::BOOLEAN = TRUE AND (users.data->>'age')::FLOAT >= 18 AND users.data->>'email' IS NOT NULL))",
 			);
-			expect(result.params).toEqual([true, 18]);
 		});
 	});
 
@@ -146,17 +142,15 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 		};
 
 		it("should parse OR condition without data table", () => {
-			const result = extractSelectWhereClause(orCondition, regularConfig, "users");
-			expect(result.sql).toBe("(users.active = $1 OR users.name LIKE $2)");
-			expect(result.params).toEqual([true, "Admin%"]);
+			const sql = extractSelectWhereClause(orCondition, regularConfig, "users");
+			expect(sql).toBe("(users.active = TRUE OR users.name LIKE 'Admin%')");
 		});
 
 		it("should parse OR condition with data table", () => {
-			const result = extractSelectWhereClause(orCondition, dataTableConfig, "users");
-			expect(result.sql).toBe(
-				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND ((users.data->>'active')::BOOLEAN = $1 OR users.data->>'name' LIKE $2))",
+			const sql = extractSelectWhereClause(orCondition, dataTableConfig, "users");
+			expect(sql).toBe(
+				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND ((users.data->>'active')::BOOLEAN = TRUE OR users.data->>'name' LIKE 'Admin%'))",
 			);
-			expect(result.params).toEqual([true, "Admin%"]);
 		});
 	});
 
@@ -166,17 +160,15 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 		};
 
 		it("should parse JSON field access without data table", () => {
-			const result = extractSelectWhereClause(jsonCondition, regularConfig, "users");
-			expect(result.sql).toBe("users.metadata->'settings'->>'theme' = $1");
-			expect(result.params).toEqual(["dark"]);
+			const sql = extractSelectWhereClause(jsonCondition, regularConfig, "users");
+			expect(sql).toBe("users.metadata->'settings'->>'theme' = 'dark'");
 		});
 
 		it("should parse JSON field access with data table", () => {
-			const result = extractSelectWhereClause(jsonCondition, dataTableConfig, "users");
-			expect(result.sql).toBe(
-				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND users.data->'metadata'->'settings'->>'theme' = $1)",
+			const sql = extractSelectWhereClause(jsonCondition, dataTableConfig, "users");
+			expect(sql).toBe(
+				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND users.data->'metadata'->'settings'->>'theme' = 'dark')",
 			);
-			expect(result.params).toEqual(["dark"]);
 		});
 	});
 
@@ -209,17 +201,15 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 		it("should build select with condition without data table", () => {
 			const result = parseSelectQuery({ rootTable: "users", selection, condition }, regularConfig);
 			const sql = compileSelectQuery(result);
-			expect(sql).toBe('SELECT users.id AS "id", users.name AS "name" FROM users WHERE users.active = $1');
-			expect(result.params).toEqual([true]);
+			expect(sql).toBe('SELECT users.id AS "id", users.name AS "name" FROM users WHERE users.active = TRUE');
 		});
 
 		it("should build select with condition with data table", () => {
 			const result = parseSelectQuery({ rootTable: "users", selection, condition }, dataTableConfig);
 			const sql = compileSelectQuery(result);
 			expect(sql).toBe(
-				"SELECT (users.data->>'id')::UUID AS \"id\", users.data->>'name' AS \"name\" FROM data_storage AS \"users\" WHERE (users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (users.data->>'active')::BOOLEAN = $1)",
+				"SELECT (users.data->>'id')::UUID AS \"id\", users.data->>'name' AS \"name\" FROM data_storage AS \"users\" WHERE (users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (users.data->>'active')::BOOLEAN = TRUE)",
 			);
-			expect(result.params).toEqual([true]);
 		});
 	});
 
@@ -282,8 +272,8 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 		let dataTableState: ParserState;
 
 		beforeEach(() => {
-			regularState = { config: regularConfig, params: [], expressions: new ExpressionTypeMap(), rootTable: "users" };
-			dataTableState = { config: dataTableConfig, params: [], expressions: new ExpressionTypeMap(), rootTable: "users" };
+			regularState = { config: regularConfig, expressions: new ExpressionTypeMap(), rootTable: "users" };
+			dataTableState = { config: dataTableConfig, expressions: new ExpressionTypeMap(), rootTable: "users" };
 		});
 
 		it("should evaluate field reference without data table", () => {
@@ -313,17 +303,15 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 		};
 
 		it("should parse array condition without data table", () => {
-			const result = extractSelectWhereClause(arrayCondition, regularConfig, "users");
-			expect(result.sql).toBe("users.age IN ($1, $2, $3, $4)");
-			expect(result.params).toEqual([18, 25, 30, 35]);
+			const sql = extractSelectWhereClause(arrayCondition, regularConfig, "users");
+			expect(sql).toBe("users.age IN (18, 25, 30, 35)");
 		});
 
 		it("should parse array condition with data table", () => {
-			const result = extractSelectWhereClause(arrayCondition, dataTableConfig, "users");
-			expect(result.sql).toBe(
-				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (users.data->>'age')::FLOAT IN ($1, $2, $3, $4))",
+			const sql = extractSelectWhereClause(arrayCondition, dataTableConfig, "users");
+			expect(sql).toBe(
+				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (users.data->>'age')::FLOAT IN (18, 25, 30, 35))",
 			);
-			expect(result.params).toEqual([18, 25, 30, 35]);
 		});
 	});
 
@@ -340,17 +328,15 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 		};
 
 		it("should parse nested condition without data table", () => {
-			const result = extractSelectWhereClause(nestedCondition, regularConfig, "users");
-			expect(result.sql).toBe("((users.active = $1 AND users.age >= $2) OR (users.name LIKE $3 AND users.email IS NOT NULL))");
-			expect(result.params).toEqual([true, 18, "Admin%"]);
+			const sql = extractSelectWhereClause(nestedCondition, regularConfig, "users");
+			expect(sql).toBe("((users.active = TRUE AND users.age >= 18) OR (users.name LIKE 'Admin%' AND users.email IS NOT NULL))");
 		});
 
 		it("should parse nested condition with data table", () => {
-			const result = extractSelectWhereClause(nestedCondition, dataTableConfig, "users");
-			expect(result.sql).toBe(
-				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (((users.data->>'active')::BOOLEAN = $1 AND (users.data->>'age')::FLOAT >= $2) OR (users.data->>'name' LIKE $3 AND users.data->>'email' IS NOT NULL)))",
+			const sql = extractSelectWhereClause(nestedCondition, dataTableConfig, "users");
+			expect(sql).toBe(
+				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (((users.data->>'active')::BOOLEAN = TRUE AND (users.data->>'age')::FLOAT >= 18) OR (users.data->>'name' LIKE 'Admin%' AND users.data->>'email' IS NOT NULL)))",
 			);
-			expect(result.params).toEqual([true, 18, "Admin%"]);
 		});
 	});
 });

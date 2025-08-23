@@ -253,18 +253,18 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 					},
 				};
 
-				const result = buildSelectQuery(query, config);
-				const rows = await db.query(result.sql, result.params);
+				const sql = buildSelectQuery(query, config);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 				expect(rows.length).toBeGreaterThan(0);
 
 				// Verify SQL structure contains RLS-like conditions
-				expect(result.sql).toContain("EXISTS");
-				expect(result.sql).toContain("team_members");
-				expect(result.sql).toContain("project_access");
-				expect(result.sql).toContain("550e8400-e29b-41d4-a716-446655440000"); // John Doe's UUID
+				expect(sql).toContain("EXISTS");
+				expect(sql).toContain("team_members");
+				expect(sql).toContain("project_access");
+				expect(sql).toContain("550e8400-e29b-41d4-a716-446655440000"); // John Doe's UUID
 
 				// John Doe should have access to Engineering projects
 				// Product Roadmap is public but in different org (StartupXYZ), filtered by tenant isolation
@@ -359,15 +359,15 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 					},
 				};
 
-				const result = buildSelectQuery(query, config);
-				const rows = await db.query(result.sql, result.params);
+				const sql = buildSelectQuery(query, config);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify complex RLS logic
-				expect(result.sql).toContain("50"); // maintainer_role_level value
-				expect(result.sql).toContain("archived_at IS NULL");
+				expect(sql).toContain("50"); // maintainer_role_level value
+				expect(sql).toContain("archived_at IS NULL");
 
 				// John Doe is admin in Engineering team, so should have access
 				const projectNames = (rows as Record<string, unknown>[]).map((row) => row.name);
@@ -536,19 +536,19 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 					},
 				};
 
-				const result = buildSelectQuery(query, config);
-				const rows = await db.query(result.sql, result.params);
+				const sql = buildSelectQuery(query, config);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 				expect(rows.length).toBeGreaterThan(0);
 
 				// Verify complex nested EXISTS
-				expect(result.sql).toContain("EXISTS");
-				expect(result.sql.split("EXISTS").length - 1).toBeGreaterThan(2); // Multiple EXISTS clauses
-				expect(result.sql).toContain("projects");
-				expect(result.sql).toContain("team_members");
-				expect(result.sql).toContain("project_access");
+				expect(sql).toContain("EXISTS");
+				expect(sql.split("EXISTS").length - 1).toBeGreaterThan(2); // Multiple EXISTS clauses
+				expect(sql).toContain("projects");
+				expect(sql).toContain("team_members");
+				expect(sql).toContain("project_access");
 
 				// John Doe should see tasks from Engineering projects he has access to
 				const taskTitles = (rows as Record<string, unknown>[]).map((row) => row.title);
@@ -634,18 +634,18 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, config, "tasks");
-				const sql = `SELECT * FROM tasks WHERE ${result.sql}`;
-				const rows = await db.query(sql, result.params);
+				const whereSql = extractSelectWhereClause(condition, config, "tasks");
+				const sql = `SELECT * FROM tasks WHERE ${whereSql}`;
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify RLS enforcement
-				expect(result.sql).toContain("assignee_id");
-				expect(result.sql).toContain("reporter_id");
-				expect(result.sql).toContain("550e8400-e29b-41d4-a716-446655440000"); // John Doe's UUID
-				expect(result.sql).toContain("EXISTS");
+				expect(sql).toContain("assignee_id");
+				expect(sql).toContain("reporter_id");
+				expect(sql).toContain("550e8400-e29b-41d4-a716-446655440000"); // John Doe's UUID
+				expect(sql).toContain("EXISTS");
 
 				// All returned tasks should be assigned to or reported by John Doe
 				for (const row of rows as Record<string, unknown>[]) {
@@ -749,9 +749,8 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 					},
 				};
 
-				const result = parseAggregationQuery(aggregationQuery, config);
-				const sql = compileAggregationQuery(result);
-				const rows = await db.query(sql, result.params);
+				const sql = compileAggregationQuery(parseAggregationQuery(aggregationQuery, config));
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -884,9 +883,8 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 					},
 				};
 
-				const result = parseAggregationQuery(aggregationQuery, config);
-				const sql = compileAggregationQuery(result);
-				const rows = await db.query(sql, result.params);
+				const sql = compileAggregationQuery(parseAggregationQuery(aggregationQuery, config));
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -998,16 +996,16 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 					},
 				};
 
-				const result = buildSelectQuery(query, marketingUserConfig);
-				const rows = await db.query(result.sql, result.params);
+				const sql = buildSelectQuery(query, marketingUserConfig);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify tenant isolation
-				expect(result.sql).toContain("b1b1b1b1-1111-1111-1111-111111111111"); // TechCorp UUID
-				expect(result.sql).toContain("teams");
-				expect(result.sql).toContain("organization_id");
+				expect(sql).toContain("b1b1b1b1-1111-1111-1111-111111111111"); // TechCorp UUID
+				expect(sql).toContain("teams");
+				expect(sql).toContain("organization_id");
 
 				// Jane Smith should see Marketing projects + direct access projects
 				// Note: Product Roadmap is public but in StartupXYZ org, so filtered out by tenant isolation
@@ -1081,8 +1079,8 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 					},
 				};
 
-				const result = buildSelectQuery(query, aliceConfig);
-				const rows = await db.query(result.sql, result.params);
+				const sql = buildSelectQuery(query, aliceConfig);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -1181,15 +1179,15 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 					},
 				};
 
-				const result = buildSelectQuery(query, crossOrgUserConfig);
-				const rows = await db.query(result.sql, result.params);
+				const sql = buildSelectQuery(query, crossOrgUserConfig);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify StartupXYZ tenant isolation
-				expect(result.sql).toContain("b2b2b2b2-2222-2222-2222-222222222222"); // StartupXYZ UUID
-				expect(result.sql).toContain("6ba7b814-9dad-11d1-80b4-00c04fd430c8"); // Bob Wilson UUID
+				expect(sql).toContain("b2b2b2b2-2222-2222-2222-222222222222"); // StartupXYZ UUID
+				expect(sql).toContain("6ba7b814-9dad-11d1-80b4-00c04fd430c8"); // Bob Wilson UUID
 
 				// Bob should only see projects from StartupXYZ organization
 				const projectNames = (rows as Record<string, unknown>[]).map((row) => row.name);
@@ -1264,8 +1262,8 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 						},
 					};
 
-					const result = buildSelectQuery(query, nonExistentConfig);
-					const rows = await db.query(result.sql, result.params);
+					const sql = buildSelectQuery(query, nonExistentConfig);
+					const rows = await db.query(sql);
 
 					expect(rows).toBeDefined();
 					expect(Array.isArray(rows)).toBe(true);
@@ -1322,9 +1320,8 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 						},
 					};
 
-					const result = parseAggregationQuery(aggregationQuery, nonExistentConfig);
-					const sql = compileAggregationQuery(result);
-					const rows = await db.query(sql, result.params);
+					const sql = compileAggregationQuery(parseAggregationQuery(aggregationQuery, nonExistentConfig));
+					const rows = await db.query(sql);
 
 					expect(rows).toBeDefined();
 					expect(Array.isArray(rows)).toBe(true);
@@ -1348,16 +1345,7 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 					// Insert Rachel as a user but don't add her to any teams
 					await db.query(
 						`INSERT INTO users (id, name, email, age, active, status, metadata) 
-						 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-						[
-							"5ba7b812-9dad-11d1-80b4-00c04fd430cd",
-							"Rachel External",
-							"rachel@external.com",
-							27,
-							true,
-							"active",
-							JSON.stringify({ department: "external", role: "consultant" }),
-						],
+						 VALUES ('5ba7b812-9dad-11d1-80b4-00c04fd430cd', 'Rachel External', 'rachel@external.com', 27, TRUE, 'active', '{"department":"external","role":"consultant"}'::JSONB)`,
 					);
 
 					const query: SelectQuery = {
@@ -1420,8 +1408,8 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 						},
 					};
 
-					const result = buildSelectQuery(query, rachelConfig);
-					const rows = await db.query(result.sql, result.params);
+					const sql = buildSelectQuery(query, rachelConfig);
+					const rows = await db.query(sql);
 
 					expect(rows).toBeDefined();
 					expect(Array.isArray(rows)).toBe(true);
@@ -1467,30 +1455,13 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 						// Insert Sam as a user
 						await db.query(
 							`INSERT INTO users (id, name, email, age, active, status, metadata) 
-							 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-							[
-								"2ba7b812-9dad-11d1-80b4-00c04fd430c9",
-								"Sam Developer",
-								"sam@techcorp.com",
-								26,
-								true,
-								"active",
-								JSON.stringify({ department: "engineering", role: "developer" }),
-							],
+							 VALUES ('2ba7b812-9dad-11d1-80b4-00c04fd430c9', 'Sam Developer', 'sam@techcorp.com', 26, TRUE, 'active', '{"department":"engineering","role":"developer"}'::JSONB)`,
 						);
 
 						// Add Sam to engineering team as contributor
 						await db.query(
-							`INSERT INTO team_members (id, team_id, user_id, role_id, joined_at, active) 
-							 VALUES ($1, $2, $3, $4, $5, $6)`,
-							[
-								"2ba7b812-9dad-11d1-80b4-00c04fd430c9",
-								"c1c1c1c1-1111-1111-1111-111111111111", // Engineering team
-								"2ba7b812-9dad-11d1-80b4-00c04fd430c9",
-								"a2a2a2a2-2222-2222-2222-222222222222", // Contributor role
-								new Date(),
-								true,
-							],
+							`INSERT INTO team_members (id, team_id, user_id, role_id, active) 
+							 VALUES ('2ba7b812-9dad-11d1-80b4-00c04fd430c9', 'c1c1c1c1-1111-1111-1111-111111111111', '2ba7b812-9dad-11d1-80b4-00c04fd430c9', 'a2a2a2a2-2222-2222-2222-222222222222', TRUE)`,
 						);
 
 						const query: SelectQuery = {
@@ -1541,8 +1512,8 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 							},
 						};
 
-						const result = buildSelectQuery(query, samConfig);
-						const rows = await db.query(result.sql, result.params);
+						const sql = buildSelectQuery(query, samConfig);
+						const rows = await db.query(sql);
 
 						expect(rows).toBeDefined();
 						expect(Array.isArray(rows)).toBe(true);
@@ -1577,30 +1548,13 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 						// Insert Eve as a user
 						await db.query(
 							`INSERT INTO users (id, name, email, age, active, status, metadata) 
-							 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-							[
-								"3ba7b812-9dad-11d1-80b4-00c04fd430cb",
-								"Eve Viewer",
-								"eve@techcorp.com",
-								24,
-								true,
-								"active",
-								JSON.stringify({ department: "marketing", role: "intern" }),
-							],
+							 VALUES ('3ba7b812-9dad-11d1-80b4-00c04fd430cb', 'Eve Viewer', 'eve@techcorp.com', 24, TRUE, 'active', '{"department":"marketing","role":"intern"}'::JSONB)`,
 						);
 
 						// Add Eve to marketing team as viewer (lowest role)
 						await db.query(
-							`INSERT INTO team_members (id, team_id, user_id, role_id, joined_at, active) 
-							 VALUES ($1, $2, $3, $4, $5, $6)`,
-							[
-								"3ba7b812-9dad-11d1-80b4-00c04fd430cb",
-								"c2c2c2c2-2222-2222-2222-222222222222", // Marketing team
-								"3ba7b812-9dad-11d1-80b4-00c04fd430cb",
-								"a1a1a1a1-1111-1111-1111-111111111111", // Viewer role (level 10)
-								new Date(),
-								true,
-							],
+							`INSERT INTO team_members (id, team_id, user_id, role_id, active) 
+							 VALUES ('3ba7b812-9dad-11d1-80b4-00c04fd430cb', 'c2c2c2c2-2222-2222-2222-222222222222', '3ba7b812-9dad-11d1-80b4-00c04fd430cb', 'a1a1a1a1-1111-1111-1111-111111111111', TRUE)`,
 						);
 
 						// Test query that requires maintainer+ role (level >= 50)
@@ -1658,8 +1612,8 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 							},
 						};
 
-						const result = buildSelectQuery(query, eveConfig);
-						const rows = await db.query(result.sql, result.params);
+						const sql = buildSelectQuery(query, eveConfig);
+						const rows = await db.query(sql);
 
 						expect(rows).toBeDefined();
 						expect(Array.isArray(rows)).toBe(true);
@@ -1684,30 +1638,13 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 						// Insert Eve as a user
 						await db.query(
 							`INSERT INTO users (id, name, email, age, active, status, metadata) 
-							 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-							[
-								"3ba7b812-9dad-11d1-80b4-00c04fd430cb",
-								"Eve Viewer",
-								"eve@techcorp.com",
-								24,
-								true,
-								"active",
-								JSON.stringify({ department: "marketing", role: "intern" }),
-							],
+							 VALUES ('3ba7b812-9dad-11d1-80b4-00c04fd430cb', 'Eve Viewer', 'eve@techcorp.com', 24, TRUE, 'active', '{"department":"marketing","role":"intern"}'::JSONB)`,
 						);
 
 						// Add Eve to marketing team as viewer (lowest role)
 						await db.query(
-							`INSERT INTO team_members (id, team_id, user_id, role_id, joined_at, active) 
-							 VALUES ($1, $2, $3, $4, $5, $6)`,
-							[
-								"3ba7b812-9dad-11d1-80b4-00c04fd430cb",
-								"c2c2c2c2-2222-2222-2222-222222222222", // Marketing team
-								"3ba7b812-9dad-11d1-80b4-00c04fd430cb",
-								"a1a1a1a1-1111-1111-1111-111111111111", // Viewer role (level 10)
-								new Date(),
-								true,
-							],
+							`INSERT INTO team_members (id, team_id, user_id, role_id, active) 
+							 VALUES ('3ba7b812-9dad-11d1-80b4-00c04fd430cb', 'c2c2c2c2-2222-2222-2222-222222222222', '3ba7b812-9dad-11d1-80b4-00c04fd430cb', 'a1a1a1a1-1111-1111-1111-111111111111', TRUE)`,
 						);
 
 						// Query without role level restrictions - basic team access
@@ -1754,8 +1691,8 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 							},
 						};
 
-						const result = buildSelectQuery(query, eveConfig);
-						const rows = await db.query(result.sql, result.params);
+						const sql = buildSelectQuery(query, eveConfig);
+						const rows = await db.query(sql);
 
 						expect(rows).toBeDefined();
 						expect(Array.isArray(rows)).toBe(true);
@@ -1786,30 +1723,13 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 						// Insert Frank as a user
 						await db.query(
 							`INSERT INTO users (id, name, email, age, active, status, metadata) 
-							 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-							[
-								"4ba7b812-9dad-11d1-80b4-00c04fd430cd",
-								"Frank Cross-Org",
-								"frank@contractor.com",
-								35,
-								true,
-								"active",
-								JSON.stringify({ department: "contractor", role: "consultant" }),
-							],
+							 VALUES ('4ba7b812-9dad-11d1-80b4-00c04fd430cd', 'Frank Cross-Org', 'frank@contractor.com', 35, TRUE, 'active', '{"department":"contractor","role":"consultant"}'::JSONB)`,
 						);
 
 						// Add Frank to TechCorp Sales team as contributor
 						await db.query(
-							`INSERT INTO team_members (id, team_id, user_id, role_id, joined_at, active) 
-							 VALUES ($1, $2, $3, $4, $5, $6)`,
-							[
-								"4ba7b812-9dad-11d1-80b4-00c04fd430cd",
-								"c3c3c3c3-3333-3333-3333-333333333333", // Sales team
-								"4ba7b812-9dad-11d1-80b4-00c04fd430cd",
-								"a2a2a2a2-2222-2222-2222-222222222222", // Contributor role
-								new Date(),
-								true,
-							],
+							`INSERT INTO team_members (id, team_id, user_id, role_id, active) 
+							 VALUES ('4ba7b812-9dad-11d1-80b4-00c04fd430cd', 'c3c3c3c3-3333-3333-3333-333333333333', '4ba7b812-9dad-11d1-80b4-00c04fd430cd', 'a2a2a2a2-2222-2222-2222-222222222222', TRUE)`,
 						);
 
 						// Test with TechCorp context
@@ -1855,8 +1775,8 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 							},
 						};
 
-						const result = buildSelectQuery(query, frankTechCorpConfig);
-						const rows = await db.query(result.sql, result.params);
+						const sql = buildSelectQuery(query, frankTechCorpConfig);
+						const rows = await db.query(sql);
 
 						expect(rows).toBeDefined();
 						expect(Array.isArray(rows)).toBe(true);
@@ -1928,8 +1848,8 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 							},
 						};
 
-						const result = buildSelectQuery(query, frankStartupConfig);
-						const rows = await db.query(result.sql, result.params);
+						const sql = buildSelectQuery(query, frankStartupConfig);
+						const rows = await db.query(sql);
 
 						expect(rows).toBeDefined();
 						expect(Array.isArray(rows)).toBe(true);

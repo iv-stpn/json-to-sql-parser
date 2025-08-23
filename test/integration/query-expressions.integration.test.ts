@@ -92,12 +92,12 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 				},
 			};
 
-			const result = buildSelectQuery(query, config);
-			const rows = await db.query(result.sql, result.params);
+			const sql = buildSelectQuery(query, config);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
-			expect(result.sql).toContain("+");
+			expect(sql).toContain("+");
 		});
 
 		it("should handle string operations with proper type inference", async () => {
@@ -125,13 +125,13 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 				},
 			};
 
-			const result = buildSelectQuery(query, config);
-			const rows = await db.query(result.sql, result.params);
+			const sql = buildSelectQuery(query, config);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
-			expect(result.sql).toContain("LENGTH");
-			expect(result.sql).toContain("CONCAT");
+			expect(sql).toContain("LENGTH");
+			expect(sql).toContain("CONCAT");
 		});
 	});
 
@@ -149,12 +149,12 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 				},
 			};
 
-			const result = buildSelectQuery(query, config);
-			const rows = await db.query(result.sql, result.params);
+			const sql = buildSelectQuery(query, config);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
-			expect(result.sql).toContain("metadata");
+			expect(sql).toContain("metadata");
 		});
 
 		it("should handle JSON path conditions with type inference", async () => {
@@ -178,13 +178,11 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 				condition,
 			};
 
-			const { sql, params } = buildSelectQuery(query, config);
-			const rows = await db.query(sql, params);
+			const sql = buildSelectQuery(query, config);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(sql).toContain("->");
-			expect(params).toContain("engineering");
-			expect(params).toContain(50000);
 		});
 	});
 
@@ -221,12 +219,12 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 				},
 			};
 
-			const result = buildSelectQuery(query, config);
-			const rows = await db.query(result.sql, result.params);
+			const sql = buildSelectQuery(query, config);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
-			expect(result.sql).toContain("CASE WHEN");
+			expect(sql).toContain("CASE WHEN");
 		});
 	});
 
@@ -260,12 +258,12 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 				},
 			};
 
-			const result = buildSelectQuery(query, config);
-			const rows = await db.query(result.sql, result.params);
+			const sql = buildSelectQuery(query, config);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
-			expect(result.sql).toContain("LEFT JOIN");
+			expect(sql).toContain("LEFT JOIN");
 		});
 	});
 
@@ -301,15 +299,12 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 				condition,
 			};
 
-			const { sql, params } = buildSelectQuery(query, config);
-			const rows = await db.query(sql, params);
+			const sql = buildSelectQuery(query, config);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(sql).toContain("IN");
 			expect(sql).toContain("NOT IN");
-			expect(params).toContain("active");
-			expect(params).toContain(25);
-			expect(params).toContain(25);
 		});
 	});
 
@@ -329,14 +324,14 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 				condition,
 			};
 
-			const { sql, params } = buildSelectQuery(query, config);
-			const rows = await db.query(sql, params);
+			const sql = buildSelectQuery(query, config);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(sql).toContain("IS NOT NULL");
 			expect(sql).toContain("OR");
-			expect(params).toContain(18);
-			expect(params).toContain("premium");
+			expect(sql).toContain("18");
+			expect(sql).toContain("premium");
 		});
 	});
 
@@ -356,12 +351,12 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 				},
 			};
 
-			const result = buildSelectQuery(query, config);
-			const rows = await db.query(result.sql, result.params);
+			const sql = buildSelectQuery(query, config);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
-			expect(result.sql).toContain("created_at");
+			expect(sql).toContain("created_at");
 		});
 	});
 
@@ -394,7 +389,7 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 			);
 
 			const sql = compileAggregationQuery(query);
-			const rows = await db.query(sql, query.params);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);

@@ -164,7 +164,9 @@ describe("Parser - Complex Queries and Expressions", () => {
 			expect(sql).toContain("AND");
 			expect(sql).toContain("OR");
 
-			expect(query.params).toEqual([true, 18, "premium", 100]);
+			expect(sql).toContain("premium");
+			expect(sql).toContain("18");
+			expect(sql).toContain("100");
 		});
 
 		it("should parse and compile JSON path selections with complex filtering", () => {
@@ -209,8 +211,6 @@ describe("Parser - Complex Queries and Expressions", () => {
 			expect(sql).toContain("preferences");
 			expect(sql).toContain("theme");
 			expect(sql).toContain("EXISTS");
-
-			expect(query.params).toEqual([true, "enabled", true, true]);
 		});
 
 		it("should parse and compile expressions in field selections", () => {
@@ -292,8 +292,6 @@ describe("Parser - Complex Queries and Expressions", () => {
 			expect(sql).toContain("comments");
 			expect(sql).toContain("EXISTS");
 			expect(sql).toContain("LIKE");
-
-			expect(query.params).toEqual(["Tech%", true, true]);
 		});
 	});
 
@@ -408,14 +406,12 @@ describe("Parser - Complex Queries and Expressions", () => {
 				],
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
 
-			expect(result.sql).toContain("OR");
-			expect(result.sql).toContain("AND");
-			expect(result.sql).toContain("NOT");
-			expect(result.sql).toContain("IN");
-
-			expect(result.params).toEqual([true, 21, "premium", "vip", 1000, "admin", true]);
+			expect(sql).toContain("OR");
+			expect(sql).toContain("AND");
+			expect(sql).toContain("NOT");
+			expect(sql).toContain("IN");
 		});
 
 		it("should parse EXISTS conditions with complex subqueries", () => {
@@ -444,13 +440,11 @@ describe("Parser - Complex Queries and Expressions", () => {
 				],
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
 
-			expect(result.sql).toContain("EXISTS");
-			expect(result.sql).toContain("posts");
-			expect(result.sql).toContain("comments");
-
-			expect(result.params).toEqual([true, true, 100, true, "%excellent%"]);
+			expect(sql).toContain("EXISTS");
+			expect(sql).toContain("posts");
+			expect(sql).toContain("comments");
 		});
 
 		it("should parse mixed comparison operators correctly", () => {
@@ -463,18 +457,16 @@ describe("Parser - Complex Queries and Expressions", () => {
 				],
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
 
-			expect(result.sql).toContain(">=");
-			expect(result.sql).toContain("<=");
-			expect(result.sql).toContain(">");
-			expect(result.sql).toContain("!=");
-			expect(result.sql).toContain("LIKE");
-			expect(result.sql).toContain("~");
-			expect(result.sql).toContain("IN");
-			expect(result.sql).toContain("NOT IN");
-
-			expect(result.params).toEqual([18, 65, 999.99, 0, "%@company.com", "^[a-z]+@", "active", "premium", "banned", "suspended"]);
+			expect(sql).toContain(">=");
+			expect(sql).toContain("<=");
+			expect(sql).toContain(">");
+			expect(sql).toContain("!=");
+			expect(sql).toContain("LIKE");
+			expect(sql).toContain("~");
+			expect(sql).toContain("IN");
+			expect(sql).toContain("NOT IN");
 		});
 
 		it("should parse conditions with variable references correctly", () => {
@@ -487,12 +479,12 @@ describe("Parser - Complex Queries and Expressions", () => {
 				],
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
 
-			expect(result.sql).toContain("(users.id)::TEXT = '123'");
-			expect(result.sql).toContain("users.age < 100");
-			expect(result.sql).toContain("users.balance >= 0");
-			expect(result.sql).toContain("users.status = 'active'");
+			expect(sql).toContain("(users.id)::TEXT = '123'");
+			expect(sql).toContain("users.age < 100");
+			expect(sql).toContain("users.balance >= 0");
+			expect(sql).toContain("users.status = 'active'");
 		});
 	});
 
@@ -527,12 +519,12 @@ describe("Parser - Complex Queries and Expressions", () => {
 				],
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
 
-			expect(result.sql).toContain("*");
-			expect(result.sql).toContain("+");
-			expect(result.sql).toContain("UPPER");
-			expect(result.sql).toContain("CONCAT");
+			expect(sql).toContain("*");
+			expect(sql).toContain("+");
+			expect(sql).toContain("UPPER");
+			expect(sql).toContain("CONCAT");
 		});
 
 		it("should parse string manipulation functions", () => {
@@ -559,12 +551,12 @@ describe("Parser - Complex Queries and Expressions", () => {
 				],
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
 
-			expect(result.sql).toContain("LOWER");
-			expect(result.sql).toContain("UPPER");
-			expect(result.sql).toContain("CONCAT");
-			expect(result.sql).toContain("SUBSTRING");
+			expect(sql).toContain("LOWER");
+			expect(sql).toContain("UPPER");
+			expect(sql).toContain("CONCAT");
+			expect(sql).toContain("SUBSTRING");
 		});
 
 		it("should parse aggregation functions in expressions", () => {
@@ -578,24 +570,22 @@ describe("Parser - Complex Queries and Expressions", () => {
 				},
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
 
-			expect(result.sql).toContain("COALESCE");
-			expect(result.sql).toContain("*");
+			expect(sql).toContain("COALESCE");
+			expect(sql).toContain("*");
 		});
 	});
 
 	describe("Performance Testing - Large Scale Operations", () => {
-		it("should handle large parameter arrays efficiently", () => {
+		it("should handle large arrays efficiently", () => {
 			const largeInArray = Array.from({ length: 500 }, (_, i) => `user_${i}`);
 			const condition: Condition = {
 				$and: [{ "users.name": { $in: largeInArray } }, { "users.age": { $in: Array.from({ length: 100 }, (_, i) => i + 18) } }],
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-
-			expect(result.params.length).toBe(600); // 500 + 100
-			expect(result.sql).toContain("IN");
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toContain("IN");
 		});
 
 		it("should handle deeply nested JSON field structures efficiently", () => {
@@ -603,12 +593,11 @@ describe("Parser - Complex Queries and Expressions", () => {
 				"users.metadata->level1->level2->level3->level4->level5": { $eq: "deep_value" },
 			};
 
-			const result = extractSelectWhereClause(deepJsonCondition, testConfig, "users");
+			const sql = extractSelectWhereClause(deepJsonCondition, testConfig, "users");
 
-			expect(result.sql).toContain("metadata");
-			expect(result.sql).toContain("level1");
-			expect(result.sql).toContain("level5");
-			expect(result.params).toEqual(["deep_value"]);
+			expect(sql).toContain("metadata");
+			expect(sql).toContain("level1");
+			expect(sql).toContain("level5");
 		});
 
 		it("should handle comprehensive query with all parser features combined", () => {
@@ -677,9 +666,6 @@ describe("Parser - Complex Queries and Expressions", () => {
 			expect(sql).toContain("EXISTS");
 			expect(sql).toContain("NOT");
 			expect(sql).toContain("IN");
-
-			// Verify parameter count
-			expect(query.params.length).toBeGreaterThan(0);
 		});
 	});
 
@@ -706,10 +692,10 @@ describe("Parser - Complex Queries and Expressions", () => {
 					},
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toContain("CASE WHEN");
-				expect(result.sql).toContain("CASE WHEN users.age >= $3 THEN 'senior' ELSE 'adult' END");
-				expect(result.params).toEqual([true, 18, 65]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe(
+					"users.status = (CASE WHEN (users.active = TRUE AND users.age >= 18) THEN (CASE WHEN users.age >= 65 THEN 'senior' ELSE 'adult' END) ELSE 'inactive' END)",
+				);
 			});
 
 			it("should parse expressions with mixed argument types", () => {
@@ -723,8 +709,8 @@ describe("Parser - Complex Queries and Expressions", () => {
 					},
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBe("users.name = CONCAT(users.name, ' (', '123', ')')");
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe("users.name = CONCAT(users.name, ' (', '123', ')')");
 			});
 
 			it("should parse function calls with nested expression arguments", () => {
@@ -737,8 +723,8 @@ describe("Parser - Complex Queries and Expressions", () => {
 						},
 					},
 				};
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBe("users.age > (LENGTH(users.name) + 5)");
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe("users.age > (LENGTH(users.name) + 5)");
 			});
 		});
 
@@ -750,8 +736,8 @@ describe("Parser - Complex Queries and Expressions", () => {
 					},
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBe("users.name = CONCAT('Hello', 'World')");
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe("users.name = CONCAT('Hello', 'World')");
 			});
 
 			it("should parse numeric literals in expressions correctly", () => {
@@ -761,8 +747,8 @@ describe("Parser - Complex Queries and Expressions", () => {
 					},
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBe("users.age = (25 + 5.5)");
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe("users.age = (25 + 5.5)");
 			});
 		});
 
@@ -802,7 +788,7 @@ describe("Parser - Complex Queries and Expressions", () => {
 			let testState: ParserState;
 
 			beforeEach(() => {
-				testState = { config: testConfig, params: [], expressions: new ExpressionTypeMap(), rootTable: "users" };
+				testState = { config: testConfig, expressions: new ExpressionTypeMap(), rootTable: "users" };
 			});
 
 			it("should evaluate scalar values correctly", () => {
@@ -833,9 +819,8 @@ describe("Parser - Complex Queries and Expressions", () => {
 					],
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBe("((users.active = $1 AND users.age >= $2) OR (users.name LIKE $3 AND users.email IS NOT NULL))");
-				expect(result.params).toEqual([true, 18, "Admin%"]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe("((users.active = TRUE AND users.age >= 18) OR (users.name LIKE 'Admin%' AND users.email IS NOT NULL))");
 			});
 
 			it("should parse nested NOT conditions correctly", () => {
@@ -845,9 +830,8 @@ describe("Parser - Complex Queries and Expressions", () => {
 					},
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBe("NOT ((users.active = $1 OR users.email IS NULL))");
-				expect(result.params).toEqual([false]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe("NOT ((users.active = FALSE OR users.email IS NULL))");
 			});
 		});
 
@@ -857,9 +841,8 @@ describe("Parser - Complex Queries and Expressions", () => {
 					"users.age": { $gte: 18, $lte: 65, $ne: 30 },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBe("(users.age != $1 AND users.age >= $2 AND users.age <= $3)");
-				expect(result.params).toEqual([30, 18, 65]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe("(users.age != 30 AND users.age >= 18 AND users.age <= 65)");
 			});
 
 			it("should parse array operations with embedded expressions", () => {
@@ -869,9 +852,8 @@ describe("Parser - Complex Queries and Expressions", () => {
 					},
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBe("(users.id)::TEXT IN ($1, '123', '456')");
-				expect(result.params).toEqual(["1"]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe("(users.id)::TEXT IN ('1', '123', '456')");
 			});
 		});
 	});
@@ -883,9 +865,8 @@ describe("Parser - Complex Queries and Expressions", () => {
 					"users.email": { $eq: null },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBe("users.email IS NULL");
-				expect(result.params).toEqual([]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe("users.email IS NULL");
 			});
 
 			it("should convert null inequality to IS NOT NULL", () => {
@@ -893,9 +874,8 @@ describe("Parser - Complex Queries and Expressions", () => {
 					"users.email": { $ne: null },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.sql).toBe("users.email IS NOT NULL");
-				expect(result.params).toEqual([]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe("users.email IS NOT NULL");
 			});
 		});
 	});

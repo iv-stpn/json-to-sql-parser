@@ -187,7 +187,7 @@ export function parseField(field: string, state: ParserState, cast?: CastType, j
 	};
 }
 
-function parseScalarValue(value: ScalarPrimitive) {
+export function parseScalarValue(value: ScalarPrimitive) {
 	if (value === null) return "NULL";
 	if (typeof value === "string") return quote(value);
 	if (typeof value === "number") return value.toString();
@@ -318,11 +318,6 @@ export function parseCondition(condition: Condition, state: ParserState): string
 	return mergeConditions(conditions);
 }
 
-export function parametrize(value: ScalarPrimitive, state: ParserState) {
-	state.params.push(value);
-	return `$${state.params.length}`;
-}
-
 type ParseFieldCondition = { condition: string; castType: CastType };
 function parseComparisonCondition(value: AnyExpression, state: ParserState, operator: string, field: Field): ParseFieldCondition {
 	if (isScalarExpression(value)) {
@@ -339,7 +334,7 @@ function parseComparisonCondition(value: AnyExpression, state: ParserState, oper
 		const castType = getScalarCastType(value);
 		if (field.type !== typeof value && field.type !== "object")
 			throw new Error(COMPARISON_TYPE_MISMATCH_ERROR(operator, field.name, castMap[field.type], castType));
-		return { condition: `${operator} ${parametrize(value, state)}`, castType };
+		return { condition: `${operator} ${parseScalarValue(value)}`, castType };
 	}
 
 	if (operator !== "=" && operator !== "!=") throw new Error(`Operator '${operator}' should not be used with NULL value`);
@@ -358,7 +353,7 @@ function parseArrayCondition(value: AnyExpression[], state: ParserState, operato
 			return { value, castType: state.expressions.get(item) };
 		}
 		if (!isScalarPrimitive(item)) throw new Error(INVALID_OPERATOR_VALUE_TYPE_ERROR(operator, "string, number, or boolean"));
-		return { value: parametrize(item, state), castType: getScalarCastType(item) };
+		return { value: parseScalarValue(item), castType: getScalarCastType(item) };
 	});
 
 	const castTypes = new Set(resolvedValues.map(({ castType }) => castType));
@@ -383,7 +378,7 @@ function parseStringCondition(
 	if (typeof value !== "string") throw new Error(INVALID_OPERATOR_VALUE_TYPE_ERROR(operator, "string"));
 	if (field && field.type !== "string" && field.type !== "object")
 		throw new Error(COMPARISON_TYPE_MISMATCH_ERROR(operator, field.name, castMap[field.type], "TEXT"));
-	return { condition: `${operator} ${parametrize(value, state)}`, castType: "TEXT" };
+	return { condition: `${operator} ${parseScalarValue(value)}`, castType: "TEXT" };
 }
 
 type ParseFieldConditions = { conditions: string[]; castType: CastType };

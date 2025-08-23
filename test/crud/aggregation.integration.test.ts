@@ -115,7 +115,7 @@ describe("Integration - Advanced Aggregations with Type Casting and Inference", 
 
 			const result = parseAggregationQuery(query, config);
 			const sql = compileAggregationQuery(result);
-			const rows = await db.query(sql, result.params);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
@@ -158,7 +158,7 @@ describe("Integration - Advanced Aggregations with Type Casting and Inference", 
 
 			const result = parseAggregationQuery(query, config);
 			const sql = compileAggregationQuery(result);
-			const rows = await db.query(sql, result.params);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
@@ -203,7 +203,7 @@ describe("Integration - Advanced Aggregations with Type Casting and Inference", 
 
 			const result = parseAggregationQuery(query, config);
 			const sql = compileAggregationQuery(result);
-			const rows = await db.query(sql, result.params);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
@@ -244,7 +244,7 @@ describe("Integration - Advanced Aggregations with Type Casting and Inference", 
 
 			const result = parseAggregationQuery(query, config);
 			const sql = compileAggregationQuery(result);
-			const rows = await db.query(sql, result.params);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
@@ -307,7 +307,7 @@ describe("Integration - Advanced Aggregations with Type Casting and Inference", 
 
 			const result = parseAggregationQuery(query, config);
 			const sql = compileAggregationQuery(result);
-			const rows = await db.query(sql, result.params);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
@@ -347,7 +347,7 @@ describe("Integration - Advanced Aggregations with Type Casting and Inference", 
 
 			const result = parseAggregationQuery(query, config);
 			const sql = compileAggregationQuery(result);
-			const rows = await db.query(sql, result.params);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
@@ -387,7 +387,7 @@ describe("Integration - Advanced Aggregations with Type Casting and Inference", 
 
 			const result = parseAggregationQuery(query, config);
 			const sql = compileAggregationQuery(result);
-			const rows = await db.query(sql, result.params);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
@@ -423,7 +423,7 @@ describe("Integration - Advanced Aggregations with Type Casting and Inference", 
 			const result = parseAggregationQuery(query, config);
 
 			const sql = compileAggregationQuery(result);
-			const rows = await db.query(sql, result.params);
+			const rows = await db.query(sql);
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
@@ -536,7 +536,7 @@ describe("Integration - Complex Aggregations with Multi-Type Casting", () => {
 
 				const result = parseAggregationQuery(aggregationQuery, config);
 				const sql = compileAggregationQuery(result);
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -607,7 +607,7 @@ describe("Integration - Complex Aggregations with Multi-Type Casting", () => {
 
 				const result = parseAggregationQuery(aggregationQuery, config);
 				const sql = compileAggregationQuery(result);
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -695,7 +695,7 @@ describe("Integration - Complex Aggregations with Multi-Type Casting", () => {
 
 				const result = parseAggregationQuery(aggregationQuery, config);
 				const sql = compileAggregationQuery(result);
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -763,7 +763,7 @@ describe("Integration - Complex Aggregations with Multi-Type Casting", () => {
 
 				const result = parseAggregationQuery(aggregationQuery, config);
 				const sql = compileAggregationQuery(result);
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -841,7 +841,7 @@ describe("Integration - Complex Aggregations with Multi-Type Casting", () => {
 
 				const result = parseAggregationQuery(aggregationQuery, config);
 				const sql = compileAggregationQuery(result);
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -970,7 +970,7 @@ describe("Integration - Complex Aggregations with Multi-Type Casting", () => {
 
 				const result = parseAggregationQuery(aggregationQuery, config);
 				const sql = compileAggregationQuery(result);
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);

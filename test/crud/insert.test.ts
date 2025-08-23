@@ -51,12 +51,11 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
+			const sql = buildInsertQuery(insertQuery, testConfig);
 
-			expect(result.sql).toBe(
-				`INSERT INTO users ("id", "name", "email", "active", "age") VALUES ('123e4567-e89b-12d3-a456-426614174000'::UUID, $1, $2, $3, NULL)`,
+			expect(sql).toBe(
+				`INSERT INTO users ("id", "name", "email", "active", "age") VALUES ('123e4567-e89b-12d3-a456-426614174000'::UUID, \'Jane Doe\', \'jane@example.com\', TRUE, NULL)`,
 			);
-			expect(result.params).toEqual(["Jane Doe", "jane@example.com", true]);
 		});
 
 		test("should build insert query with timestamp and date values", () => {
@@ -69,12 +68,11 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
+			const sql = buildInsertQuery(insertQuery, testConfig);
 
-			expect(result.sql).toBe(
-				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES ('550e8400-e29b-41d4-a716-446655440000'::UUID, $1, $2, NULL, NULL)`,
+			expect(sql).toBe(
+				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES ('550e8400-e29b-41d4-a716-446655440000'::UUID, 'Test User', TRUE, NULL, NULL)`,
 			);
-			expect(result.params).toEqual(["Test User", true]);
 		});
 	});
 
@@ -114,8 +112,8 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
-			expect(result.sql).toContain(`INSERT INTO users ("name", "active", "email", "age", "id")`);
+			const sql = buildInsertQuery(insertQuery, testConfig);
+			expect(sql).toContain(`INSERT INTO users ("name", "active", "email", "age", "id")`);
 		});
 
 		test("should validate required non-nullable fields", () => {
@@ -140,12 +138,11 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
+			const sql = buildInsertQuery(insertQuery, testConfig);
 
-			expect(result.sql).toBe(
-				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES ('550e8400-e29b-41d4-a716-446655440000'::UUID, $1, $2, NULL, NULL)`,
+			expect(sql).toBe(
+				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES ('550e8400-e29b-41d4-a716-446655440000'::UUID, 'Test User', TRUE, NULL, NULL)`,
 			);
-			expect(result.params).toEqual(["Test User", true]);
 		});
 	});
 
@@ -163,10 +160,9 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
+			const sql = buildInsertQuery(insertQuery, testConfig);
 
-			expect(result.sql).toContain(`INSERT INTO users ("name", "email", "active", "age", "id")`);
-			expect(result.params).toEqual(["John Doe", "john@example.com", true]);
+			expect(sql).toContain(`INSERT INTO users ("name", "email", "active", "age", "id")`);
 		});
 
 		test("should reject condition fields without NEW_ROW prefix", () => {
@@ -216,12 +212,11 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
+			const sql = buildInsertQuery(insertQuery, testConfig);
 
-			expect(result.sql).toBe(
-				`INSERT INTO users ("id", "name", "email", "age", "active") VALUES ('1eb76aa8-f66b-4846-93df-587ff5749185'::UUID, $1, $2, $3, $4)`,
+			expect(sql).toBe(
+				`INSERT INTO users ("id", "name", "email", "age", "active") VALUES ('1eb76aa8-f66b-4846-93df-587ff5749185'::UUID, 'John Doe', 'john@example.com', 25, TRUE)`,
 			);
-			expect(result.params).toEqual(["John Doe", "john@example.com", 25, true]);
 		});
 	});
 
@@ -237,12 +232,11 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
+			const sql = buildInsertQuery(insertQuery, testConfig);
 
-			expect(result.sql).toBe(
-				`INSERT INTO users ("id", "name", "age", "active", "email") VALUES ('123e4567-e89b-12d3-a456-426614174000'::UUID, $1, $2, $3, NULL)`,
+			expect(sql).toBe(
+				`INSERT INTO users ("id", "name", "age", "active", "email") VALUES ('123e4567-e89b-12d3-a456-426614174000'::UUID, 'John Doe', 30, TRUE, NULL)`,
 			);
-			expect(result.params).toEqual(["John Doe", 30, true]);
 		});
 
 		test("should validate expressions within field conditions", () => {
@@ -259,12 +253,10 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
-			expect(result.sql).toBe(
-				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES ('012c9d27-a82c-49e8-be7a-0124cea33464'::UUID, $1, $2, $3, NULL)`,
+			const sql = buildInsertQuery(insertQuery, testConfig);
+			expect(sql).toBe(
+				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES ('012c9d27-a82c-49e8-be7a-0124cea33464'::UUID, 'Test User', TRUE, 'Test User', NULL)`,
 			);
-			expect(result.params).toEqual(["Test User", true, "Test User"]);
-			expect(result.conditionResult).toBe(true);
 		});
 
 		test("should reject invalid expressions with invalid fields", () => {
@@ -323,12 +315,10 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
-			expect(result.sql).toBe(
-				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES ('34180af3-86b0-4538-a7ec-f192fb82b9f0'::UUID, $1, $2, NULL, NULL)`,
+			const sql = buildInsertQuery(insertQuery, testConfig);
+			expect(sql).toBe(
+				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES ('34180af3-86b0-4538-a7ec-f192fb82b9f0'::UUID, 'no_email', TRUE, NULL, NULL)`,
 			);
-			expect(result.params).toEqual(["no_email", true]);
-			expect(result.conditionResult).toBe(true);
 		});
 
 		test("should reject invalid logical operator formats", () => {
@@ -381,11 +371,10 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
+			const sql = buildInsertQuery(insertQuery, testConfig);
 
-			expect(result.conditionResult).toBe(true);
-			expect(result.sql).toContain("INSERT INTO users");
-			expect(result.sql).not.toContain("WHERE");
+			expect(sql).toContain("INSERT INTO users");
+			expect(sql).not.toContain("WHERE");
 		});
 
 		it("should throw error when condition evaluates to false", () => {
@@ -419,9 +408,8 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
-
-			expect(result.conditionResult).toBe(true);
+			const sql = buildInsertQuery(insertQuery, testConfig);
+			expect(sql).toContain("INSERT INTO users");
 		});
 
 		it("should evaluate function expressions", () => {
@@ -440,9 +428,8 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
-
-			expect(result.conditionResult).toBe(true);
+			const sql = buildInsertQuery(insertQuery, testConfig);
+			expect(sql).toContain("INSERT INTO users");
 		});
 
 		it("should evaluate variable references", () => {
@@ -461,9 +448,8 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
-
-			expect(result.conditionResult).toBe(true); // "John" != "admin"
+			const sql = buildInsertQuery(insertQuery, testConfig);
+			expect(sql).toContain("INSERT INTO users");
 		});
 
 		it("should handle string operators like $like", () => {
@@ -479,9 +465,8 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
-
-			expect(result.conditionResult).toBe(true);
+			const sql = buildInsertQuery(insertQuery, testConfig);
+			expect(sql).toContain("INSERT INTO users");
 		});
 
 		it("should handle array operators like $in", () => {
@@ -498,9 +483,8 @@ describe("CRUD - INSERT Query Operations", () => {
 				},
 			};
 
-			const result = buildInsertQuery(insertQuery, testConfig);
-
-			expect(result.conditionResult).toBe(true);
+			const sql = buildInsertQuery(insertQuery, testConfig);
+			expect(sql).toContain("INSERT INTO users");
 		});
 	});
 });

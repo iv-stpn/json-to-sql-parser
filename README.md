@@ -1,9 +1,9 @@
 # JSON to SQL Parser
 
-A TypeScript library that converts JSON-based query specifications into safe,
-parameterized SQL queries. This parser provides a declarative way to build
-complex SQL queries with strong type safety, field validation, and built-in
-protection against SQL injection.
+A TypeScript library that converts JSON-based query specifications into safe SQL
+queries. This parser provides a declarative way to build complex SQL queries
+with strong type safety, field validation, and built-in protection against SQL
+injection.
 
 ## Features
 
@@ -64,13 +64,10 @@ const query = {
 };
 
 // Generate SQL directly
-const { sql, params } = buildSelectQuery(query, config);
+const sql = buildSelectQuery(query, config);
 
 console.log(sql);
-// SELECT users.id AS "id", users.name AS "name", users.email AS "email" FROM users WHERE users.active = $1
-
-console.log(params);
-// [true]
+// SELECT users.id AS "id", users.name AS "name", users.email AS "email" FROM users WHERE users.active = TRUE
 ```
 
 ## Configuration
@@ -251,7 +248,7 @@ const aggregationQuery = {
   },
 };
 
-const { sql, params } = buildAggregationQuery(aggregationQuery, config);
+const sql = buildAggregationQuery(aggregationQuery, config);
 ```
 
 ## Expression System
@@ -416,7 +413,7 @@ const query = {
 
 ### SQL Injection Protection
 
-All user values are automatically parameterized:
+All user values are automatically quoted and escaped:
 
 ```typescript
 const condition = {
@@ -424,8 +421,7 @@ const condition = {
 };
 
 // Generates safe SQL:
-// WHERE users.name = $1
-// Parameters: ["Robert'; DROP TABLE users; --"]
+// WHERE users.name = 'Robert''; DROP TABLE users; --'
 ```
 
 ### Field Whitelisting
@@ -559,7 +555,7 @@ The parser provides detailed error messages for common issues:
 
 ```typescript
 try {
-  const { sql, params } = buildSelectQuery(query, config);
+  const sql = buildSelectQuery(query, config);
 } catch (error) {
   console.error("Query parsing failed:", error.message);
 }

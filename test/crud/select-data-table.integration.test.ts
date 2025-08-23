@@ -84,7 +84,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 				const selectQuery = parseSelectQuery({ rootTable: "users", selection, condition }, config);
 				const sql = compileSelectQuery(selectQuery);
 
-				const rows = await db.query(sql, selectQuery.params);
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(4); // 4 active users in current tenant
 			});
@@ -99,7 +99,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 
 				const selectQuery = parseSelectQuery({ rootTable: "users", selection, condition }, config);
 				const sql = compileSelectQuery(selectQuery);
-				const rows = await db.query(sql, selectQuery.params);
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(2); // John (30) and Charlie (32)
 			});
@@ -115,7 +115,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 				const selectQuery = parseSelectQuery({ rootTable: "users", selection, condition }, config);
 				const sql = compileSelectQuery(selectQuery);
 
-				const rows = await db.query(sql, selectQuery.params);
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(2); // John and Alice
 			});
@@ -128,7 +128,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 
 				const selectQuery = parseSelectQuery({ rootTable: "users", selection, condition }, config);
 				const sql = compileSelectQuery(selectQuery);
-				const rows = await db.query(sql, selectQuery.params);
+				const rows = await db.query(sql);
 
 				// Should only return current_tenant users (4), not other_tenant users
 				expect(rows.length).toBe(4);
@@ -142,7 +142,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 
 				const selectQuery = parseSelectQuery({ rootTable: "users", selection, condition }, config);
 				const sql = compileSelectQuery(selectQuery);
-				const rows = await db.query(sql, selectQuery.params);
+				const rows = await db.query(sql);
 
 				// Should return 5 users (excludes soft-deleted records due to dataTable config)
 				expect(rows.length).toBe(5);
@@ -157,7 +157,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 				const result = parseSelectQuery({ rootTable: "users", selection }, config);
 				const sql = compileSelectQuery(result);
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(5); // All users in current tenant (excluding deleted)
 				expect(rows[0]).toHaveProperty("id");
@@ -173,7 +173,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 				const result = parseSelectQuery({ rootTable: "users", selection, condition }, config);
 				const sql = compileSelectQuery(result);
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(2); // John and Alice
 			});
@@ -195,7 +195,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 				const result = parseAggregationQuery(aggregationQuery, config);
 				const sql = compileAggregationQuery(result);
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBeGreaterThan(0);
 				expect(rows[0]).toHaveProperty("status");
@@ -218,7 +218,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 				const result = parseAggregationQuery(aggregationQuery, config);
 				const sql = compileAggregationQuery(result);
 
-				const rows = await db.query(sql, result.params);
+				const rows = await db.query(sql);
 
 				expect(rows.length).toBeGreaterThan(0);
 				expect(rows[0]).toHaveProperty("metadata->department");
@@ -236,15 +236,14 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 			const regularConfig = { ...config };
 			delete regularConfig.dataTable;
 
-			const regularResult = extractSelectWhereClause(condition, regularConfig, "users");
-			const dataTableResult = extractSelectWhereClause(condition, config, "users");
+			const regularResultSql = extractSelectWhereClause(condition, regularConfig, "users");
+			const dataTableResultSql = extractSelectWhereClause(condition, config, "users");
 
 			// The expressions should be different due to data table transformation
-			expect(regularResult.sql).toBe("users.active = $1");
-			expect(dataTableResult.sql).toBe(
-				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (users.data->>'active')::BOOLEAN = $1)",
+			expect(regularResultSql).toBe("users.active = TRUE");
+			expect(dataTableResultSql).toBe(
+				"(users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (users.data->>'active')::BOOLEAN = TRUE)",
 			);
-			expect(regularResult.params).toEqual(dataTableResult.params);
 
 			// But when building full queries, they differ significantly
 			const regularSelection = { id: true, name: true };

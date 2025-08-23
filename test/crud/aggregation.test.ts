@@ -93,9 +93,8 @@ describe("CRUD - AGGREGATION Query Operations", () => {
 			const result = parseAggregationQuery(query, testConfig);
 
 			expect(result.select).toContain(
-				"SUM((sales.data->>'amount')::FLOAT * (CASE WHEN sales.data->>'region' = $1 THEN 1.2 ELSE 1 END)) AS \"adjusted_total\"",
+				"SUM((sales.data->>'amount')::FLOAT * (CASE WHEN sales.data->>'region' = 'premium' THEN 1.2 ELSE 1 END)) AS \"adjusted_total\"",
 			);
-			expect(result.params).toEqual(["premium"]);
 		});
 
 		it("should handle multiple aggregation operators", () => {

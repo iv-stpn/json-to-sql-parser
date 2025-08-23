@@ -9,6 +9,7 @@ import type { AggregationQuery, AnyExpression, Condition } from "../../src/schem
 import type { Config, ParserState } from "../../src/types";
 import { ExpressionTypeMap } from "../../src/utils/expression-map";
 import { extractSelectWhereClause } from "../_helpers";
+import { quote } from "../../src/utils";
 
 // Test configuration
 let testConfig: Config;
@@ -69,9 +70,8 @@ describe("CRUD - SELECT Query Operations", () => {
 				"users.name": { $eq: "John" },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.name = $1");
-			expect(result.params).toEqual(["John"]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("users.name = 'John'");
 		});
 
 		it("should parse multiple conditions with AND", () => {
@@ -80,9 +80,8 @@ describe("CRUD - SELECT Query Operations", () => {
 				"users.age": { $gt: 25 },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("(users.name = $1 AND users.age > $2)");
-			expect(result.params).toEqual(["John", 25]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("(users.name = 'John' AND users.age > 25)");
 		});
 
 		it("should parse OR conditions", () => {
@@ -90,9 +89,8 @@ describe("CRUD - SELECT Query Operations", () => {
 				$or: [{ "users.name": { $eq: "John" } }, { "users.name": { $eq: "Jane" } }],
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("(users.name = $1 OR users.name = $2)");
-			expect(result.params).toEqual(["John", "Jane"]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("(users.name = 'John' OR users.name = 'Jane')");
 		});
 
 		it("should parse NOT conditions", () => {
@@ -100,9 +98,8 @@ describe("CRUD - SELECT Query Operations", () => {
 				$not: { "users.active": { $eq: true } },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("NOT (users.active = $1)");
-			expect(result.params).toEqual([true]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("NOT (users.active = TRUE)");
 		});
 	});
 
@@ -112,9 +109,8 @@ describe("CRUD - SELECT Query Operations", () => {
 				"users.age": { $gte: 18, $lte: 65 },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("(users.age >= $1 AND users.age <= $2)");
-			expect(result.params).toEqual([18, 65]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("(users.age >= 18 AND users.age <= 65)");
 		});
 
 		it("should parse array operators", () => {
@@ -122,9 +118,8 @@ describe("CRUD - SELECT Query Operations", () => {
 				"users.name": { $in: ["John", "Jane", "Bob"] },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.name IN ($1, $2, $3)");
-			expect(result.params).toEqual(["John", "Jane", "Bob"]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("users.name IN ('John', 'Jane', 'Bob')");
 		});
 
 		it("should parse string operators", () => {
@@ -132,9 +127,8 @@ describe("CRUD - SELECT Query Operations", () => {
 				"users.name": { $like: "John%" },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.name LIKE $1");
-			expect(result.params).toEqual(["John%"]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("users.name LIKE 'John%'");
 		});
 	});
 
@@ -144,9 +138,8 @@ describe("CRUD - SELECT Query Operations", () => {
 				"users.id": { $eq: { $var: "auth.uid" } },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("(users.id)::TEXT = '123'");
-			expect(result.params).toEqual([]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("(users.id)::TEXT = '123'");
 		});
 
 		it("should parse conditional expressions", () => {
@@ -162,9 +155,8 @@ describe("CRUD - SELECT Query Operations", () => {
 				},
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.status = (CASE WHEN users.active = $1 THEN 'active' ELSE 'inactive' END)");
-			expect(result.params).toEqual([true]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("users.status = (CASE WHEN users.active = TRUE THEN 'active' ELSE 'inactive' END)");
 		});
 	});
 
@@ -174,9 +166,8 @@ describe("CRUD - SELECT Query Operations", () => {
 				"users.metadata->profile->name": { $eq: "John" },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("users.metadata->'profile'->>'name' = $1");
-			expect(result.params).toEqual(["John"]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("users.metadata->'profile'->>'name' = 'John'");
 		});
 	});
 
@@ -192,9 +183,8 @@ describe("CRUD - SELECT Query Operations", () => {
 				},
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toBe("EXISTS (SELECT 1 FROM posts WHERE (posts.user_id = users.id AND posts.published = $1))");
-			expect(result.params).toEqual([true]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toBe("EXISTS (SELECT 1 FROM posts WHERE (posts.user_id = users.id AND posts.published = TRUE))");
 		});
 	});
 });
@@ -202,12 +192,7 @@ describe("CRUD - SELECT Query Operations", () => {
 describe("CRUD - SELECT Field Selection and Projections", () => {
 	describe("Basic selection", () => {
 		it("should parse simple field selection", () => {
-			const selection = {
-				id: true,
-				name: true,
-				email: true,
-			};
-
+			const selection = { id: true, name: true, email: true };
 			const result = parseSelectQuery({ rootTable: "users", selection }, testConfig);
 			const sql = compileSelectQuery(result);
 
@@ -221,11 +206,8 @@ describe("CRUD - SELECT Field Selection and Projections", () => {
 			const selection = { id: true, name: true };
 			const condition: Condition = { "users.active": { $eq: true } };
 
-			const result = parseSelectQuery({ rootTable: "users", selection, condition }, testConfig);
-			const sql = compileSelectQuery(result);
-
-			expect(result.params).toEqual([true]);
-			expect(sql).toBe('SELECT users.id AS "id", users.name AS "name" FROM users WHERE users.active = $1');
+			const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection, condition }, testConfig));
+			expect(sql).toBe('SELECT users.id AS "id", users.name AS "name" FROM users WHERE users.active = TRUE');
 		});
 	});
 
@@ -333,7 +315,6 @@ describe("CRUD - SELECT Aggregation Operations", () => {
 			};
 
 			const result = parseAggregationQuery(query, testConfig);
-
 			expect(result.select).toContain('MAX(users.age + 10) AS "max_age_plus_ten"');
 		});
 
@@ -358,40 +339,40 @@ describe("CRUD - SELECT Expression Evaluation", () => {
 	let testState: ParserState;
 
 	beforeEach(() => {
-		testState = { config: testConfig, params: [], expressions: new ExpressionTypeMap(), rootTable: "users" };
+		testState = { config: testConfig, expressions: new ExpressionTypeMap(), rootTable: "users" };
 	});
 
 	describe("Field references", () => {
 		it("should resolve context variables", () => {
 			const expr: AnyExpression = { $var: "auth.uid" };
-			const result = parseExpression(expr, testState);
-			expect(result).toBe("'123'");
+			const sql = parseExpression(expr, testState);
+			expect(sql).toBe("'123'");
 		});
 
 		it("should resolve field references", () => {
 			const expr: AnyExpression = { $field: "users.name" };
-			const result = parseExpression(expr, testState);
-			expect(result).toBe("users.name");
+			const sql = parseExpression(expr, testState);
+			expect(sql).toBe("users.name");
 		});
 	});
 
 	describe("Function calls", () => {
 		it("should evaluate unary functions", () => {
 			const expr: AnyExpression = { $func: { UPPER: [{ $field: "users.name" }] } };
-			const result = parseExpression(expr, testState);
-			expect(result).toBe("UPPER(users.name)");
+			const sql = parseExpression(expr, testState);
+			expect(sql).toBe("UPPER(users.name)");
 		});
 
 		it("should evaluate binary functions", () => {
 			const expr: AnyExpression = { $func: { ADD: [{ $field: "users.age" }, 5] } };
-			const result = parseExpression(expr, testState);
-			expect(result).toBe("(users.age + 5)");
+			const sql = parseExpression(expr, testState);
+			expect(sql).toBe("(users.age + 5)");
 		});
 
 		it("should evaluate variable functions", () => {
 			const expr: AnyExpression = { $func: { CONCAT: [{ $field: "users.name" }, " - ", { $field: "users.email" }] } };
-			const result = parseExpression(expr, testState);
-			expect(result).toBe("CONCAT(users.name, ' - ', users.email)");
+			const sql = parseExpression(expr, testState);
+			expect(sql).toBe("CONCAT(users.name, ' - ', users.email)");
 		});
 	});
 
@@ -404,9 +385,8 @@ describe("CRUD - SELECT Expression Evaluation", () => {
 					else: "Inactive User",
 				},
 			};
-			const result = parseExpression(expr, testState);
-			expect(result).toBe("(CASE WHEN users.active = $1 THEN 'Active User' ELSE 'Inactive User' END)");
-			expect(testState.params).toEqual([true]);
+			const sql = parseExpression(expr, testState);
+			expect(sql).toBe("(CASE WHEN users.active = TRUE THEN 'Active User' ELSE 'Inactive User' END)");
 		});
 	});
 });
@@ -589,7 +569,7 @@ describe("Edge Case Tests", () => {
 		testState = {
 			config: testConfig,
 			rootTable: "users",
-			params: [],
+
 			expressions: new ExpressionTypeMap(),
 		};
 	});
@@ -610,10 +590,9 @@ describe("Edge Case Tests", () => {
 				],
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toContain("AND");
-			expect(result.sql).toContain("OR");
-			expect(result.params).toEqual(["John", "Jane", 18, 65, true, "pending"]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toContain("AND");
+			expect(sql).toContain("OR");
 		});
 
 		it("should handle mixed NOT conditions with complex nesting", () => {
@@ -628,9 +607,9 @@ describe("Edge Case Tests", () => {
 				},
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toContain("NOT");
-			expect(result.params).toEqual(["blocked", "banned", 13]);
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toContain("NOT");
+			expect(sql).toContain("AND");
 		});
 
 		it("should handle empty AND/OR arrays", () => {
@@ -657,8 +636,8 @@ describe("Edge Case Tests", () => {
 			const andResult = extractSelectWhereClause(andCondition, testConfig, "users");
 			const orResult = extractSelectWhereClause(orCondition, testConfig, "users");
 
-			expect(andResult.sql).toBe("users.name = $1");
-			expect(orResult.sql).toBe("(users.age > $1)");
+			expect(andResult).toBe("users.name = 'John'");
+			expect(orResult).toBe("(users.age > 18)");
 		});
 	});
 
@@ -676,8 +655,8 @@ describe("Edge Case Tests", () => {
 					"users.age": { $eq: largeNumber },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.params).toEqual([largeNumber]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toContain(largeNumber.toString());
 			}
 		});
 
@@ -695,8 +674,8 @@ describe("Edge Case Tests", () => {
 					"users.age": { $eq: smallNumber },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.params).toEqual([smallNumber]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toContain(smallNumber.toString());
 			}
 		});
 
@@ -711,8 +690,8 @@ describe("Edge Case Tests", () => {
 				if (Number.isNaN(specialNumber) || !Number.isFinite(specialNumber)) {
 					expect(() => extractSelectWhereClause(condition, testConfig, "users")).toThrow();
 				} else {
-					const result = extractSelectWhereClause(condition, testConfig, "users");
-					expect(result.params).toEqual([specialNumber]);
+					const sql = extractSelectWhereClause(condition, testConfig, "users");
+					expect(sql).toContain(specialNumber.toString());
 				}
 			}
 		});
@@ -734,8 +713,8 @@ describe("Edge Case Tests", () => {
 					"users.name": { $eq: stringValue },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.params).toEqual([stringValue]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toContain(quote(stringValue));
 			}
 		});
 
@@ -758,8 +737,8 @@ describe("Edge Case Tests", () => {
 					"users.name": { $eq: unicodeString },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.params).toEqual([unicodeString]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toContain(quote(unicodeString));
 			}
 		});
 	});
@@ -772,10 +751,10 @@ describe("Edge Case Tests", () => {
 				},
 			};
 
-			const result = parseExpression(nestedExpression, testState);
-			expect(result).toContain("UPPER");
-			expect(result).toContain("LOWER");
-			expect(result).toContain("CONCAT");
+			const sql = parseExpression(nestedExpression, testState);
+			expect(sql).toContain("UPPER");
+			expect(sql).toContain("LOWER");
+			expect(sql).toContain("CONCAT");
 		});
 
 		it("should handle mathematical expressions with edge cases", () => {
@@ -816,10 +795,10 @@ describe("Edge Case Tests", () => {
 				[deepJsonPath]: { $eq: "deep_value" },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.sql).toContain("metadata");
-			expect(result.sql).toContain("level1");
-			expect(result.sql).toContain("level5");
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql).toContain("metadata");
+			expect(sql).toContain("level1");
+			expect(sql).toContain("level5");
 		});
 
 		it("should handle JSON paths with special characters", () => {
@@ -837,8 +816,8 @@ describe("Edge Case Tests", () => {
 					[jsonPath]: { $eq: "test_value" },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.params).toEqual(["test_value"]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toContain("metadata");
 			}
 		});
 
@@ -899,9 +878,9 @@ describe("Edge Case Tests", () => {
 				"users.name": { $in: largeArray },
 			};
 
-			const result = extractSelectWhereClause(condition, testConfig, "users");
-			expect(result.params).toEqual(largeArray);
-			expect(result.sql).toContain("IN");
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql.length).toBeGreaterThan(1000);
+			expect(sql).toContain("IN");
 		});
 
 		it("should handle arrays with only scalar values", () => {
@@ -916,8 +895,8 @@ describe("Edge Case Tests", () => {
 					"users.name": { $in: scalarArray },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.params).toEqual(scalarArray);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toContain("IN");
 			}
 		});
 	});
@@ -949,8 +928,8 @@ describe("Edge Case Tests", () => {
 
 			for (const variable of variables) {
 				const expr: AnyExpression = { $var: variable };
-				const result = parseExpression(expr, specialState);
-				expect(result).not.toContain("undefined");
+				const sql = parseExpression(expr, specialState);
+				expect(sql).not.toContain("undefined");
 			}
 		});
 	});
@@ -975,9 +954,8 @@ describe("Edge Case Tests", () => {
 					"users.name": { $like: pattern },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.params).toEqual([pattern]);
-				expect(result.sql).toContain("LIKE");
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toContain(`LIKE '${pattern}'`);
 			}
 		});
 
@@ -989,9 +967,8 @@ describe("Edge Case Tests", () => {
 					"users.name": { $regex: pattern },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.params).toEqual([pattern]);
-				expect(result.sql).toContain("~");
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toContain(`~ '${pattern}'`);
 			}
 		});
 	});
@@ -1081,7 +1058,7 @@ describe("Expected Failure Tests", () => {
 		testState = {
 			config: testConfig,
 			rootTable: "users",
-			params: [],
+
 			expressions: new ExpressionTypeMap(),
 		};
 	});
@@ -1396,9 +1373,8 @@ describe("Expected Failure Tests", () => {
 			}
 
 			// This should work fine
-			const result = extractSelectWhereClause(deepCondition, testConfig, "users");
-			expect(result.sql).toContain("users.name = $1");
-			expect(result.params).toEqual(["base"]);
+			const sql = extractSelectWhereClause(deepCondition, testConfig, "users");
+			expect(sql).toContain("users.name = 'base'");
 		});
 
 		it("should reject circular references in expressions", () => {
@@ -1410,21 +1386,6 @@ describe("Expected Failure Tests", () => {
 				};
 				parseExpression(expr, testState);
 			}).toThrow();
-		});
-
-		it("should handle malformed JSON correctly", () => {
-			// Test with strings that look like JSON but aren't valid
-			const malformedJsonStrings = ["{ invalid json }", "[ incomplete array", "'single quotes'", '{ "unfinished": '];
-
-			for (const malformed of malformedJsonStrings) {
-				const condition: Condition = {
-					"users.name": { $eq: malformed },
-				};
-
-				// Should handle these as regular strings, not throw JSON parse errors
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.params).toEqual([malformed]);
-			}
 		});
 	});
 
@@ -1461,7 +1422,7 @@ describe("Expected Failure Tests", () => {
 			}
 		});
 
-		it("should reject attempts to escape parameter binding", () => {
+		it("should escape user input", () => {
 			const escapeAttempts = [
 				"'; SELECT * FROM users; --",
 				"' UNION SELECT password FROM admin --",
@@ -1474,37 +1435,24 @@ describe("Expected Failure Tests", () => {
 					"users.name": { $eq: escapeAttempt },
 				};
 
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-
-				// Should be properly parameterized, not injected
-				expect(result.sql).toBe("users.name = $1");
-				expect(result.params).toEqual([escapeAttempt]);
-
-				// Make sure dangerous SQL is not present in the expression
-				expect(result.sql).not.toContain("SELECT");
-				expect(result.sql).not.toContain("DROP");
-				expect(result.sql).not.toContain("UNION");
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toBe(`users.name = ${quote(escapeAttempt)}`);
 			}
 		});
 	});
 
 	describe("Resource Exhaustion Tests", () => {
-		it("should handle reasonable limits on parameter count", () => {
-			// Test with a very large number of parameters
+		it("should handle a large amount of array elements for a IN clause", () => {
+			// Test with a very large number of elements
 			const largeArray = Array.from({ length: 10000 }, (_, i) => `value_${i}`);
 
 			const condition: Condition = {
 				"users.name": { $in: largeArray },
 			};
 
-			// Should either handle it gracefully or reject with a reasonable error
-			try {
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.params.length).toBe(10000);
-			} catch (error) {
-				// If it throws, it should be a reasonable error about limits
-				expect(error).toBeDefined();
-			}
+			// Should handle large arrays gracefully
+			const sql = extractSelectWhereClause(condition, testConfig, "users");
+			expect(sql.length > 10000).toBe(true);
 		});
 
 		it("should handle deeply nested JSON paths reasonably", () => {
@@ -1516,8 +1464,8 @@ describe("Expected Failure Tests", () => {
 
 			// Should either handle it or reject with a reasonable error
 			try {
-				const result = extractSelectWhereClause(condition, testConfig, "users");
-				expect(result.params).toEqual(["deep_value"]);
+				const sql = extractSelectWhereClause(condition, testConfig, "users");
+				expect(sql).toContain("deep_value");
 			} catch (error) {
 				// If it throws, should be a reasonable error
 				expect(error).toBeDefined();

@@ -27,7 +27,7 @@ import {
 	isValidTimestamp,
 	uuidRegex,
 } from "../utils/validators";
-import { parametrize, parseExpressionObject, parseFieldPath, parseScalarExpression, resolveFunction } from ".";
+import { parseExpressionObject, parseFieldPath, parseScalarExpression, parseScalarValue, resolveFunction } from ".";
 
 function getScalarExpressionValue(value: unknown, key: "$date" | "$uuid" | "$timestamp"): string {
 	if (isNonNullObject(value)) {
@@ -279,7 +279,7 @@ export function processMutationFields(newRow: Record<string, unknown>, state: Pa
 		} else if (isScalarExpression(value)) {
 			acc[fieldName] = parseScalarExpression(value);
 		} else if (isScalarPrimitive(value)) {
-			acc[fieldName] = parametrize(value, state);
+			acc[fieldName] = parseScalarValue(value);
 		} else {
 			throw new Error(`Unsupported value type for field '${fieldName}': ${JSON.stringify(value)}`);
 		}
