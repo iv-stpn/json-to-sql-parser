@@ -1,5 +1,11 @@
 # json-to-sql-parser
 
+## 3.0.1
+
+### Patch Changes
+
+- [`52bed57`](https://github.com/iv-stpn/json-to-sql-parser/commit/52bed57e0cc4e44fcd646c750e73416539124205) Thanks [@iv-stpn](https://github.com/iv-stpn)! - use Record instead of index signature in $func
+
 ## 3.0.0
 
 ### Major Changes
