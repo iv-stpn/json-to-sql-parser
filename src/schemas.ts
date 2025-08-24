@@ -20,7 +20,7 @@ export type ConditionExpression = { if: Condition; then: AnyExpression; else: An
 export type ExpressionObject =
 	| { $field: string } // Field reference
 	| { $var: string } // Variable reference
-	| { $func: { [functionName: string]: AnyExpression[] } } // Function call with arguments
+	| { $func: Record<string, AnyExpression[]> } // Function call with arguments
 	| { $cond: ConditionExpression } // Conditional expression
 	| ScalarExpression; // Scalar expressions (timestamp, date, uuid, jsonb)
 
