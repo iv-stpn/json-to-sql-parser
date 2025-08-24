@@ -5,6 +5,7 @@ export { buildSelectQuery, compileSelectQuery, parseSelectQuery } from "./builde
 export { buildUpdateQuery, compileUpdateQuery, parseUpdateQuery } from "./builders/update";
 export { buildDataTableWhereClause, buildWhereClause } from "./builders/where";
 export { allowedFunctions, functionNames } from "./functions";
+
 // Allowed functions
 export { aggregationFunctionNames, allowedAggregationFunctions } from "./functions/aggregate";
 
@@ -34,14 +35,13 @@ export type {
 
 // Schemas
 export {
-	aggregationQuerySchema,
-	//
 	anyExpressionSchema,
 	conditionSchema,
 	expressionObjectSchema,
 	fieldSelectionSchema,
-	insertQuerySchema,
 	selectQuerySchema,
+	aggregationQuerySchema,
+	insertQuerySchema,
 	updateQuerySchema,
 } from "./schemas";
 

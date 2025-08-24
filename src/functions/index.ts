@@ -4,6 +4,7 @@ import { isNotNull } from "../utils";
 import { removeAllWrappingParens } from "../utils/function-call";
 import { parseDate, parseTimestamp } from "../utils/parse-values";
 import { ensureBoolean, ensureDateString, ensureNumber, ensureText, ensureTimestampString } from "../utils/validators";
+import type { Config } from "../types";
 
 type CastTypeToJSType<T extends (typeof castTypes)[number]> = T extends "BOOLEAN"
 	? boolean
@@ -27,7 +28,7 @@ export type FunctionDefinition<TReturn extends (typeof castTypes)[number] = (typ
 	variadic?: boolean;
 	returnType: TReturn;
 	toSQL?: (args: string[]) => string;
-	toJS: (...args: unknown[]) => CastTypeToJSType<TReturn> | null;
+	toJS: (params: { config: Config; args: unknown[] }) => CastTypeToJSType<TReturn> | null;
 };
 
 // Variadic ensure functions to avoid type casting
@@ -43,16 +44,34 @@ function ensureAllBooleans(args: unknown[]): asserts args is (boolean | null)[] 
 	for (const argument of args) ensureBoolean(argument);
 }
 
-// Individual function definitions
+// Auth function definitions
 const authUidFunction: FunctionDefinition<"UUID"> = {
 	name: "AUTH.UID",
 	argumentTypes: [],
 	returnType: "UUID",
 	toSQL: () => "auth.uid()",
-	toJS: () => {
-		throw new Error("AUTH.UID function cannot be called in JavaScript");
+	toJS: ({ config }) => {
+		if (config.variables.CURRENT_USER_ID) {
+			if (typeof config.variables.CURRENT_USER_ID === "object" && "$uuid" in config.variables.CURRENT_USER_ID)
+				return config.variables.CURRENT_USER_ID;
+			throw new Error("Invalid CURRENT_USER_ID format");
+		}
+		return null;
 	},
-	// Note: AUTH.UID is a database-specific function, no JS implementation
+};
+
+const authRoleFunction: FunctionDefinition<"TEXT"> = {
+	name: "AUTH.ROLE",
+	argumentTypes: [],
+	returnType: "TEXT",
+	toSQL: () => "auth.role()",
+	toJS: ({ config }) => {
+		if (config.variables.CURRENT_USER_ROLE) {
+			if (typeof config.variables.CURRENT_USER_ROLE === "string") return config.variables.CURRENT_USER_ROLE;
+			throw new Error("Invalid CURRENT_USER_ROLE format");
+		}
+		return null;
+	},
 };
 
 // Logical functions (9.1 / https://www.postgresql.org/docs/current/functions-logical.html)
@@ -61,7 +80,7 @@ const andFunction: FunctionDefinition<"BOOLEAN"> = {
 	argumentTypes: ["BOOLEAN", "BOOLEAN"],
 	returnType: "BOOLEAN",
 	toSQL: (args) => `${args[0]} AND ${args[1]}`,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 2) throw new Error("AND function expects exactly 2 arguments");
 		ensureBoolean(args[0]);
 		ensureBoolean(args[1]);
@@ -75,7 +94,7 @@ const orFunction: FunctionDefinition<"BOOLEAN"> = {
 	argumentTypes: ["BOOLEAN", "BOOLEAN"],
 	returnType: "BOOLEAN",
 	toSQL: (args) => `${args[0]} OR ${args[1]}`,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 2) throw new Error("OR function expects exactly 2 arguments");
 		ensureBoolean(args[0]);
 		ensureBoolean(args[1]);
@@ -89,7 +108,7 @@ const notFunction: FunctionDefinition<"BOOLEAN"> = {
 	argumentTypes: ["BOOLEAN"],
 	returnType: "BOOLEAN",
 	toSQL: (args) => `NOT (${removeAllWrappingParens(`${args[0]}`)})`,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("NOT function expects exactly 1 argument");
 		ensureBoolean(args[0]);
 		if (args[0] === null) return null;
@@ -103,7 +122,7 @@ const addFunction: FunctionDefinition<"FLOAT"> = {
 	argumentTypes: ["FLOAT", "FLOAT"],
 	returnType: "FLOAT",
 	toSQL: (args) => `(${args[0]} + ${args[1]})`,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 2) throw new Error("ADD function expects exactly 2 arguments");
 		ensureNumber(args[0]);
 		ensureNumber(args[1]);
@@ -117,7 +136,7 @@ const subtractFunction: FunctionDefinition<"FLOAT"> = {
 	argumentTypes: ["FLOAT", "FLOAT"],
 	returnType: "FLOAT",
 	toSQL: (args) => `(${args[0]} - ${args[1]})`,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 2) throw new Error("SUBTRACT function expects exactly 2 arguments");
 		ensureNumber(args[0]);
 		ensureNumber(args[1]);
@@ -131,7 +150,7 @@ const multiplyFunction: FunctionDefinition<"FLOAT"> = {
 	argumentTypes: ["FLOAT", "FLOAT"],
 	returnType: "FLOAT",
 	toSQL: (args) => `(${args[0]} * ${args[1]})`,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 2) throw new Error("MULTIPLY function expects exactly 2 arguments");
 		ensureNumber(args[0]);
 		ensureNumber(args[1]);
@@ -148,7 +167,7 @@ const divideFunction: FunctionDefinition<"FLOAT"> = {
 		if (Number(args[1]) === 0) throw new Error("Division by zero is not allowed");
 		return `(${args[0]} / ${args[1]})`;
 	},
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 2) throw new Error("DIVIDE function expects exactly 2 arguments");
 		ensureNumber(args[0]);
 		ensureNumber(args[1]);
@@ -163,7 +182,7 @@ const modFunction: FunctionDefinition<"FLOAT"> = {
 	argumentTypes: ["FLOAT", "FLOAT"],
 	returnType: "FLOAT",
 	toSQL: (args) => `(${args[0]} % ${args[1]})`,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 2) throw new Error("MOD function expects exactly 2 arguments");
 		ensureNumber(args[0]);
 		ensureNumber(args[1]);
@@ -177,7 +196,7 @@ const powFunction: FunctionDefinition<"FLOAT"> = {
 	argumentTypes: ["FLOAT", "FLOAT"],
 	returnType: "FLOAT",
 	toSQL: (args) => `${args[0]} ^ ${args[1]}`,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 2) throw new Error("POW function expects exactly 2 arguments");
 		ensureNumber(args[0]);
 		ensureNumber(args[1]);
@@ -190,7 +209,7 @@ const absFunction: FunctionDefinition<"FLOAT"> = {
 	name: "ABS",
 	argumentTypes: ["FLOAT"],
 	returnType: "FLOAT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("ABS function expects exactly 1 argument");
 		ensureNumber(args[0]);
 		if (args[0] === null) return null;
@@ -202,7 +221,7 @@ const sqrtFunction: FunctionDefinition<"FLOAT"> = {
 	name: "SQRT",
 	argumentTypes: ["FLOAT"],
 	returnType: "FLOAT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("SQRT function expects exactly 1 argument");
 		ensureNumber(args[0]);
 		if (args[0] === null) return null;
@@ -214,7 +233,7 @@ const ceilFunction: FunctionDefinition<"FLOAT"> = {
 	name: "CEIL",
 	argumentTypes: ["FLOAT"],
 	returnType: "FLOAT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("CEIL function expects exactly 1 argument");
 		ensureNumber(args[0]);
 		if (args[0] === null) return null;
@@ -226,7 +245,7 @@ const floorFunction: FunctionDefinition<"FLOAT"> = {
 	name: "FLOOR",
 	argumentTypes: ["FLOAT"],
 	returnType: "FLOAT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("FLOOR function expects exactly 1 argument");
 		ensureNumber(args[0]);
 		if (args[0] === null) return null;
@@ -239,7 +258,7 @@ const upperFunction: FunctionDefinition<"TEXT"> = {
 	name: "UPPER",
 	argumentTypes: ["TEXT"],
 	returnType: "TEXT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("UPPER function expects exactly 1 argument");
 		ensureText(args[0]);
 		if (args[0] === null) return null;
@@ -251,7 +270,7 @@ const lowerFunction: FunctionDefinition<"TEXT"> = {
 	name: "LOWER",
 	argumentTypes: ["TEXT"],
 	returnType: "TEXT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("LOWER function expects exactly 1 argument");
 		ensureText(args[0]);
 		if (args[0] === null) return null;
@@ -263,7 +282,7 @@ const lengthFunction: FunctionDefinition<"FLOAT"> = {
 	name: "LENGTH",
 	argumentTypes: ["TEXT"],
 	returnType: "FLOAT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("LENGTH function expects exactly 1 argument");
 		ensureText(args[0]);
 		if (args[0] === null) return null;
@@ -276,7 +295,7 @@ const concatFunction: FunctionDefinition<"TEXT"> = {
 	argumentTypes: ["TEXT", "TEXT"],
 	returnType: "TEXT",
 	variadic: true,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length < 2) throw new Error("CONCAT function expects at least 2 arguments");
 		ensureAllText(args);
 		// If any argument is null, return null (SQL behavior)
@@ -289,7 +308,7 @@ const substringFunction: FunctionDefinition<"TEXT"> = {
 	name: "SUBSTRING",
 	argumentTypes: ["TEXT", "FLOAT", "FLOAT"],
 	returnType: "TEXT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 3) throw new Error("SUBSTRING function expects exactly 3 arguments");
 		ensureText(args[0]);
 		ensureNumber(args[1]);
@@ -304,7 +323,7 @@ const replaceFunction: FunctionDefinition<"TEXT"> = {
 	name: "REPLACE",
 	argumentTypes: ["TEXT", "TEXT", "TEXT"],
 	returnType: "TEXT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 3) throw new Error("REPLACE function expects exactly 3 arguments");
 		ensureText(args[0]);
 		ensureText(args[1]);
@@ -319,7 +338,7 @@ const nowFunction: FunctionDefinition<"TIMESTAMP"> = {
 	name: "NOW",
 	argumentTypes: [],
 	returnType: "TIMESTAMP",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length > 0) throw new Error("NOW function expects exactly 0 arguments");
 		const now = new Date();
 		return { $timestamp: now.toISOString() };
@@ -330,7 +349,7 @@ const currentDateFunction: FunctionDefinition<"DATE"> = {
 	name: "CURRENT_DATE",
 	argumentTypes: [],
 	returnType: "DATE",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length > 0) throw new Error("CURRENT_DATE function expects exactly 0 arguments");
 		const date = new Date();
 		return {
@@ -344,7 +363,7 @@ const extractYearFunction: FunctionDefinition<"FLOAT"> = {
 	toSQL: (args: string[]) => `EXTRACT(YEAR FROM ${args[0]})`,
 	argumentTypes: ["DATE"],
 	returnType: "FLOAT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("EXTRACT_YEAR function expects exactly 1 argument");
 		ensureDateString(args[0]);
 		if (args[0] === null) return null;
@@ -358,7 +377,7 @@ const extractMonthFunction: FunctionDefinition<"FLOAT"> = {
 	toSQL: (args: string[]) => `EXTRACT(MONTH FROM ${args[0]})`,
 	argumentTypes: ["DATE"],
 	returnType: "FLOAT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("EXTRACT_MONTH function expects exactly 1 argument");
 		ensureDateString(args[0]);
 		if (args[0] === null) return null;
@@ -372,7 +391,7 @@ const extractDayFunction: FunctionDefinition<"FLOAT"> = {
 	toSQL: (args: string[]) => `EXTRACT(DAY FROM ${args[0]})`,
 	argumentTypes: ["DATE"],
 	returnType: "FLOAT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("EXTRACT_DAY function expects exactly 1 argument");
 		ensureDateString(args[0]);
 		if (args[0] === null) return null;
@@ -386,7 +405,7 @@ const extractHourFunction: FunctionDefinition<"FLOAT"> = {
 	toSQL: (args: string[]) => `EXTRACT(HOUR FROM ${args[0]})`,
 	argumentTypes: ["TIMESTAMP"],
 	returnType: "FLOAT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("EXTRACT_HOUR function expects exactly 1 argument");
 		ensureTimestampString(args[0]);
 		if (args[0] === null) return null;
@@ -400,7 +419,7 @@ const extractMinuteFunction: FunctionDefinition<"FLOAT"> = {
 	toSQL: (args: string[]) => `EXTRACT(MINUTE FROM ${args[0]})`,
 	argumentTypes: ["TIMESTAMP"],
 	returnType: "FLOAT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("EXTRACT_MINUTE function expects exactly 1 argument");
 		ensureTimestampString(args[0]);
 		if (args[0] === null) return null;
@@ -414,7 +433,7 @@ const extractEpochFunction: FunctionDefinition<"FLOAT"> = {
 	toSQL: (args: string[]) => `EXTRACT(EPOCH FROM ${args[0]})`,
 	argumentTypes: ["TIMESTAMP"],
 	returnType: "FLOAT",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length !== 1) throw new Error("EXTRACT_EPOCH function expects exactly 1 argument");
 		ensureTimestampString(args[0]);
 		if (args[0] === null) return null;
@@ -428,7 +447,7 @@ const genRandomUuidFunction: FunctionDefinition<"UUID"> = {
 	name: "GEN_RANDOM_UUID",
 	argumentTypes: [],
 	returnType: "UUID",
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length > 0) throw new Error("GEN_RANDOM_UUID function expects exactly 0 arguments");
 		return { $uuid: uuidv4() };
 	},
@@ -441,7 +460,7 @@ const greatestStringFunction: FunctionDefinition<"TEXT"> = {
 	argumentTypes: ["TEXT", "TEXT"],
 	returnType: "TEXT",
 	variadic: true,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length < 2) throw new Error("GREATEST_STRING function expects at least 2 arguments");
 		ensureAllText(args);
 		// Handle null values - return null if any arg is null (SQL behavior)
@@ -456,7 +475,7 @@ const greatestNumberFunction: FunctionDefinition<"FLOAT"> = {
 	argumentTypes: ["FLOAT", "FLOAT"],
 	returnType: "FLOAT",
 	variadic: true,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length < 2) throw new Error("GREATEST_NUMBER function expects at least 2 arguments");
 		ensureAllNumbers(args);
 		// Handle null values - return null if any arg is null (SQL behavior)
@@ -471,7 +490,7 @@ const leastStringFunction: FunctionDefinition<"TEXT"> = {
 	argumentTypes: ["TEXT", "TEXT"],
 	returnType: "TEXT",
 	variadic: true,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length < 2) throw new Error("LEAST_STRING function expects at least 2 arguments");
 		ensureAllText(args);
 		// Handle null values - return null if any arg is null (SQL behavior)
@@ -486,7 +505,7 @@ const leastNumberFunction: FunctionDefinition<"FLOAT"> = {
 	argumentTypes: ["FLOAT", "FLOAT"],
 	returnType: "FLOAT",
 	variadic: true,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length < 2) throw new Error("LEAST_NUMBER function expects at least 2 arguments");
 		ensureAllNumbers(args);
 		// Handle null values - return null if any arg is null (SQL behavior)
@@ -501,7 +520,7 @@ const coalesceStringFunction: FunctionDefinition<"TEXT"> = {
 	argumentTypes: ["TEXT", "TEXT"],
 	returnType: "TEXT",
 	variadic: true,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length < 2) throw new Error("COALESCE_STRING function expects at least 2 arguments");
 		ensureAllText(args);
 		return args.find((arg) => arg !== null) ?? null;
@@ -514,7 +533,7 @@ const coalesceNumberFunction: FunctionDefinition<"FLOAT"> = {
 	argumentTypes: ["FLOAT", "FLOAT"],
 	returnType: "FLOAT",
 	variadic: true,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length < 2) throw new Error("COALESCE_NUMBER function expects at least 2 arguments");
 		ensureAllNumbers(args);
 		return args.find((arg) => arg !== null) ?? null;
@@ -527,7 +546,7 @@ const coalesceBooleanFunction: FunctionDefinition<"BOOLEAN"> = {
 	argumentTypes: ["BOOLEAN", "BOOLEAN"],
 	returnType: "BOOLEAN",
 	variadic: true,
-	toJS: (...args) => {
+	toJS: ({ args }) => {
 		if (args.length < 2) throw new Error("COALESCE_BOOLEAN function expects at least 2 arguments");
 		ensureAllBooleans(args);
 		return args.find((arg) => arg !== null) ?? null;
@@ -537,6 +556,7 @@ const coalesceBooleanFunction: FunctionDefinition<"BOOLEAN"> = {
 // Combined functions array
 const functions = [
 	authUidFunction,
+	authRoleFunction,
 	andFunction,
 	orFunction,
 	notFunction,
