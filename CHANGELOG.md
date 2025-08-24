@@ -1,5 +1,11 @@
 # json-to-sql-parser
 
+## 3.0.0
+
+### Major Changes
+
+- [`81efe95`](https://github.com/iv-stpn/json-to-sql-parser/commit/81efe957c0017041bd81c740e3664e9292eda6de) Thanks [@iv-stpn](https://github.com/iv-stpn)! - Major refactors: remove parametrized query (only escape values), add INSERT and UPDATE operations, add in-JS evaluation logic for mutations, refactor parsers, tests and exposed APIs
+
 ## 2.1.0
 
 ### Minor Changes
