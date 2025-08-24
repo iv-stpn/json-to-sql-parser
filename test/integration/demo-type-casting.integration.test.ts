@@ -1,6 +1,7 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { buildAggregationQuery, buildSelectQuery } from "../../src";
+import { buildAggregationQuery } from "../../src/builders/aggregate";
+import { buildSelectQuery } from "../../src/builders/select";
 import type { AggregationQuery, Condition, SelectQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { uuidRegex } from "../../src/utils/validators";

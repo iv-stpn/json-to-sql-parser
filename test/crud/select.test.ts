@@ -7,9 +7,9 @@ import { parseExpression } from "../../src/parsers";
 
 import type { AggregationQuery, AnyExpression, Condition } from "../../src/schemas";
 import type { Config, ParserState } from "../../src/types";
+import { quote } from "../../src/utils";
 import { ExpressionTypeMap } from "../../src/utils/expression-map";
 import { extractSelectWhereClause } from "../_helpers";
-import { quote } from "../../src/utils";
 
 // Test configuration
 let testConfig: Config;

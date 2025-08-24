@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import type { Config, InsertQuery } from "../../src";
 import { buildInsertQuery } from "../../src/builders/insert";
+import type { InsertQuery } from "../../src/schemas";
+import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "../_helpers";
 
 describe("Integration - INSERT Operations and Data Persistence", () => {

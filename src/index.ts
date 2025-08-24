@@ -35,13 +35,13 @@ export type {
 
 // Schemas
 export {
+	aggregationQuerySchema,
 	anyExpressionSchema,
 	conditionSchema,
 	expressionObjectSchema,
 	fieldSelectionSchema,
-	selectQuerySchema,
-	aggregationQuerySchema,
 	insertQuerySchema,
+	selectQuerySchema,
 	updateQuerySchema,
 } from "./schemas";
 

@@ -1,10 +1,10 @@
 import { v4 as uuidv4 } from "uuid";
 import type { castTypes } from "../constants/cast-types";
+import type { Config } from "../types";
 import { isNotNull } from "../utils";
 import { removeAllWrappingParens } from "../utils/function-call";
 import { parseDate, parseTimestamp } from "../utils/parse-values";
 import { ensureBoolean, ensureDateString, ensureNumber, ensureText, ensureTimestampString } from "../utils/validators";
-import type { Config } from "../types";
 
 type CastTypeToJSType<T extends (typeof castTypes)[number]> = T extends "BOOLEAN"
 	? boolean

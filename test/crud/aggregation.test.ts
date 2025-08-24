@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 
 import { beforeEach, describe, expect, it } from "bun:test";
-import type { AggregationQuery } from "../../src";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
+import type { AggregationQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 
 let testConfig: Config;

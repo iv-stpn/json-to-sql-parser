@@ -1,7 +1,8 @@
 import { describe, expect, it, test } from "bun:test";
-import type { Config, InsertQuery } from "../../src";
 import { buildInsertQuery } from "../../src/builders/insert";
 import { FORBIDDEN_EXISTING_ROW_EVALUATION_ON_INSERT_ERROR } from "../../src/constants/errors";
+import type { InsertQuery } from "../../src/schemas";
+import type { Config } from "../../src/types";
 
 const testConfig: Config = {
 	tables: {
