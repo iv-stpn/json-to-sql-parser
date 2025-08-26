@@ -1,5 +1,11 @@
 # json-to-sql-parser
 
+## 3.1.0
+
+### Minor Changes
+
+- [`6b984d4`](https://github.com/iv-stpn/json-to-sql-parser/commit/6b984d4c735dd6a0681c98a240bcc2e2917149f0) Thanks [@iv-stpn](https://github.com/iv-stpn)! - Add SQLite dialect support, simplify type casting, remove auth functions and enforce safe joins
+
 ## 3.0.1
 
 ### Patch Changes
