@@ -1,5 +1,4 @@
-import type { CastType, FieldType } from "../constants/cast-types";
-import { baseCastMap } from "../constants/cast-types";
+import type { ExpressionType } from "../constants/cast-types";
 import type { Dialect } from "../constants/dialects";
 import {
 	COMPARISON_TYPE_MISMATCH_ERROR,
@@ -23,7 +22,7 @@ import type {
 } from "../schemas";
 import type { Config, Field, FieldPath, ParserState } from "../types";
 import { isNonEmptyArray, isNotNull, quote } from "../utils";
-import { applyFunction } from "../utils/function-call";
+import { applyFunction, removeAllWrappingParens } from "../utils/function-call";
 import {
 	fieldNameRegex,
 	isAnyScalar,
@@ -102,12 +101,12 @@ function parseFunctionExpression(functionExpression: { [functionName: string]: A
 
 		const expression = parseExpression(arg, state);
 
-		if (expectedType === "ANY") return expression;
-		const actualType = getExpressionCastType(arg, state);
+		if (expectedType === "any") return expression;
+		const actualType = getExpressionType(arg, state);
 
 		if (actualType !== expectedType && actualType !== null) {
-			// Every type can be cast to TEXT, automatically cast in this case
-			if (expectedType === "TEXT") return castValue(expression, "TEXT", state.config.dialect);
+			// Every type can be cast to a string (TEXT type), automatically cast in this case
+			if (expectedType === "string") return castValue(expression, "string", state.config.dialect);
 			throw new Error(FUNCTION_TYPE_MISMATCH_ERROR(functionName, expectedType, actualType));
 		}
 
@@ -118,7 +117,7 @@ function parseFunctionExpression(functionExpression: { [functionName: string]: A
 	return toSQL ? toSQL(resolvedArguments, state.config.dialect) : applyFunction(name, resolvedArguments);
 }
 
-function jsonAccessPath(path: string, jsonAccess: string[], jsonExtractText = true): string {
+export function jsonAccessPath(path: string, jsonAccess: string[], jsonExtractText = true): string {
 	if (jsonAccess.length === 0) return path;
 
 	const finalOperator = jsonExtractText ? "->>" : "->";
@@ -130,77 +129,110 @@ function jsonPathAlias(path: string, jsonAccess: string[]): string {
 	return jsonAccessPath(path, jsonAccess, false).replaceAll(/(?<=->)'+|'+(?=->)|'+$/g, "");
 }
 
-function getScalarCastType(value: AnyScalar): CastType {
-	if (typeof value === "string") return baseCastMap.string;
-	if (typeof value === "number") return baseCastMap.number;
-	if (typeof value === "boolean") return baseCastMap.boolean;
+function getScalarFieldType(value: AnyScalar): ExpressionType {
+	if (typeof value === "string") return "string";
+	if (typeof value === "number") return "number";
+	if (typeof value === "boolean") return "boolean";
 	if (value === null) return null;
 	if (isNonNullObject(value)) {
-		if ("$jsonb" in value) return baseCastMap.object;
-		if ("$date" in value) return baseCastMap.date;
-		if ("$timestamp" in value) return baseCastMap.datetime;
-		if ("$uuid" in value) return baseCastMap.uuid;
+		if ("$jsonb" in value) return "object";
+		if ("$date" in value) return "date";
+		if ("$timestamp" in value) return "datetime";
+		if ("$uuid" in value) return "uuid";
 	}
 	throw new Error(`Invalid value type: ${typeof value}`);
 }
 
-export function getExpressionCastType(expression: AnyExpression, state: ParserState): CastType {
-	if (isAnyScalar(expression)) return getScalarCastType(expression);
+export function getExpressionType(expression: AnyExpression, state: ParserState): ExpressionType {
+	if (isAnyScalar(expression)) return getScalarFieldType(expression);
 	if (isExpressionObject(expression)) return state.expressions.get(expression);
 	if (expression === null) return null;
 	throw new Error(`Invalid expression object: ${JSON.stringify(expression)}`);
 }
 
-const castTypeToSqliteType: Record<Exclude<CastType, null>, string> = {
-	TEXT: "TEXT",
-	FLOAT: "REAL",
-	BOOLEAN: "INTEGER",
-	JSONB: "TEXT",
-	DATE: "TEXT",
-	TIMESTAMP: "TEXT",
-	UUID: "TEXT",
+export const baseCastMap = {
+	string: "TEXT",
+	number: "NUMERIC",
+	boolean: "BOOLEAN",
+	object: "JSONB",
+	date: "DATE",
+	datetime: "TIMESTAMP",
+	uuid: "UUID",
+} as const;
+
+function getCastType(targetType: ExpressionType, dialect: Dialect): string | null {
+	if (targetType === null || targetType === "any") return null;
+
+	// PostgreSQL
+	if (dialect === "postgresql") {
+		if (targetType === "string") return "TEXT";
+		if (targetType === "number") return "FLOAT";
+		if (targetType === "boolean") return "BOOLEAN";
+		if (targetType === "object") return "JSONB";
+		if (targetType === "date") return "DATE";
+		if (targetType === "datetime") return "TIMESTAMP";
+		if (targetType === "uuid") return "UUID";
+		return null;
+	}
+
+	// SQLite
+	if (targetType === "boolean" || targetType === "object") return null;
+	return targetType === "number" ? "REAL" : "TEXT";
+}
+
+export const castValue = (value: string, targetType: ExpressionType, dialect: Dialect): string => {
+	const castType = getCastType(targetType, dialect);
+	if (!castType) return value;
+
+	// PostgreSQL
+	if (dialect === "postgresql") return `(${removeAllWrappingParens(value)})::${castType}`;
+
+	// SQLite
+	return `CAST(${value} AS ${castType})`;
 };
 
-export const castValue = (value: string, type: CastType, dialect: Dialect): string => {
-	if (!type) return value;
-	if (dialect === "postgresql") return `(${value})::${type}`;
-	return `CAST(${value} AS ${castTypeToSqliteType[type]})`;
-};
 export const aliasValue = (expression: string, alias: string): string => `${expression} AS "${alias}"`;
 
 // Get the expected cast type for a field when a cast is applied, dealing with JSON access and data tables
-function getExpectedCast(baseCast: CastType, hasJsonAccess: boolean, fieldType: FieldType, state: ParserState): CastType {
-	const hasDataTable = !!state.config.dataTable;
-	if (!baseCast) return hasDataTable ? (fieldType === "string" || fieldType === "object" ? null : baseCastMap[fieldType]) : null;
-	if (hasDataTable || hasJsonAccess) return baseCast === "TEXT" || baseCast === "JSONB" ? null : baseCast;
-	return baseCast === baseCastMap[fieldType] ? null : baseCast;
+export function getTargetFieldType(
+	targetFieldType: ExpressionType,
+	hasJsonAccess: boolean,
+	fieldType: ExpressionType,
+	config: Config,
+): ExpressionType {
+	const hasDataTable = !!config.dataTable;
+	if (!targetFieldType) return hasDataTable ? (fieldType === "string" || fieldType === "object" ? null : fieldType) : null;
+	if (hasDataTable || hasJsonAccess) return targetFieldType === "string" || targetFieldType === "object" ? null : targetFieldType;
+	return targetFieldType === fieldType ? null : targetFieldType;
 }
 
-type SelectFieldParams = { fieldPath: FieldPath; state: ParserState; cast?: CastType; jsonExtractText?: boolean };
-function selectField({ fieldPath, state, cast = null, jsonExtractText }: SelectFieldParams) {
+type SelectFieldParams = {
+	fieldPath: FieldPath;
+	state: ParserState;
+	targetFieldType?: ExpressionType;
+	jsonExtractText?: boolean;
+};
+function selectField({ fieldPath, state, targetFieldType = null, jsonExtractText }: SelectFieldParams) {
 	const { fieldConfig, field: fieldName } = fieldPath;
 
 	const tableName = fieldPath.table || state.rootTable;
 
-	const dataTable = state.config.dataTable;
+	const field = state.config.dataTable ? state.config.dataTable.dataField : fieldName;
+	const jsonAccess = state.config.dataTable ? [fieldName, ...fieldPath.jsonAccess] : fieldPath.jsonAccess;
 
-	const field = dataTable ? dataTable.dataField : fieldName;
-	const jsonAccess = dataTable ? [fieldName, ...fieldPath.jsonAccess] : fieldPath.jsonAccess;
-
-	const shouldJsonExtractText = jsonExtractText ?? (cast ? cast !== "JSONB" : true);
+	// A JSON object should be extracted when targetFieldType is of type "object"
+	const shouldJsonExtractText = jsonExtractText ?? targetFieldType !== "object";
 	const path = jsonAccessPath(`${tableName}.${field}`, jsonAccess, shouldJsonExtractText);
+
 	const relativePath = state.rootTable === tableName ? fieldName : `${tableName}.${fieldName}`;
 
-	const expectedCast = getExpectedCast(cast, jsonAccess.length > 0, fieldConfig.type, state);
-	return { alias: jsonPathAlias(relativePath, fieldPath.jsonAccess), cast: expectedCast, field: path };
+	const expectedCast = getTargetFieldType(targetFieldType, jsonAccess.length > 0, fieldConfig.type, state.config);
+	return { alias: jsonPathAlias(relativePath, fieldPath.jsonAccess), targetType: expectedCast, field: path };
 }
 
-export function parseField(field: string, state: ParserState, cast?: CastType, jsonExtractText?: boolean) {
+export function parseField(field: string, state: ParserState) {
 	const fieldPath = parseFieldPath(field, state.rootTable, state.config);
-	return {
-		select: selectField({ fieldPath, state, cast, jsonExtractText: jsonExtractText ?? fieldPath.jsonExtractText }),
-		fieldPath,
-	};
+	return { select: selectField({ fieldPath, state, jsonExtractText: fieldPath.jsonExtractText }), fieldPath };
 }
 
 export function parseScalarValue(value: ScalarPrimitive) {
@@ -211,29 +243,29 @@ export function parseScalarValue(value: ScalarPrimitive) {
 	throw new Error(`Invalid scalar value: ${value}`);
 }
 
-export function parseScalarExpression(expression: ScalarExpression): string {
-	if ("$jsonb" in expression) return `${quote(JSON.stringify(expression.$jsonb))}::JSONB`;
+export function parseScalarExpression(expression: ScalarExpression, dialect: Dialect): string {
+	if ("$jsonb" in expression) return castValue(quote(JSON.stringify(expression.$jsonb)), "object", dialect);
 	if ("$timestamp" in expression) {
 		if (!isValidTimestamp(expression.$timestamp)) throw new Error(`Invalid timestamp format: ${expression.$timestamp}`);
 		const timestamp = expression.$timestamp.replace("T", " ");
-		return `'${timestamp}'::TIMESTAMP`;
+		return castValue(quote(timestamp), "datetime", dialect);
 	}
 	if ("$date" in expression) {
 		if (!isValidDate(expression.$date)) throw new Error(`Invalid date format: ${expression.$date}`);
-		return `'${expression.$date}'::DATE`;
+		return castValue(quote(expression.$date), "date", dialect);
 	}
 
 	if ("$uuid" in expression) {
 		if (!uuidRegex.test(expression.$uuid)) throw new Error(`Invalid UUID format: ${expression.$uuid}`);
-		return `'${expression.$uuid}'::UUID`;
+		return castValue(quote(expression.$uuid), "uuid", dialect);
 	}
 
 	throw new Error(`Invalid scalar expression: ${JSON.stringify(expression)}`);
 }
 
-function parseAnyScalarValue(value: AnyScalar) {
+function parseAnyScalarValue(value: AnyScalar, dialect: Dialect) {
 	if (isScalarPrimitive(value)) return parseScalarValue(value);
-	return parseScalarExpression(value);
+	return parseScalarExpression(value, dialect);
 }
 
 export function parseExpressionObject(expression: ExpressionObject, state: ParserState): string {
@@ -242,22 +274,22 @@ export function parseExpressionObject(expression: ExpressionObject, state: Parse
 
 	if ("$field" in expression) {
 		const { select, fieldPath } = parseField(expression.$field, state);
-		state.expressions.add(expression, baseCastMap[fieldPath.fieldConfig.type]);
-		return castValue(select.field, select.cast, state.config.dialect);
+		state.expressions.add(expression, fieldPath.fieldConfig.type);
+		return castValue(select.field, select.targetType, state.config.dialect);
 	}
 
 	if ("$var" in expression) {
 		const variable = state.config.variables[expression.$var];
 		if (variable === undefined) throw new Error(`Variable '${expression.$var}' is not defined`);
-		state.expressions.add(expression, getScalarCastType(variable));
-		return parseAnyScalarValue(variable);
+		state.expressions.add(expression, getScalarFieldType(variable));
+		return parseAnyScalarValue(variable, state.config.dialect);
 	}
 
-	return parseScalarExpression(expression);
+	return parseScalarExpression(expression, state.config.dialect);
 }
 
 export function parseExpression(expression: AnyExpression, state: ParserState): string {
-	if (isScalarExpression(expression)) return parseScalarExpression(expression);
+	if (isScalarExpression(expression)) return parseScalarExpression(expression, state.config.dialect);
 	if (isExpressionObject(expression)) return parseExpressionObject(expression, state);
 	if (isScalarPrimitive(expression)) return parseScalarValue(expression);
 	throw new Error(`Invalid expression object: ${JSON.stringify(expression)}`);
@@ -268,8 +300,8 @@ function parseConditionalExpression(condObject: ConditionExpression, state: Pars
 	const thenValue = parseExpression(condObject.then, state);
 	const elseValue = parseExpression(condObject.else, state);
 
-	const thenType = getExpressionCastType(condObject.then, state);
-	const elseType = getExpressionCastType(condObject.else, state);
+	const thenType = getExpressionType(condObject.then, state);
+	const elseType = getExpressionType(condObject.else, state);
 	if (thenType && elseType && thenType !== elseType)
 		throw new Error(`Type mismatch in conditional expression: then type '${thenType}', else type '${elseType}'`);
 
@@ -289,13 +321,14 @@ export function parseCondition(condition: Condition, state: ParserState): string
 
 	if (typeof condition === "boolean") return condition ? "TRUE" : "FALSE";
 
-	if (isScalarExpression(condition)) throw new Error(`Condition must evaluate to BOOLEAN (got ${JSON.stringify(condition)})`);
+	if (isScalarExpression(condition))
+		throw new Error(`Condition must evaluate to a boolean (got ${JSON.stringify(condition)} instead)`);
 
 	if (isExpressionObject(condition)) {
 		const expression = parseExpression(condition, state);
 		const expressionType = state.expressions.get(condition);
-		if (expressionType === "BOOLEAN") return expression;
-		throw new Error(`Condition expression must evaluate to BOOLEAN, got ${expressionType} type for ${JSON.stringify(condition)}`);
+		if (expressionType === "boolean") return expression;
+		throw new Error(`Condition expression must evaluate to boolean, got ${expressionType} type for ${JSON.stringify(condition)}`);
 	}
 
 	// Handle logical operators
@@ -324,8 +357,8 @@ export function parseCondition(condition: Condition, state: ParserState): string
 
 		const fieldConditions = parseFieldConditions(fieldConditionExpression, state, fieldConfig);
 
-		const select = selectField({ fieldPath, state, cast: fieldConditions.conditionType, jsonExtractText: true });
-		const fieldName = castValue(select.field, select.cast, state.config.dialect);
+		const select = selectField({ fieldPath, state, targetFieldType: fieldConditions.type, jsonExtractText: true });
+		const fieldName = castValue(select.field, select.targetType, state.config.dialect);
 
 		const clause = mergeConditions(fieldConditions.conditions.map((conditionClause) => `${fieldName} ${conditionClause}`));
 		conditions.push(clause);
@@ -334,49 +367,50 @@ export function parseCondition(condition: Condition, state: ParserState): string
 	return mergeConditions(conditions);
 }
 
-type ParseFieldCondition = { condition: string; conditionType: CastType };
+type ParseFieldCondition = { condition: string; type: ExpressionType };
 function parseComparisonCondition(value: AnyExpression, state: ParserState, operator: string, field: Field): ParseFieldCondition {
 	if (isScalarExpression(value)) {
-		const expression = parseScalarExpression(value);
-		return { condition: `${operator} ${expression}`, conditionType: getScalarCastType(value) };
+		const expression = parseScalarExpression(value, state.config.dialect);
+		return { condition: `${operator} ${expression}`, type: getScalarFieldType(value) };
 	}
 
 	if (isExpressionObject(value)) {
 		const expression = parseExpressionObject(value, state);
-		return { condition: `${operator} ${expression}`, conditionType: state.expressions.get(value) };
+		return { condition: `${operator} ${expression}`, type: state.expressions.get(value) };
 	}
 
 	if (value !== null) {
-		const castType = getScalarCastType(value);
+		const fieldType = getScalarFieldType(value);
 		if (field.type !== typeof value && field.type !== "object")
-			throw new Error(COMPARISON_TYPE_MISMATCH_ERROR(operator, field.name, baseCastMap[field.type], castType));
-		return { condition: `${operator} ${parseScalarValue(value)}`, conditionType: castType };
+			throw new Error(COMPARISON_TYPE_MISMATCH_ERROR(operator, field.name, field.type, fieldType));
+		return { condition: `${operator} ${parseScalarValue(value)}`, type: fieldType };
 	}
 
 	if (operator !== "=" && operator !== "!=") throw new Error(`Operator '${operator}' should not be used with NULL value`);
-	return { condition: operator === "=" ? "IS NULL" : "IS NOT NULL", conditionType: null };
+	return { condition: operator === "=" ? "IS NULL" : "IS NOT NULL", type: null };
 }
 
 function parseArrayCondition(value: AnyExpression[], state: ParserState, operator: "IN" | "NOT IN"): ParseFieldCondition {
 	if (value.length === 0) throw new Error(`Operator '${operator}' requires a non-empty array`);
-	const resolvedValues: { value: string; castType: CastType }[] = value.map((item) => {
+	const resolvedValues: { value: string; type: ExpressionType }[] = value.map((item) => {
 		if (isScalarExpression(item)) {
-			const value = parseScalarExpression(item);
-			return { value, castType: getScalarCastType(item) };
+			const value = parseScalarExpression(item, state.config.dialect);
+			return { value, type: getScalarFieldType(item) };
 		}
 		if (isExpressionObject(item)) {
 			const value = parseExpressionObject(item, state);
-			return { value, castType: state.expressions.get(item) };
+			return { value, type: state.expressions.get(item) };
 		}
 		if (!isScalarPrimitive(item)) throw new Error(INVALID_OPERATOR_VALUE_TYPE_ERROR(operator, "string, number, or boolean"));
-		return { value: parseScalarValue(item), castType: getScalarCastType(item) };
+		return { value: parseScalarValue(item), type: getScalarFieldType(item) };
 	});
 
-	const castTypes = new Set(resolvedValues.map(({ castType }) => castType));
-	const castType = castTypes.values().next().value;
-	if (castTypes.size > 1) throw new Error(`Cannot use ${operator} with mixed types: ${Array.from(castTypes).join(", ")}`);
-	if (!castType) throw new Error(`Cannot use ${operator} with NULL values`);
-	return { condition: `${operator} (${resolvedValues.map(({ value }) => value).join(", ")})`, conditionType: castType };
+	const valueTypes = new Set(resolvedValues.map(({ type }) => type));
+	const fieldType = valueTypes.values().next().value;
+	if (valueTypes.size > 1) throw new Error(`Cannot use ${operator} with mixed types: ${Array.from(valueTypes).join(", ")}`);
+
+	if (!fieldType) throw new Error(`Cannot use ${operator} with NULL values`);
+	return { condition: `${operator} (${resolvedValues.map(({ value }) => value).join(", ")})`, type: fieldType };
 }
 
 type StringOperator = "LIKE" | "ILIKE" | "~";
@@ -389,29 +423,29 @@ function parseStringCondition(
 	if (value === null) throw new Error(`Operator '${operator}' cannot be used with NULL value`);
 	if (isScalarExpression(value))
 		return {
-			condition: `${operator} ${castValue(parseScalarExpression(value), "TEXT", state.config.dialect)}`,
-			conditionType: "TEXT",
+			condition: `${operator} ${castValue(parseScalarExpression(value, state.config.dialect), "string", state.config.dialect)}`,
+			type: "string",
 		};
 	if (isExpressionObject(value))
 		return {
-			condition: `${operator} ${castValue(parseExpressionObject(value, state), "TEXT", state.config.dialect)}`,
-			conditionType: "TEXT",
+			condition: `${operator} ${castValue(parseExpressionObject(value, state), "string", state.config.dialect)}`,
+			type: "string",
 		};
 	if (typeof value !== "string") throw new Error(INVALID_OPERATOR_VALUE_TYPE_ERROR(operator, "string"));
 	if (field && field.type !== "string" && field.type !== "object")
-		throw new Error(COMPARISON_TYPE_MISMATCH_ERROR(operator, field.name, baseCastMap[field.type], "TEXT"));
-	return { condition: `${operator} ${parseScalarValue(value)}`, conditionType: "TEXT" };
+		throw new Error(COMPARISON_TYPE_MISMATCH_ERROR(operator, field.name, field.type, "string"));
+	return { condition: `${operator} ${parseScalarValue(value)}`, type: "string" };
 }
 
-type ParseFieldConditions = { conditions: string[]; conditionType: CastType };
+type ParseFieldConditions = { conditions: string[]; type: ExpressionType };
 function parseFieldConditions(condition: AnyFieldCondition, state: ParserState, field: Field): ParseFieldConditions {
 	// Treat expression as an equality condition if no operator is provided
 	if (isAnyScalar(condition) || isExpressionObject(condition)) {
 		const fieldCondition = parseComparisonCondition(condition, state, "=", field);
-		return { conditions: [fieldCondition.condition], conditionType: fieldCondition.conditionType };
+		return { conditions: [fieldCondition.condition], type: fieldCondition.type };
 	}
 
-	const fieldConditions: { condition: string; conditionType: CastType }[] = [];
+	const fieldConditions: { condition: string; type: ExpressionType }[] = [];
 	if (condition.$eq !== undefined) fieldConditions.push(parseComparisonCondition(condition.$eq, state, "=", field));
 	if (condition.$ne !== undefined) fieldConditions.push(parseComparisonCondition(condition.$ne, state, "!=", field));
 	if (condition.$gt !== undefined) fieldConditions.push(parseComparisonCondition(condition.$gt, state, ">", field));
@@ -424,11 +458,15 @@ function parseFieldConditions(condition: AnyFieldCondition, state: ParserState, 
 
 	if (condition.$like !== undefined) fieldConditions.push(parseStringCondition(condition.$like, state, "LIKE", field));
 	if (condition.$ilike !== undefined) fieldConditions.push(parseStringCondition(condition.$ilike, state, "ILIKE", field));
-	if (condition.$regex !== undefined) fieldConditions.push(parseStringCondition(condition.$regex, state, "~", field));
 
-	const conditionTypes = new Set(fieldConditions.map(({ conditionType }) => conditionType).filter(isNotNull));
+	if (condition.$regex !== undefined) {
+		if (state.config.dialect === "postgresql") fieldConditions.push(parseStringCondition(condition.$regex, state, "~", field));
+		else throw new Error("Operator 'REGEXP' is not supported by default in SQLite");
+	}
+
+	const conditionTypes = new Set(fieldConditions.map(({ type: conditionType }) => conditionType).filter(isNotNull));
 	if (conditionTypes.size > 1) throw new Error(`Cannot mix types in field conditions: ${Array.from(conditionTypes).join(", ")}`);
 
 	const conditions = fieldConditions.map(({ condition }) => condition);
-	return { conditions, conditionType: conditionTypes.values().next().value ?? null };
+	return { conditions, type: conditionTypes.values().next().value ?? null };
 }

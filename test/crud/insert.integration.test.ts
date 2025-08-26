@@ -62,7 +62,7 @@ describe("Integration - INSERT Operations and Data Persistence", () => {
 
 			const sql = buildInsertQuery(insertQuery, config);
 			expect(sql).toBe(
-				`INSERT INTO users ("id", "name", "email", "active", "status", "age", "balance", "birth_date", "created_at", "metadata") VALUES ('01234567-89ab-4cde-a123-456789abcdef'::UUID, 'Integration Test User', 'test@example.com', TRUE, 'active', NULL, NULL, NULL, NULL, NULL)`,
+				`INSERT INTO users ("id", "name", "email", "active", "status", "age", "balance", "birth_date", "created_at", "metadata") VALUES (('01234567-89ab-4cde-a123-456789abcdef')::UUID, 'Integration Test User', 'test@example.com', TRUE, 'active', NULL, NULL, NULL, NULL, NULL)`,
 			);
 
 			// Execute the insert
@@ -100,7 +100,7 @@ describe("Integration - INSERT Operations and Data Persistence", () => {
 
 			const sql = buildInsertQuery(insertQuery, config);
 			expect(sql).toBe(
-				`INSERT INTO users ("id", "name", "active", "status", "birth_date", "created_at", "email", "age", "balance", "metadata") VALUES ('12345678-9abc-4def-b456-789abcdef012'::UUID, 'Date Test User', TRUE, 'active', '1994-08-19'::DATE, '2024-08-19 10:00:00'::TIMESTAMP, NULL, NULL, NULL, NULL)`,
+				`INSERT INTO users ("id", "name", "active", "status", "birth_date", "created_at", "email", "age", "balance", "metadata") VALUES (('12345678-9abc-4def-b456-789abcdef012')::UUID, 'Date Test User', TRUE, 'active', ('1994-08-19')::DATE, ('2024-08-19 10:00:00')::TIMESTAMP, NULL, NULL, NULL, NULL)`,
 			);
 
 			// Execute the insert

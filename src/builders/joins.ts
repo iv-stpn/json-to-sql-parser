@@ -1,6 +1,4 @@
-import type { CastType } from "../constants/cast-types";
-import { baseCastMap } from "../constants/cast-types";
-import { aliasValue, castValue } from "../parsers";
+import { aliasValue, castValue, getTargetFieldType, jsonAccessPath, parseFieldPath } from "../parsers";
 import type { Config, Relationship } from "../types";
 
 export function buildJoinClause(
@@ -10,34 +8,31 @@ export function buildJoinClause(
 	config: Config,
 	alias?: string,
 ): string {
-	// Ensure the relationship contains the table and toTable
-	if (
-		!relationship ||
-		!relationship.table ||
-		!relationship.toTable ||
-		(relationship.table !== table && relationship.toTable !== table)
-	) {
-		throw new Error(`Invalid relationship for table ${table}: ${JSON.stringify(relationship)}`);
-	}
+	// Ensure both tables are part of the relationship
+	if (relationship.table !== table && relationship.toTable !== table)
+		throw new Error(`Table ${table} is not part of the relationship: ${JSON.stringify(relationship)}`);
 
+	if (relationship.table !== toTable && relationship.toTable !== toTable)
+		throw new Error(`Target table ${toTable} is not part of the relationship: ${JSON.stringify(relationship)}`);
+
+	// Ensure both fields are valid fields in the config
+	const fieldPath = parseFieldPath(relationship.table === table ? relationship.field : relationship.toField, table, config);
+	const toFieldPath = parseFieldPath(relationship.table === table ? relationship.toField : relationship.field, toTable, config);
+
+	// Cast the target field path
 	const toTableName = config.dataTable ? aliasValue(config.dataTable.table, toTable) : toTable;
+	const toTableTargetType = getTargetFieldType(
+		fieldPath.fieldConfig.type,
+		fieldPath.jsonAccess.length > 0,
+		toFieldPath.fieldConfig.type,
+		config,
+	);
 
-	// Get field types for proper casting
-	const getFieldType = (tableName: string, fieldName: string): CastType => {
-		const tableConfig = config.tables[tableName];
-		if (!tableConfig) return null;
-		const fieldConfig = tableConfig.allowedFields.find((field) => field.name === fieldName);
-		return fieldConfig ? baseCastMap[fieldConfig.type] : null;
-	};
+	const field = jsonAccessPath(fieldPath.field, fieldPath.jsonAccess, true);
+	const toField = jsonAccessPath(toFieldPath.field, toFieldPath.jsonAccess, true);
 
-	// Helper function to cast field if needed
-	const castField = (tableName: string, fieldName: string): string => {
-		const fieldType = getFieldType(tableName, fieldName);
-		const fieldRef = `${tableName}.${fieldName}`;
-		return castValue(fieldRef, fieldType, config.dialect);
-	};
+	const leftField = `${table}.${field}`;
+	const rightField = castValue(`${alias ?? toTable}.${toField}`, toTableTargetType, config.dialect);
 
-	const leftField = castField(table, relationship.table === table ? relationship.field : relationship.toField);
-	const rightField = castField(alias ?? toTable, relationship.table === table ? relationship.toField : relationship.field);
 	return `LEFT JOIN ${toTableName} ON ${leftField} = ${rightField}`;
 }

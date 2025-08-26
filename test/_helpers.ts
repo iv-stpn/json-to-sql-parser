@@ -62,7 +62,7 @@ async function checkDockerPrerequisites(): Promise<void> {
 async function isDockerComposeRunning(): Promise<boolean> {
 	try {
 		// Check if the specific postgres service is running
-		const result = await runCommand("docker", ["compose", "ps", "postgresql", "--format", "json"], { silent: true });
+		const result = await runCommand("docker", ["compose", "ps", "postgres", "--format", "json"], { silent: true });
 		if (result.code !== 0) return false;
 
 		// Parse the JSON output to check if postgres service is running
@@ -133,7 +133,7 @@ async function waitForPostgres(maxAttempts = 30, delayMs = 1000): Promise<void> 
 
 			if (attempt === maxAttempts) {
 				console.error("📋 Container logs for debugging:");
-				const logs = await getContainerLogs("postgresql", 15);
+				const logs = await getContainerLogs("postgres", 15);
 				console.log(logs);
 				throw new Error(`PostgreSQL not ready after ${maxAttempts} attempts`);
 			}
@@ -208,7 +208,7 @@ async function seedDatabase(): Promise<void> {
 	} catch (error) {
 		console.error("❌ Failed to seed database:", getErrorMessage(error));
 		console.error("📋 Container logs for debugging:");
-		const logs = await getContainerLogs("postgresql", 15);
+		const logs = await getContainerLogs("postgres", 15);
 		console.log(logs);
 		throw error;
 	} finally {
@@ -287,7 +287,7 @@ export class DatabaseHelper {
 				console.error(getErrorMessage(error));
 
 				console.error("📋 Container logs for debugging:");
-				const logs = await getContainerLogs("postgresql", 15);
+				const logs = await getContainerLogs("postgres", 15);
 				console.log(logs);
 
 				if (attempts >= maxAttempts) throw new Error(`Failed to connect to database after ${maxAttempts} attempts`);
@@ -358,7 +358,7 @@ export class DatabaseHelper {
 	}
 }
 
-async function getContainerLogs(serviceName = "postgresql", lines = 50): Promise<string> {
+async function getContainerLogs(serviceName = "postgres", lines = 50): Promise<string> {
 	try {
 		const result = await runCommand("docker", ["compose", "logs", "--tail", lines.toString(), serviceName], { silent: true });
 		if (result.code === 0 && result.stdout) return result.stdout;

@@ -277,7 +277,7 @@ export function processMutationFields(newRow: Record<string, unknown>, state: Pa
 		} else if (isExpressionObject(value)) {
 			acc[fieldName] = parseExpressionObject(value, state);
 		} else if (isScalarExpression(value)) {
-			acc[fieldName] = parseScalarExpression(value);
+			acc[fieldName] = parseScalarExpression(value, state.config.dialect);
 		} else if (isScalarPrimitive(value)) {
 			acc[fieldName] = parseScalarValue(value);
 		} else {

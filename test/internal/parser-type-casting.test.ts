@@ -69,7 +69,7 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			};
 
 			const sql = extractSelectWhereClause(condition, testConfig, "users");
-			expect(sql).toBe("users.id = '550e8400-e29b-41d4-a716-446655440000'::UUID");
+			expect(sql).toBe("users.id = ('550e8400-e29b-41d4-a716-446655440000')::UUID");
 		});
 
 		it("should handle UUID values with comparison operators", () => {
@@ -132,7 +132,9 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			};
 
 			const sql = compileSelectQuery(parseSelectQuery(query, testConfig));
-			expect(sql).toContain("users.profile_id = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'");
+			expect(sql).toBe(
+				'SELECT users.id AS "id", users.name AS "name" FROM users WHERE users.profile_id = (\'6ba7b810-9dad-11d1-80b4-00c04fd430c8\')::UUID',
+			);
 		});
 	});
 
@@ -143,7 +145,7 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			};
 
 			const sql = extractSelectWhereClause(condition, testConfig, "users");
-			expect(sql).toBe("users.created_at >= '2024-01-01 00:00:00'::TIMESTAMP");
+			expect(sql).toBe("users.created_at >= ('2024-01-01 00:00:00')::TIMESTAMP");
 		});
 
 		it("should handle timestamp values with comparison operators", () => {
@@ -200,7 +202,7 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 
 			const sql = extractSelectWhereClause(condition, testConfig, "events");
 			expect(sql).toBe(
-				"(events.occurred_at >= '2024-01-01 00:00:00'::TIMESTAMP AND events.occurred_at < '2024-02-01 00:00:00'::TIMESTAMP)",
+				"(events.occurred_at >= ('2024-01-01 00:00:00')::TIMESTAMP AND events.occurred_at < ('2024-02-01 00:00:00')::TIMESTAMP)",
 			);
 		});
 	});
@@ -212,7 +214,7 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			};
 
 			const sql = extractSelectWhereClause(condition, testConfig, "users");
-			expect(sql).toBe("users.birth_date = '1990-05-15'::DATE");
+			expect(sql).toBe("users.birth_date = ('1990-05-15')::DATE");
 		});
 
 		it("should handle date values with comparison operators", () => {
@@ -269,7 +271,7 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			};
 
 			const sql = extractSelectWhereClause(condition, testConfig, "users");
-			expect(sql).toBe("(users.birth_date >= '1980-01-01'::DATE AND users.birth_date < '2000-01-01'::DATE)");
+			expect(sql).toBe("(users.birth_date >= ('1980-01-01')::DATE AND users.birth_date < ('2000-01-01')::DATE)");
 		});
 	});
 
@@ -285,7 +287,7 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 
 			const sql = extractSelectWhereClause(condition, testConfig, "events");
 			expect(sql).toBe(
-				"(events.user_id = '550e8400-e29b-41d4-a716-446655440000'::UUID AND events.occurred_at >= '2024-01-01 00:00:00'::TIMESTAMP AND events.scheduled_date = '2024-01-15'::DATE)",
+				"(events.user_id = ('550e8400-e29b-41d4-a716-446655440000')::UUID AND events.occurred_at >= ('2024-01-01 00:00:00')::TIMESTAMP AND events.scheduled_date = ('2024-01-15')::DATE)",
 			);
 		});
 
@@ -310,7 +312,7 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			};
 
 			const sql = extractSelectWhereClause(condition, testConfig, "events");
-			expect(sql).toBe("events.scheduled_date IN ('2024-01-15'::DATE, '2024-01-16'::DATE, '2024-01-17'::DATE)");
+			expect(sql).toBe("events.scheduled_date IN (('2024-01-15')::DATE, ('2024-01-16')::DATE, ('2024-01-17')::DATE)");
 		});
 
 		it("should parse SELECT query with date type fields", () => {
@@ -331,9 +333,9 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			};
 
 			const sql = compileSelectQuery(parseSelectQuery(query, testConfig));
-			expect(sql).toContain("events.user_id");
-			expect(sql).toContain("(events.user_id)::TEXT = '550e8400-e29b-41d4-a716-446655440000'");
-			expect(sql).toContain("events.occurred_at >= '2024-01-01 00:00:00'::TIMESTAMP");
+			expect(sql).toBe(
+				'SELECT events.id AS "id", events.user_id AS "user_id", events.occurred_at AS "occurred_at", events.scheduled_date AS "scheduled_date" FROM events WHERE ((events.user_id)::TEXT = \'550e8400-e29b-41d4-a716-446655440000\' AND events.occurred_at >= (\'2024-01-01 00:00:00\')::TIMESTAMP)',
+			);
 		});
 	});
 

@@ -1,8 +1,8 @@
-import { baseCastMap, type CastType } from "../constants/cast-types";
+import type { ExpressionType } from "../constants/cast-types";
 import type { Dialect } from "../constants/dialects";
 import { FUNCTION_TYPE_MISMATCH_ERROR, INVALID_ARGUMENT_COUNT_ERROR, MISSING_AGGREGATION_FIELD_ERROR } from "../constants/errors";
 import { type AggregationDefinition, allowedAggregationFunctions } from "../functions/aggregate";
-import { aliasValue, castValue, getExpressionCastType, parseExpression, parseField } from "../parsers";
+import { aliasValue, castValue, getExpressionType, parseExpression, parseField } from "../parsers";
 import type { AggregatedField, AggregationQuery } from "../schemas";
 import type { Config, ParserState } from "../types";
 import { objectEntries } from "../utils";
@@ -37,19 +37,18 @@ function processJoins(fields: string[], rootTable: string, state: AggregationSta
 	}
 }
 
-function parseAggregationField(aggregation: AggregatedField, expressionType: CastType | "ANY", state: ParserState): string {
+function parseAggregationField(aggregation: AggregatedField, expressionType: ExpressionType, state: ParserState): string {
 	if (typeof aggregation.field === "string") {
 		const { select, fieldPath } = parseField(aggregation.field, state);
-		const fieldCastType = baseCastMap[fieldPath.fieldConfig.type];
-		if (fieldCastType !== expressionType && expressionType !== "ANY") {
+		if (fieldPath.fieldConfig.type !== expressionType && expressionType !== "any") {
 			// Every type can be cast to TEXT, automatically cast in this case
-			if (expressionType === "TEXT") return castValue(select.field, "TEXT", state.config.dialect);
-			throw new Error(FUNCTION_TYPE_MISMATCH_ERROR(aggregation.function, fieldCastType, expressionType));
+			if (expressionType === "string") return castValue(select.field, "string", state.config.dialect);
+			throw new Error(FUNCTION_TYPE_MISMATCH_ERROR(aggregation.function, fieldPath.fieldConfig.type, expressionType));
 		}
 
 		// For COUNT operations, we don't need to cast the field
 		if (aggregation.function === "COUNT") return select.field;
-		return castValue(select.field, select.cast, state.config.dialect);
+		return castValue(select.field, select.targetType, state.config.dialect);
 	}
 
 	return parseExpression(aggregation.field, state);
@@ -100,10 +99,10 @@ function parseAggregation(alias: string, aggregation: AggregatedField, state: Pa
 
 			const argumentExpression = parseExpression(arg, state);
 
-			const actualType = getExpressionCastType(arg, state);
+			const actualType = getExpressionType(arg, state);
 			if (actualType !== expectedType && actualType !== null) {
 				// Every type can be cast to TEXT, automatically cast in this case
-				if (expectedType === "TEXT") return castValue(argumentExpression, "TEXT", state.config.dialect);
+				if (expectedType === "string") return castValue(argumentExpression, "string", state.config.dialect);
 				throw new Error(FUNCTION_TYPE_MISMATCH_ERROR(name, expectedType, actualType));
 			}
 
@@ -156,7 +155,7 @@ export function parseAggregationQuery(query: AggregationQuery, config: Config): 
 	// Process group by fields
 	for (const fieldName of groupBy) {
 		const { select } = parseField(fieldName, state);
-		selectFields.push(aliasValue(castValue(select.field, select.cast, state.config.dialect), select.alias));
+		selectFields.push(aliasValue(castValue(select.field, select.targetType, state.config.dialect), select.alias));
 		groupByFields.push(select.field);
 	}
 

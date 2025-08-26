@@ -56,7 +56,7 @@ describe("CRUD - INSERT Query Operations", () => {
 			const sql = buildInsertQuery(insertQuery, testConfig);
 
 			expect(sql).toBe(
-				`INSERT INTO users ("id", "name", "email", "active", "age") VALUES ('123e4567-e89b-12d3-a456-426614174000'::UUID, \'Jane Doe\', \'jane@example.com\', TRUE, NULL)`,
+				`INSERT INTO users ("id", "name", "email", "active", "age") VALUES (('123e4567-e89b-12d3-a456-426614174000')::UUID, \'Jane Doe\', \'jane@example.com\', TRUE, NULL)`,
 			);
 		});
 
@@ -73,7 +73,7 @@ describe("CRUD - INSERT Query Operations", () => {
 			const sql = buildInsertQuery(insertQuery, testConfig);
 
 			expect(sql).toBe(
-				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES ('550e8400-e29b-41d4-a716-446655440000'::UUID, 'Test User', TRUE, NULL, NULL)`,
+				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES (('550e8400-e29b-41d4-a716-446655440000')::UUID, 'Test User', TRUE, NULL, NULL)`,
 			);
 		});
 	});
@@ -143,7 +143,7 @@ describe("CRUD - INSERT Query Operations", () => {
 			const sql = buildInsertQuery(insertQuery, testConfig);
 
 			expect(sql).toBe(
-				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES ('550e8400-e29b-41d4-a716-446655440000'::UUID, 'Test User', TRUE, NULL, NULL)`,
+				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES (('550e8400-e29b-41d4-a716-446655440000')::UUID, 'Test User', TRUE, NULL, NULL)`,
 			);
 		});
 	});
@@ -217,7 +217,7 @@ describe("CRUD - INSERT Query Operations", () => {
 			const sql = buildInsertQuery(insertQuery, testConfig);
 
 			expect(sql).toBe(
-				`INSERT INTO users ("id", "name", "email", "age", "active") VALUES ('1eb76aa8-f66b-4846-93df-587ff5749185'::UUID, 'John Doe', 'john@example.com', 25, TRUE)`,
+				`INSERT INTO users ("id", "name", "email", "age", "active") VALUES (('1eb76aa8-f66b-4846-93df-587ff5749185')::UUID, 'John Doe', 'john@example.com', 25, TRUE)`,
 			);
 		});
 	});
@@ -237,7 +237,7 @@ describe("CRUD - INSERT Query Operations", () => {
 			const sql = buildInsertQuery(insertQuery, testConfig);
 
 			expect(sql).toBe(
-				`INSERT INTO users ("id", "name", "age", "active", "email") VALUES ('123e4567-e89b-12d3-a456-426614174000'::UUID, 'John Doe', 30, TRUE, NULL)`,
+				`INSERT INTO users ("id", "name", "age", "active", "email") VALUES (('123e4567-e89b-12d3-a456-426614174000')::UUID, 'John Doe', 30, TRUE, NULL)`,
 			);
 		});
 
@@ -257,7 +257,7 @@ describe("CRUD - INSERT Query Operations", () => {
 
 			const sql = buildInsertQuery(insertQuery, testConfig);
 			expect(sql).toBe(
-				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES ('012c9d27-a82c-49e8-be7a-0124cea33464'::UUID, 'Test User', TRUE, 'Test User', NULL)`,
+				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES (('012c9d27-a82c-49e8-be7a-0124cea33464')::UUID, 'Test User', TRUE, 'Test User', NULL)`,
 			);
 		});
 
@@ -319,7 +319,7 @@ describe("CRUD - INSERT Query Operations", () => {
 
 			const sql = buildInsertQuery(insertQuery, testConfig);
 			expect(sql).toBe(
-				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES ('34180af3-86b0-4538-a7ec-f192fb82b9f0'::UUID, 'no_email', TRUE, NULL, NULL)`,
+				`INSERT INTO users ("id", "name", "active", "email", "age") VALUES (('34180af3-86b0-4538-a7ec-f192fb82b9f0')::UUID, 'no_email', TRUE, NULL, NULL)`,
 			);
 		});
 

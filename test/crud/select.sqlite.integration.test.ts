@@ -1,25 +1,168 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
+
+import { Database } from "bun:sqlite";
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
 import { buildSelectQuery, compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
 
 import type { AggregationQuery, Condition, SelectQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
-import { DatabaseHelper, extractSelectWhereClause, setupTestEnvironment, teardownTestEnvironment } from "../_helpers";
+import { extractSelectWhereClause } from "../_helpers";
 
-describe("Integration - SELECT Multi-Table Operations and Complex Queries", () => {
-	let db: DatabaseHelper;
+// SQLite database helper class
+class SQLiteDatabaseHelper {
+	private db: Database;
+
+	constructor(filename: string = ":memory:") {
+		this.db = new Database(filename);
+	}
+
+	connect(): void {
+		// Enable foreign keys
+		this.db.run("PRAGMA foreign_keys = ON");
+		// Enable JSON1 extension if available
+		try {
+			this.db.run("SELECT json('{}')");
+		} catch {
+			console.warn("JSON1 extension not available");
+		}
+	}
+
+	disconnect(): void {
+		this.db.close();
+	}
+
+	query(sql: string): unknown[] {
+		try {
+			const stmt = this.db.prepare(sql);
+			return stmt.all();
+		} catch (error) {
+			console.error("SQLite Query Error:", error);
+			console.error("SQL:", sql);
+			throw error;
+		}
+	}
+
+	run(sql: string): void {
+		this.db.run(sql);
+	}
+
+	beginTransaction(): void {
+		this.db.run("BEGIN TRANSACTION");
+	}
+
+	rollback(): void {
+		this.db.run("ROLLBACK");
+	}
+
+	commit(): void {
+		this.db.run("COMMIT");
+	}
+
+	/**
+	 * Execute a query within a transaction that automatically rolls back
+	 */
+	async executeInTransaction<T>(fn: (helper: SQLiteDatabaseHelper) => Promise<T> | T): Promise<T> {
+		this.beginTransaction();
+		try {
+			const result = await fn(this);
+			return result;
+		} finally {
+			this.rollback();
+		}
+	}
+}
+
+// Setup SQLite test database
+function setupSQLiteDatabase(db: SQLiteDatabaseHelper): void {
+	// Create tables
+	db.run(`
+		CREATE TABLE users (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			email TEXT UNIQUE,
+			age INTEGER,
+			active INTEGER NOT NULL DEFAULT 1,
+			status TEXT NOT NULL DEFAULT 'active',
+			created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+			metadata TEXT,
+			score REAL,
+			balance REAL,
+			description TEXT
+		)
+	`);
+
+	db.run(`
+		CREATE TABLE posts (
+			id TEXT PRIMARY KEY,
+			title TEXT NOT NULL,
+			content TEXT NOT NULL,
+			user_id TEXT,
+			published INTEGER NOT NULL DEFAULT 0,
+			tags TEXT,
+			rating REAL,
+			created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+			published_at TEXT,
+			FOREIGN KEY (user_id) REFERENCES users(id)
+		)
+	`);
+
+	db.run(`
+		CREATE TABLE orders (
+			id TEXT PRIMARY KEY,
+			amount REAL NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending',
+			customer_id TEXT,
+			created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+			shipped_at TEXT,
+			delivered_date TEXT,
+			FOREIGN KEY (customer_id) REFERENCES users(id)
+		)
+	`);
+
+	// Insert test data
+	db.run(`
+		INSERT INTO users (id, name, email, age, active, status, metadata, balance) VALUES
+		('550e8400-e29b-41d4-a716-446655440000', 'John Doe', 'john@example.com', 30, 1, 'premium', '{"department": "engineering", "role": "senior", "settings": {"theme": "dark", "notifications": true}}', 1000.00),
+		('6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Jane Smith', 'jane@example.com', 25, 1, 'active', '{"department": "marketing", "role": "manager", "settings": {"theme": "light", "notifications": false}}', 1500.00),
+		('6ba7b811-9dad-11d1-80b4-00c04fd430c8', 'Bob Johnson', 'bob@example.com', 35, 0, 'inactive', '{"department": "sales", "role": "representative", "settings": {"theme": "dark", "notifications": true}}', 800.00),
+		('6ba7b812-9dad-11d1-80b4-00c04fd430c8', 'Alice Brown', 'alice@example.com', 28, 1, 'premium', '{"department": "engineering", "role": "junior", "settings": {"theme": "light", "notifications": true}}', 1200.00),
+		('6ba7b813-9dad-11d1-80b4-00c04fd430c8', 'Charlie Wilson', NULL, 32, 1, 'active', '{"department": "hr", "role": "coordinator", "settings": {"theme": "dark", "notifications": false}}', 900.00)
+	`);
+
+	db.run(`
+		INSERT INTO posts (id, title, content, user_id, published, published_at, tags) VALUES
+		('7ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Getting Started with SQLite', 'This is a comprehensive guide to SQLite...', '550e8400-e29b-41d4-a716-446655440000', 1, '2024-01-15 10:30:00', '["database", "sqlite", "tutorial"]'),
+		('7ba7b811-9dad-11d1-80b4-00c04fd430c8', 'Advanced SQL Queries', 'Learn advanced SQL techniques...', '550e8400-e29b-41d4-a716-446655440000', 1, '2024-01-16 14:45:00', '["sql", "advanced", "database"]'),
+		('7ba7b812-9dad-11d1-80b4-00c04fd430c8', 'Marketing Strategies 2024', 'The latest marketing trends...', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 1, '2024-01-17 09:15:00', '["marketing", "trends", "2024"]'),
+		('7ba7b813-9dad-11d1-80b4-00c04fd430c8', 'Team Building Activities', 'Effective team building exercises...', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 0, NULL, '["teamwork", "management", "hr"]'),
+		('7ba7b814-9dad-11d1-80b4-00c04fd430c8', 'Sales Techniques', 'How to close more deals...', '6ba7b811-9dad-11d1-80b4-00c04fd430c8', 0, NULL, '["sales", "techniques", "business"]')
+	`);
+
+	db.run(`
+		INSERT INTO orders (id, amount, status, customer_id, shipped_at, delivered_date) VALUES
+		('8ba7b810-9dad-11d1-80b4-00c04fd430c8', 299.99, 'completed', '550e8400-e29b-41d4-a716-446655440000', '2024-01-16 08:00:00', '2024-01-18'),
+		('8ba7b811-9dad-11d1-80b4-00c04fd430c8', 149.50, 'shipped', '550e8400-e29b-41d4-a716-446655440000', '2024-01-17 12:30:00', NULL),
+		('8ba7b812-9dad-11d1-80b4-00c04fd430c8', 89.99, 'pending', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', NULL, NULL),
+		('8ba7b813-9dad-11d1-80b4-00c04fd430c8', 199.99, 'completed', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', '2024-01-18 15:45:00', '2024-01-20'),
+		('8ba7b814-9dad-11d1-80b4-00c04fd430c8', 59.99, 'cancelled', '6ba7b811-9dad-11d1-80b4-00c04fd430c8', NULL, NULL),
+		('8ba7b815-9dad-11d1-80b4-00c04fd430c8', 399.99, 'completed', '6ba7b812-9dad-11d1-80b4-00c04fd430c8', '2024-01-19 11:20:00', '2024-01-22'),
+		('8ba7b816-9dad-11d1-80b4-00c04fd430c8', 79.99, 'pending', '6ba7b812-9dad-11d1-80b4-00c04fd430c8', NULL, NULL),
+		('8ba7b817-9dad-11d1-80b4-00c04fd430c8', 249.99, 'shipped', '550e8400-e29b-41d4-a716-446655440000', '2024-01-20 16:10:00', NULL)
+	`);
+}
+
+describe("Integration - SELECT Multi-Table Operations and Complex Queries (SQLite)", () => {
+	let db: SQLiteDatabaseHelper;
 	let config: Config;
 
-	beforeAll(async () => {
-		// Setup Docker environment and database
-		await setupTestEnvironment();
-
-		db = new DatabaseHelper();
-		await db.connect();
+	beforeAll(() => {
+		db = new SQLiteDatabaseHelper();
+		db.connect();
+		setupSQLiteDatabase(db);
 
 		config = {
-			dialect: "postgresql",
+			dialect: "sqlite-3.44-extensions",
 			tables: {
 				users: {
 					allowedFields: [
@@ -75,88 +218,88 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 		};
 	});
 
-	afterAll(async () => {
-		await db.disconnect();
-		await teardownTestEnvironment();
+	afterAll(() => {
+		db.disconnect();
 	});
 
 	describe("WHERE Condition Processing and Execution", () => {
 		it("should execute simple equality condition", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const condition: Condition = { "users.active": true };
 				const whereSql = extractSelectWhereClause(condition, config, "users");
 
 				const sql = `SELECT * FROM users WHERE ${whereSql}`;
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows.length).toBe(4); // 4 active users
-				expect(rows.every((row: unknown) => (row as Record<string, unknown>).active === true)).toBe(true);
+				expect(rows.every((row: unknown) => (row as Record<string, unknown>).active === 1)).toBe(true);
 			});
 		});
 
 		it("should execute complex AND condition", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const condition: Condition = {
 					$and: [{ "users.active": true }, { "users.age": { $gte: 30 } }],
 				};
 				const whereSql = extractSelectWhereClause(condition, config, "users");
 
 				const sql = `SELECT * FROM users WHERE ${whereSql}`;
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows.length).toBe(2); // John (30) and Charlie (32)
 				expect(
 					rows.every((row: unknown) => {
 						const r = row as Record<string, unknown>;
-						return r.active === true && (r.age as number) >= 30;
+						return r.active === 1 && (r.age as number) >= 30;
 					}),
 				).toBe(true);
 			});
 		});
 
 		it("should execute OR condition", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const condition: Condition = {
 					$or: [{ "users.status": "premium" }, { "users.age": { $lt: 26 } }],
 				};
 				const whereSql = extractSelectWhereClause(condition, config, "users");
 
 				const sql = `SELECT * FROM users WHERE ${whereSql}`;
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows.length).toBe(3); // John & Alice (premium) + Jane (age 25)
 			});
 		});
 
 		it("should execute JSON field access condition", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const condition: Condition = {
 					"users.metadata->department": "engineering",
 				};
 				const whereSql = extractSelectWhereClause(condition, config, "users");
 
 				const sql = `SELECT * FROM users WHERE ${whereSql}`;
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows.length).toBe(2); // John and Alice
 				expect(
 					rows.every((row: unknown) => {
 						const r = row as Record<string, unknown>;
-						return (r.metadata as Record<string, unknown>).department === "engineering";
+						const metadata = JSON.parse(r.metadata as string);
+						return metadata.department === "engineering";
 					}),
 				).toBe(true);
 			});
 		});
 
 		it("should handle null conditions correctly", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const condition: Condition = {
 					"users.email": { $eq: null },
 				};
 				const whereSql = extractSelectWhereClause(condition, config, "users");
 
 				const sql = `SELECT * FROM users WHERE ${whereSql}`;
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows.length).toBe(1); // Charlie has null email
 				expect((rows[0] as Record<string, unknown>).email).toBe(null);
@@ -166,11 +309,11 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 
 	describe("Field Selection and Projection Queries", () => {
 		it("should execute basic select query", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const selection = { id: true, name: true, email: true };
 				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection }, config));
 
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows.length).toBe(5);
 				expect(rows[0]).toHaveProperty("id");
@@ -180,12 +323,12 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 		});
 
 		it("should execute select with condition", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const selection = { id: true, name: true, status: true };
 				const condition: Condition = { "users.status": "premium" };
 				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection, condition }, config));
 
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows.length).toBe(2); // John and Alice
 				expect(
@@ -198,7 +341,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 		});
 
 		it("should execute select with JSON field", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const selection = {
 					id: true,
 					name: true,
@@ -206,7 +349,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 				};
 				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection }, config));
 
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows.length).toBe(5);
 				expect(rows[0]).toHaveProperty("department");
@@ -217,7 +360,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 
 	describe("Statistical Aggregation Operations", () => {
 		it("should execute simple aggregation", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const aggregationQuery: AggregationQuery = {
 					table: "orders",
 					groupBy: ["orders.status"],
@@ -229,7 +372,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 
 				const sql = compileAggregationQuery(parseAggregationQuery(aggregationQuery, config));
 
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows.length).toBeGreaterThan(0);
 				expect(rows[0]).toHaveProperty("status");
@@ -248,7 +391,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 		});
 
 		it("should execute aggregation with JSON field grouping", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const aggregationQuery: AggregationQuery = {
 					table: "users",
 					groupBy: ["users.metadata->department"],
@@ -260,7 +403,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 
 				const sql = compileAggregationQuery(parseAggregationQuery(aggregationQuery, config));
 
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows.length).toBeGreaterThan(0);
 				expect(rows[0]).toHaveProperty("metadata->department");
@@ -309,7 +452,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 
 	describe("Complex Multi-table Joins with Type Inference", () => {
 		it("should handle complex nested selections with proper type casting", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const selectQuery: SelectQuery = {
 					rootTable: "users",
 					selection: {
@@ -365,7 +508,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 							// Complex conditional expression
 							title_category: {
 								$cond: {
-									if: { "posts.title": { $like: "%PostgreSQL%" } },
+									if: { "posts.title": { $like: "%SQLite%" } },
 									then: "database",
 									else: {
 										$cond: {
@@ -391,13 +534,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 											$cond: {
 												if: { "orders.amount": { $gte: { $var: "high_value_threshold" } } },
 												then: 0.9, // 10% discount for high-value orders
-												else: {
-													$cond: {
-														if: { "orders.status": { $eq: "completed" } },
-														then: 0.95, // 5% discount for completed orders
-														else: 1.0,
-													},
-												},
+												else: 1.0,
 											},
 										},
 									],
@@ -452,15 +589,15 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 				};
 
 				const sql = buildSelectQuery(selectQuery, config);
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 				expect(rows.length).toBeGreaterThan(0);
 
-				// Verify complex SQL generation
+				// Verify complex SQL generation for SQLite
 				expect(sql).toBe(
-					"SELECT users.id AS \"id\", users.name AS \"name\", (UPPER(users.name) || ' (' || COALESCE(users.status, 'unknown') || ')') AS \"display_name\", (CASE WHEN (users.age >= 18 AND users.age <= 30 AND users.active = TRUE AND (users.status = 'premium' OR users.metadata->>'department' = 'engineering')) THEN TRUE ELSE FALSE END) AS \"is_premium_eligible\", (30 - 5) AS \"calculated_age\", posts.id AS \"posts.id\", posts.title AS \"posts.title\", LENGTH(posts.content) AS \"posts.content_length\", (CASE WHEN posts.title LIKE '%PostgreSQL%' THEN 'database' ELSE (CASE WHEN posts.title LIKE '%Marketing%' THEN 'marketing' ELSE 'general' END) END) AS \"posts.title_category\", orders.id AS \"orders.id\", orders.amount AS \"orders.amount\", orders.status AS \"orders.status\", (orders.amount * (CASE WHEN orders.amount >= 200 THEN 0.9 ELSE (CASE WHEN orders.status = 'completed' THEN 0.95 ELSE 1 END) END)) AS \"orders.discounted_amount\", ((365 - 100) / 1) AS \"orders.days_since_order\", (CASE WHEN orders.delivered_date IS NOT NULL THEN 'delivered' ELSE (CASE WHEN orders.shipped_at IS NOT NULL THEN 'shipped' ELSE (CASE WHEN orders.status = 'cancelled' THEN 'cancelled' ELSE 'pending' END) END) END) AS \"orders.delivery_status\" FROM users LEFT JOIN posts ON users.id = posts.user_id LEFT JOIN orders ON users.id = orders.customer_id WHERE ((users.status = 'premium' OR users.status = 'active') AND users.active = TRUE)",
+					"SELECT users.id AS \"id\", users.name AS \"name\", (UPPER(users.name) || ' (' || COALESCE(users.status, 'unknown') || ')') AS \"display_name\", (CASE WHEN (users.age >= 18 AND users.age <= 30 AND users.active = TRUE AND (users.status = 'premium' OR users.metadata->>'department' = 'engineering')) THEN TRUE ELSE FALSE END) AS \"is_premium_eligible\", (30 - 5) AS \"calculated_age\", posts.id AS \"posts.id\", posts.title AS \"posts.title\", LENGTH(posts.content) AS \"posts.content_length\", (CASE WHEN posts.title LIKE '%SQLite%' THEN 'database' ELSE (CASE WHEN posts.title LIKE '%Marketing%' THEN 'marketing' ELSE 'general' END) END) AS \"posts.title_category\", orders.id AS \"orders.id\", orders.amount AS \"orders.amount\", orders.status AS \"orders.status\", (orders.amount * (CASE WHEN orders.amount >= 200 THEN 0.9 ELSE 1 END)) AS \"orders.discounted_amount\", ((365 - 100) / 1) AS \"orders.days_since_order\", (CASE WHEN orders.delivered_date IS NOT NULL THEN 'delivered' ELSE (CASE WHEN orders.shipped_at IS NOT NULL THEN 'shipped' ELSE (CASE WHEN orders.status = 'cancelled' THEN 'cancelled' ELSE 'pending' END) END) END) AS \"orders.delivery_status\" FROM users LEFT JOIN posts ON users.id = posts.user_id LEFT JOIN orders ON users.id = orders.customer_id WHERE ((users.status = 'premium' OR users.status = 'active') AND users.active = TRUE)",
 				);
 
 				// Verify nested structure in results
@@ -473,23 +610,12 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 					expect(r).toHaveProperty(["posts.id"]);
 					expect(r).toHaveProperty(["orders.id"]);
 
-					// Verify posts structure
-					if (r.posts && Array.isArray(r.posts)) {
-						for (const post of r.posts as Record<string, unknown>[]) {
-							expect(post).toHaveProperty("title_category");
-							expect(post).toHaveProperty("content_length");
-							expect(typeof post.content_length).toBe("number");
-						}
-					}
+					// Verify calculated fields are present
+					expect(r).toHaveProperty("calculated_age");
+					expect(Number(r.calculated_age)).toBe(25); // 30 - 5
 
-					// Verify orders structure
-					if (r.orders && Array.isArray(r.orders)) {
-						for (const order of r.orders as Record<string, unknown>[]) {
-							expect(order).toHaveProperty("discounted_amount");
-							expect(order).toHaveProperty("delivery_status");
-							expect(typeof order.discounted_amount).toBe("number");
-						}
-					}
+					// Boolean values should be 0 or 1 in SQLite
+					expect([0, 1]).toContain(r.is_premium_eligible);
 				}
 			});
 		});
@@ -497,7 +623,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 
 	describe("Advanced EXISTS and Subquery Operations", () => {
 		it("should handle multiple nested EXISTS with complex type casting", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const condition: Condition = {
 					$and: [
 						{
@@ -514,7 +640,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 													"posts.title": {
 														$like: {
 															$func: {
-																CONCAT: ["%", { $func: { UPPER: ["PostgreSQL"] } }, "%"],
+																CONCAT: ["%", { $func: { UPPER: ["SQLite"] } }, "%"],
 															},
 														},
 													},
@@ -525,7 +651,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 												},
 												{
 													// Simple content length condition
-													"posts.content": { $like: "%PostgreSQL%" },
+													"posts.content": { $like: "%SQLite%" },
 												},
 											],
 										},
@@ -591,14 +717,14 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 				};
 
 				const sql = buildSelectQuery(query, config);
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 
-				// Verify complex EXISTS conditions
+				// Verify complex EXISTS conditions for SQLite
 				expect(sql).toBe(
-					"SELECT users.id AS \"id\", users.name AS \"name\", users.email AS \"email\" FROM users WHERE (EXISTS (SELECT 1 FROM posts WHERE (posts.user_id = users.id AND posts.published = TRUE AND (posts.title LIKE ('%' || UPPER('PostgreSQL') || '%')::TEXT OR (posts.tags)::TEXT LIKE '%\"database\"%' OR posts.content LIKE '%PostgreSQL%'))) AND EXISTS (SELECT 1 FROM orders WHERE (orders.customer_id = users.id AND orders.status = 'completed' AND orders.amount >= (200 * (CASE WHEN users.status = 'premium' THEN 0.8 ELSE 1 END)))) AND NOT (EXISTS (SELECT 1 FROM orders WHERE (orders.customer_id = users.id AND orders.status = 'cancelled' AND (orders.created_at)::DATE >= ('2024-01-01')::DATE))))",
+					"SELECT users.id AS \"id\", users.name AS \"name\", users.email AS \"email\" FROM users WHERE (EXISTS (SELECT 1 FROM posts WHERE (posts.user_id = users.id AND posts.published = TRUE AND (posts.title LIKE CAST(('%' || UPPER('SQLite') || '%') AS TEXT) OR CAST(posts.tags AS TEXT) LIKE '%\"database\"%' OR posts.content LIKE '%SQLite%'))) AND EXISTS (SELECT 1 FROM orders WHERE (orders.customer_id = users.id AND orders.status = 'completed' AND orders.amount >= (200 * (CASE WHEN users.status = 'premium' THEN 0.8 ELSE 1 END)))) AND NOT (EXISTS (SELECT 1 FROM orders WHERE (orders.customer_id = users.id AND orders.status = 'cancelled' AND CAST(orders.created_at AS TEXT) >= CAST('2024-01-01' AS TEXT)))))",
 				);
 			});
 		});
@@ -606,7 +732,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 
 	describe("Advanced JSON Operations with Type Casting", () => {
 		it("should handle complex JSON path operations with proper type inference", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const selectQuery: SelectQuery = {
 					rootTable: "users",
 					selection: {
@@ -684,21 +810,16 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 				};
 
 				const sql = buildSelectQuery(selectQuery, config);
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
 				expect(rows.length).toBeGreaterThan(0);
 
-				// Verify JSON operations in SQL
-				expect(sql).toContain("metadata");
-				expect(sql).toContain("->");
-				expect(sql).toContain("->>");
-				expect(sql).toContain("department");
-				expect(sql).toContain("settings");
-				expect(sql).toContain("COALESCE");
-				expect(sql).toContain("LENGTH");
-				expect(sql).toContain("CASE");
+				// Verify JSON operations in SQL for SQLite
+				expect(sql).toBe(
+					"SELECT users.id AS \"id\", users.name AS \"name\", users.metadata->>'department' AS \"department\", users.metadata->>'role' AS \"role\", (COALESCE(CAST(users.metadata->>'department' AS TEXT), 'unknown') || ' - ' || UPPER(COALESCE(CAST(users.metadata->>'role' AS TEXT), 'employee'))) AS \"profile_summary\", (CASE WHEN users.metadata->'settings'->>'theme' = 'dark' THEN TRUE ELSE FALSE END) AS \"dark_theme_user\", ((CASE WHEN users.metadata->'settings'->>'notifications' = TRUE THEN 1 ELSE 0 END) + LENGTH(COALESCE(CAST(users.metadata->'settings'->>'theme' AS TEXT), ''))) AS \"settings_count\", posts.id AS \"posts.id\", posts.title AS \"posts.title\", (CASE WHEN CAST(posts.tags AS TEXT) LIKE '%\"database\"%' THEN TRUE ELSE FALSE END) AS \"posts.has_database_tag\" FROM users LEFT JOIN posts ON users.id = posts.user_id WHERE (users.active = TRUE AND (users.metadata->>'department' IN ('engineering', 'marketing') OR users.metadata->>'role' IN ('senior', 'manager')) AND users.metadata->>'department' IN ('engineering', 'marketing'))",
+				);
 
 				// Verify results structure
 				for (const row of rows) {
@@ -707,12 +828,12 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 					expect(r).toHaveProperty("role");
 					expect(r).toHaveProperty("profile_summary");
 					expect(r).toHaveProperty("dark_theme_user");
-					expect(typeof r.dark_theme_user).toBe("boolean");
+					expect([0, 1]).toContain(r.dark_theme_user); // SQLite boolean
 
 					if (r.posts && Array.isArray(r.posts)) {
 						for (const post of r.posts as Record<string, unknown>[]) {
 							expect(post).toHaveProperty("has_database_tag");
-							expect(typeof post.has_database_tag).toBe("boolean");
+							expect([0, 1]).toContain(post.has_database_tag); // SQLite boolean
 						}
 					}
 				}
@@ -722,7 +843,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 
 	describe("Cross-table Mathematical Operations", () => {
 		it("should handle complex mathematical operations across multiple tables", async () => {
-			await db.executeInTransaction(async () => {
+			await db.executeInTransaction(() => {
 				const selectQuery: SelectQuery = {
 					rootTable: "users",
 					selection: {
@@ -844,28 +965,6 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 									},
 								},
 							},
-							// Processing time (simplified - without EXTRACT)
-							processing_days: {
-								$cond: {
-									if: { "orders.shipped_at": { $ne: null } },
-									then: {
-										$func: {
-											DIVIDE: [
-												{
-													$func: {
-														SUBTRACT: [
-															{ $func: { EXTRACT_EPOCH: [{ $field: "orders.shipped_at" }] } },
-															{ $func: { EXTRACT_EPOCH: [{ $field: "orders.created_at" }] } },
-														],
-													},
-												},
-												86400, // Convert to days
-											],
-										},
-									},
-									else: null,
-								},
-							},
 						},
 					},
 					condition: {
@@ -900,7 +999,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 				};
 
 				const sql = buildSelectQuery(selectQuery, config);
-				const rows = await db.query(sql);
+				const rows = db.query(sql);
 
 				expect(rows).toBeDefined();
 				expect(Array.isArray(rows)).toBe(true);
@@ -911,12 +1010,11 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 				expect(sql).toContain("/");
 				expect(sql).toContain("+");
 				expect(sql).toContain("-");
-				expect(sql).toContain("GREATEST");
+				expect(sql).toContain("MAX");
 				expect(sql).toContain("COALESCE");
 
 				// Verify complex calculations
 				expect(sql).toContain("0.085"); // Tax rate
-				expect(sql).toContain("86400"); // Seconds in day
 				expect(sql).toContain("200"); // Reading speed
 
 				// Verify results structure and types

@@ -290,12 +290,12 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 
 		it("should evaluate function with context variable without data table", () => {
 			const result = parseExpression({ $func: { CONCAT: [{ $var: "current_user_id" }, " user"] } }, regularState);
-			expect(result).toBe("CONCAT((123)::TEXT, ' user')");
+			expect(result).toBe("((123)::TEXT || ' user')");
 		});
 
 		it("should evaluate function with context variable with data table", () => {
 			const result = parseExpression({ $func: { CONCAT: [{ $var: "current_user_id" }, " user"] } }, dataTableState);
-			expect(result).toBe("CONCAT((123)::TEXT, ' user')");
+			expect(result).toBe("((123)::TEXT || ' user')");
 		});
 	});
 

@@ -249,7 +249,7 @@ describe("CRUD - UPDATE Query Complex Operations", () => {
 
 			const sql = buildUpdateQuery(updateQuery, testConfig);
 			expect(sql).toBe(
-				'UPDATE users SET "metadata" = \'{"updated":true,"processed_at":"2024-01-01"}\'::JSONB WHERE (users.role = \'admin\' OR users.role = \'ADMIN\')',
+				'UPDATE users SET "metadata" = (\'{"updated":true,"processed_at":"2024-01-01"}\')::JSONB WHERE (users.role = \'admin\' OR users.role = \'ADMIN\')',
 			);
 		});
 	});
@@ -272,7 +272,7 @@ describe("CRUD - UPDATE Query Complex Operations", () => {
 
 			const sql = buildUpdateQuery(updateQuery, testConfig);
 
-			expect(sql).toBe('UPDATE users SET "score" = NULL, "metadata" = \'{"info":"test"}\'::JSONB WHERE users.id = \'user123\'');
+			expect(sql).toBe('UPDATE users SET "score" = NULL, "metadata" = (\'{"info":"test"}\')::JSONB WHERE users.id = \'user123\'');
 		});
 
 		test("should handle type coercion in complex conditional expressions", () => {

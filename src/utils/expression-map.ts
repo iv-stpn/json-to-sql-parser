@@ -1,13 +1,13 @@
-import type { CastType } from "../constants/cast-types";
+import type { ExpressionType } from "../constants/cast-types";
 import type { ExpressionObject } from "../schemas";
 import { objectKeys } from ".";
 
 // Cache expression types to avoid recalculating them and to store them in the parser state.
 export class ExpressionTypeMap {
-	private map: Map<string, CastType>;
+	private map: Map<string, ExpressionType>;
 
 	constructor() {
-		this.map = new Map<string, CastType>();
+		this.map = new Map<string, ExpressionType>();
 	}
 
 	private _deepSort(obj: unknown): unknown {
@@ -30,7 +30,7 @@ export class ExpressionTypeMap {
 		return JSON.stringify(this._deepSort(key));
 	}
 
-	add(key: ExpressionObject, value: CastType): boolean {
+	add(key: ExpressionObject, value: ExpressionType): boolean {
 		const serializedKey = this._serialize(key);
 		if (!this.map.has(serializedKey)) {
 			this.map.set(serializedKey, value);
@@ -39,7 +39,7 @@ export class ExpressionTypeMap {
 		return false;
 	}
 
-	get(key: ExpressionObject): CastType {
+	get(key: ExpressionObject): ExpressionType {
 		const type = this.map.get(this._serialize(key));
 		if (type === undefined) throw new Error(`Expression type not found for key: ${JSON.stringify(key)}`);
 		return type;

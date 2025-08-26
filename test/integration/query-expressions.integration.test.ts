@@ -131,8 +131,9 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 
 			expect(rows).toBeDefined();
 			expect(Array.isArray(rows)).toBe(true);
-			expect(sql).toContain("LENGTH");
-			expect(sql).toContain("CONCAT");
+			expect(sql).toBe(
+				'SELECT users.id AS "id", users.name AS "name", users.email AS "email", LENGTH(users.name) AS "name_length", (users.name || \' (\' || users.email || \')\') AS "display_name" FROM users WHERE users.name LIKE \'%John%\'',
+			);
 		});
 	});
 

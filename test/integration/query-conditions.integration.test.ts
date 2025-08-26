@@ -479,7 +479,7 @@ describe("Integration - Complex Query Condition Processing", () => {
 								title: true,
 								content_preview: {
 									$func: {
-										CONCAT: [{ $func: { SUBSTRING: ["posts.content", 1, 50] } }, "..."],
+										CONCAT: [{ $func: { SUBSTR: ["posts.content", 1, 50] } }, "..."],
 									},
 								},
 							},
@@ -537,13 +537,9 @@ describe("Integration - Complex Query Condition Processing", () => {
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify complex SQL structure
-				expect(sql).toContain("SELECT");
-				expect(sql).toContain("LEFT JOIN");
-				expect(sql).toContain("WHERE");
-				expect(sql).toContain("AND");
-				expect(sql).toContain("OR");
-				expect(sql).toContain("EXISTS");
-				expect(sql).toContain("SUBSTRING");
+				expect(sql).toBe(
+					"SELECT users.id AS \"id\", users.name AS \"name\", users.email AS \"email\", ('age_' || (users.age)::TEXT) AS \"computed_age_group\", posts.id AS \"posts.id\", posts.title AS \"posts.title\", (SUBSTR('posts.content', 1, 50) || '...') AS \"posts.content_preview\" FROM users LEFT JOIN posts ON users.id = posts.user_id WHERE (((users.active = TRUE AND users.status IN ('premium', 'admin') AND ((users.age >= 25 AND users.age <= 50) OR (users.metadata->>'verified')::BOOLEAN = TRUE)) OR (users.status = 'admin' AND (users.metadata->'permissions'->>'super')::BOOLEAN = TRUE AND NOT ((users.metadata->'restrictions'->>'limited')::BOOLEAN = TRUE))) AND EXISTS (SELECT 1 FROM posts WHERE (posts.user_id = users.id AND posts.published = TRUE AND (posts.title LIKE '%important%' OR posts.tags->>'priority' = 'high'))))",
+				);
 			});
 		});
 
@@ -887,7 +883,7 @@ describe("Integration - Complex Query Condition Processing", () => {
 													CONCAT: [
 														{
 															$func: {
-																SUBSTRING: [
+																SUBSTR: [
 																	{ $func: { LOWER: [{ $field: "users.email" }] } },
 																	1,
 																	{ $func: { LENGTH: [{ $field: "users.name" }] } },
@@ -957,7 +953,7 @@ describe("Integration - Complex Query Condition Processing", () => {
 													"%",
 													{ $func: { LOWER: ["users.name"] } },
 													"%@%",
-													{ $func: { SUBSTRING: ["users.status", 1, 3] } },
+													{ $func: { SUBSTR: ["users.status", 1, 3] } },
 													".com",
 												],
 											},
@@ -982,15 +978,9 @@ describe("Integration - Complex Query Condition Processing", () => {
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify complex expressions are present
-				expect(sql).toContain("UPPER");
-				expect(sql).toContain("CONCAT");
-				expect(sql).toContain("SUBSTRING");
-				expect(sql).toContain("LOWER");
-				expect(sql).toContain("LENGTH");
-				expect(sql).toContain("+"); // ADD becomes +
-				expect(sql).toContain("*"); // MULTIPLY becomes *
-				expect(sql).toContain("/"); // DIVIDE becomes /
-				expect(sql).toContain("CASE WHEN");
+				expect(sql).toBe(
+					"SELECT count(*) as total FROM users WHERE (users.name = UPPER(SUBSTR(LOWER(users.email), 1, LENGTH(users.name)) || '_' || UPPER('users.status')) AND users.age > ((users.age * 2) + (LENGTH(users.name) / 3)) AND (users.status = (CASE WHEN (users.age >= 65 AND users.active = TRUE) THEN UPPER('senior') ELSE (CASE WHEN users.age >= 18 THEN ('adult_' || users.status) ELSE 'minor' END) END) OR users.email LIKE ('%' || LOWER('users.name') || '%@%' || SUBSTR('users.status', 1, 3) || '.com')::TEXT))",
+				);
 
 				// Performance assertions
 				expect(parseTime).toBeLessThan(1500); // Should parse complex expressions quickly
@@ -1059,7 +1049,7 @@ describe("Integration - Complex Query Condition Processing", () => {
 												CONCAT: [
 													{ $func: { LOWER: ["users.name"] } },
 													"_",
-													{ $func: { SUBSTRING: ["users.status", 1, 3] } },
+													{ $func: { SUBSTR: ["users.status", 1, 3] } },
 													"@",
 													{ $func: { UPPER: [{ $var: "adminRole" }] } },
 													".com",

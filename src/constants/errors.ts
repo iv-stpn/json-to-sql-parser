@@ -1,6 +1,6 @@
-import type { CastType } from "./cast-types";
+import type { ExpressionType as Type } from "./cast-types";
 
-export const JSON_ACCESS_TYPE_ERROR = (path: string, field: string, type: string): string =>
+export const JSON_ACCESS_TYPE_ERROR = (path: string, field: string, type: Type): string =>
 	`JSON path access '${path}' is only allowed on JSON fields, but field '${field}' is of type '${type}'`;
 
 const invalidJsonAccessReasons = {
@@ -13,23 +13,14 @@ export const INVALID_JSON_ACCESS_ERROR = (jsonAccess: string, reason: keyof type
 export const INVALID_OPERATOR_VALUE_TYPE_ERROR = (operator: string, type: string): string =>
 	`${operator.toUpperCase().slice(1)} operator requires a ${type} value`;
 
-export const FUNCTION_TYPE_MISMATCH_ERROR = (functionName: string, fieldType: CastType | "ANY", receivedType: CastType): string =>
-	`Type mismatch for '${functionName}': expected ${fieldType}, got ${receivedType}`;
+export const FUNCTION_TYPE_MISMATCH_ERROR = (functionName: string, fieldType: Type, type: Type): string =>
+	`Type mismatch for '${functionName}': expected ${fieldType}, got ${type}`;
 
-export const COMPARISON_TYPE_MISMATCH_ERROR = (
-	operator: string,
-	fieldName: string,
-	fieldType: CastType | "ANY",
-	receivedType: CastType,
-): string => `Field type mismatch for '${operator}' comparison on '${fieldName}': expected ${fieldType}, got ${receivedType}`;
+export const COMPARISON_TYPE_MISMATCH_ERROR = (operator: string, field: string, fieldType: Type, type: Type): string =>
+	`Field type mismatch for '${operator}' comparison on '${field}': expected ${fieldType}, got ${type}`;
 
-export const INVALID_ARGUMENT_COUNT_ERROR = (
-	functionName: string,
-	expectedArgCount: number,
-	argCount: number,
-	variadic?: boolean,
-): string =>
-	`Function '${functionName}' requires ${variadic ? "at least" : "exactly"} ${expectedArgCount} argument${expectedArgCount !== 1 ? "s" : ""}, got ${argCount}`;
+export const INVALID_ARGUMENT_COUNT_ERROR = (functionName: string, argCount: number, count: number, variadic?: boolean): string =>
+	`Function '${functionName}' requires ${variadic ? "at least" : "exactly"} ${argCount} argument${argCount !== 1 ? "s" : ""}, got ${count}`;
 
 export const MISSING_AGGREGATION_FIELD_ERROR = "Aggregation query must have at least one group by field or aggregated field";
 

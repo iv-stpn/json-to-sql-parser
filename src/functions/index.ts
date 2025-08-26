@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import type { castTypes } from "../constants/cast-types";
+import type { ExpressionType, FieldType } from "../constants/cast-types";
 import type { Dialect } from "../constants/dialects";
 import { MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR } from "../constants/errors";
 import { isNotNull } from "../utils";
@@ -7,29 +7,29 @@ import { removeAllWrappingParens } from "../utils/function-call";
 import { parseDate, parseTimestamp } from "../utils/parse-values";
 import { ensureBoolean, ensureDateString, ensureNumber, ensureText, ensureTimestampString } from "../utils/validators";
 
-type CastTypeToJSType<T extends (typeof castTypes)[number]> = T extends "BOOLEAN"
+type FieldTypeToJSType<T extends FieldType> = T extends "boolean"
 	? boolean
-	: T extends "FLOAT"
+	: T extends "number"
 		? number
-		: T extends "TEXT"
+		: T extends "string"
 			? string
-			: T extends "UUID"
+			: T extends "uuid"
 				? { $uuid: string }
-				: T extends "TIMESTAMP"
+				: T extends "datetime"
 					? { $timestamp: string }
-					: T extends "DATE"
+					: T extends "date"
 						? { $date: string }
-						: T extends "JSONB"
+						: T extends "object"
 							? { $jsonb: Record<string, unknown> }
 							: unknown;
 
-export type FunctionDefinition<TReturn extends (typeof castTypes)[number] = (typeof castTypes)[number]> = {
+export type FunctionDefinition<TReturn extends FieldType = FieldType> = {
 	name: string;
-	argumentTypes: ((typeof castTypes)[number] | "ANY")[];
+	argumentTypes: ExpressionType[];
 	variadic?: boolean;
 	returnType: TReturn;
 	toSQL?: (args: string[], dialect: Dialect) => string;
-	toJS: (args: unknown[]) => CastTypeToJSType<TReturn> | null;
+	toJS: (args: unknown[]) => FieldTypeToJSType<TReturn> | null;
 };
 
 // Variadic ensure functions to avoid type casting
@@ -46,10 +46,10 @@ function ensureAllBooleans(args: unknown[]): asserts args is (boolean | null)[] 
 }
 
 // Logical functions (9.1 / https://www.postgresql.org/docs/current/functions-logical.html)
-const andFunction: FunctionDefinition<"BOOLEAN"> = {
+const andFunction: FunctionDefinition<"boolean"> = {
 	name: "AND",
-	argumentTypes: ["BOOLEAN", "BOOLEAN"],
-	returnType: "BOOLEAN",
+	argumentTypes: ["boolean", "boolean"],
+	returnType: "boolean",
 	toSQL: (args) => `(${args[0]} AND ${args[1]})`,
 	toJS: (args) => {
 		if (args.length !== 2) throw new Error("AND function expects exactly 2 arguments");
@@ -60,10 +60,10 @@ const andFunction: FunctionDefinition<"BOOLEAN"> = {
 	},
 };
 
-const orFunction: FunctionDefinition<"BOOLEAN"> = {
+const orFunction: FunctionDefinition<"boolean"> = {
 	name: "OR",
-	argumentTypes: ["BOOLEAN", "BOOLEAN"],
-	returnType: "BOOLEAN",
+	argumentTypes: ["boolean", "boolean"],
+	returnType: "boolean",
 	toSQL: (args) => `(${args[0]} OR ${args[1]})`,
 	toJS: (args) => {
 		if (args.length !== 2) throw new Error("OR function expects exactly 2 arguments");
@@ -74,10 +74,10 @@ const orFunction: FunctionDefinition<"BOOLEAN"> = {
 	},
 };
 
-const notFunction: FunctionDefinition<"BOOLEAN"> = {
+const notFunction: FunctionDefinition<"boolean"> = {
 	name: "NOT",
-	argumentTypes: ["BOOLEAN"],
-	returnType: "BOOLEAN",
+	argumentTypes: ["boolean"],
+	returnType: "boolean",
 	toSQL: (args) => `NOT (${removeAllWrappingParens(`${args[0]}`)})`,
 	toJS: (args) => {
 		if (args.length !== 1) throw new Error("NOT function expects exactly 1 argument");
@@ -88,10 +88,10 @@ const notFunction: FunctionDefinition<"BOOLEAN"> = {
 };
 
 // Mathematical functions (9.3 / https://www.postgresql.org/docs/current/functions-math.html)
-const addFunction: FunctionDefinition<"FLOAT"> = {
+const addFunction: FunctionDefinition<"number"> = {
 	name: "ADD",
-	argumentTypes: ["FLOAT", "FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number", "number"],
+	returnType: "number",
 	toSQL: (args) => `(${args[0]} + ${args[1]})`,
 	toJS: (args) => {
 		if (args.length !== 2) throw new Error("ADD function expects exactly 2 arguments");
@@ -102,10 +102,10 @@ const addFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const subtractFunction: FunctionDefinition<"FLOAT"> = {
+const subtractFunction: FunctionDefinition<"number"> = {
 	name: "SUBTRACT",
-	argumentTypes: ["FLOAT", "FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number", "number"],
+	returnType: "number",
 	toSQL: (args) => `(${args[0]} - ${args[1]})`,
 	toJS: (args) => {
 		if (args.length !== 2) throw new Error("SUBTRACT function expects exactly 2 arguments");
@@ -116,10 +116,10 @@ const subtractFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const multiplyFunction: FunctionDefinition<"FLOAT"> = {
+const multiplyFunction: FunctionDefinition<"number"> = {
 	name: "MULTIPLY",
-	argumentTypes: ["FLOAT", "FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number", "number"],
+	returnType: "number",
 	toSQL: (args) => `(${args[0]} * ${args[1]})`,
 	toJS: (args) => {
 		if (args.length !== 2) throw new Error("MULTIPLY function expects exactly 2 arguments");
@@ -130,10 +130,10 @@ const multiplyFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const divideFunction: FunctionDefinition<"FLOAT"> = {
+const divideFunction: FunctionDefinition<"number"> = {
 	name: "DIVIDE",
-	argumentTypes: ["FLOAT", "FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number", "number"],
+	returnType: "number",
 	toSQL: (args) => {
 		if (Number(args[1]) === 0) throw new Error("Division by zero is not allowed");
 		return `(${args[0]} / ${args[1]})`;
@@ -148,10 +148,10 @@ const divideFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const modFunction: FunctionDefinition<"FLOAT"> = {
+const modFunction: FunctionDefinition<"number"> = {
 	name: "MOD",
-	argumentTypes: ["FLOAT", "FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number", "number"],
+	returnType: "number",
 	toSQL: (args) => `(${args[0]} % ${args[1]})`,
 	toJS: (args) => {
 		if (args.length !== 2) throw new Error("MOD function expects exactly 2 arguments");
@@ -162,10 +162,10 @@ const modFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const absFunction: FunctionDefinition<"FLOAT"> = {
+const absFunction: FunctionDefinition<"number"> = {
 	name: "ABS",
-	argumentTypes: ["FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number"],
+	returnType: "number",
 	toJS: (args) => {
 		if (args.length !== 1) throw new Error("ABS function expects exactly 1 argument");
 		ensureNumber(args[0]);
@@ -174,12 +174,12 @@ const absFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const powFunction: FunctionDefinition<"FLOAT"> = {
+const powFunction: FunctionDefinition<"number"> = {
 	name: "POW",
-	argumentTypes: ["FLOAT", "FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number", "number"],
+	returnType: "number",
 	toSQL: (args, dialect) => {
-		if (dialect === "sqlite-minimal") throw new Error(MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR("POW", dialect));
+		if (dialect === "sqlite-3.44-minimal") throw new Error(MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR("POW", dialect));
 		return `POW(${args[0]}, ${args[1]})`;
 	},
 	toJS: (args) => {
@@ -191,12 +191,13 @@ const powFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const sqrtFunction: FunctionDefinition<"FLOAT"> = {
+const sqrtFunction: FunctionDefinition<"number"> = {
 	name: "SQRT",
-	argumentTypes: ["FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number"],
+	returnType: "number",
 	toSQL: (args, dialect) => {
-		if (dialect === "sqlite-minimal") throw new Error(MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR("SQRT", dialect));
+		if (dialect === "sqlite-3.44-minimal")
+			throw new Error(MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR("SQRT", dialect));
 		return `SQRT(${args[0]})`;
 	},
 	toJS: (args) => {
@@ -208,12 +209,13 @@ const sqrtFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const ceilFunction: FunctionDefinition<"FLOAT"> = {
+const ceilFunction: FunctionDefinition<"number"> = {
 	name: "CEIL",
-	argumentTypes: ["FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number"],
+	returnType: "number",
 	toSQL: (args, dialect) => {
-		if (dialect === "sqlite-minimal") throw new Error(MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR("CEIL", dialect));
+		if (dialect === "sqlite-3.44-minimal")
+			throw new Error(MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR("CEIL", dialect));
 		return `CEIL(${args[0]})`;
 	},
 	toJS: (args) => {
@@ -224,12 +226,13 @@ const ceilFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const floorFunction: FunctionDefinition<"FLOAT"> = {
+const floorFunction: FunctionDefinition<"number"> = {
 	name: "FLOOR",
-	argumentTypes: ["FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number"],
+	returnType: "number",
 	toSQL: (args, dialect) => {
-		if (dialect === "sqlite-minimal") throw new Error(MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR("FLOOR", dialect));
+		if (dialect === "sqlite-3.44-minimal")
+			throw new Error(MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR("FLOOR", dialect));
 		return `FLOOR(${args[0]})`;
 	},
 	toJS: (args) => {
@@ -241,10 +244,10 @@ const floorFunction: FunctionDefinition<"FLOAT"> = {
 };
 
 // String functions (9.4 / https://www.postgresql.org/docs/current/functions-string.html)
-const upperFunction: FunctionDefinition<"TEXT"> = {
+const upperFunction: FunctionDefinition<"string"> = {
 	name: "UPPER",
-	argumentTypes: ["TEXT"],
-	returnType: "TEXT",
+	argumentTypes: ["string"],
+	returnType: "string",
 	toJS: (args) => {
 		if (args.length !== 1) throw new Error("UPPER function expects exactly 1 argument");
 		ensureText(args[0]);
@@ -253,10 +256,10 @@ const upperFunction: FunctionDefinition<"TEXT"> = {
 	},
 };
 
-const lowerFunction: FunctionDefinition<"TEXT"> = {
+const lowerFunction: FunctionDefinition<"string"> = {
 	name: "LOWER",
-	argumentTypes: ["TEXT"],
-	returnType: "TEXT",
+	argumentTypes: ["string"],
+	returnType: "string",
 	toJS: (args) => {
 		if (args.length !== 1) throw new Error("LOWER function expects exactly 1 argument");
 		ensureText(args[0]);
@@ -265,10 +268,10 @@ const lowerFunction: FunctionDefinition<"TEXT"> = {
 	},
 };
 
-const lengthFunction: FunctionDefinition<"FLOAT"> = {
+const lengthFunction: FunctionDefinition<"number"> = {
 	name: "LENGTH",
-	argumentTypes: ["TEXT"],
-	returnType: "FLOAT",
+	argumentTypes: ["string"],
+	returnType: "number",
 	toJS: (args) => {
 		if (args.length !== 1) throw new Error("LENGTH function expects exactly 1 argument");
 		ensureText(args[0]);
@@ -277,10 +280,10 @@ const lengthFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const concatFunction: FunctionDefinition<"TEXT"> = {
+const concatFunction: FunctionDefinition<"string"> = {
 	name: "CONCAT",
-	argumentTypes: ["TEXT", "TEXT"],
-	returnType: "TEXT",
+	argumentTypes: ["string", "string"],
+	returnType: "string",
 	variadic: true,
 	toSQL: (args) => `(${args.join(" || ")})`,
 	toJS: (args) => {
@@ -292,10 +295,10 @@ const concatFunction: FunctionDefinition<"TEXT"> = {
 	},
 };
 
-const substringFunction: FunctionDefinition<"TEXT"> = {
+const substringFunction: FunctionDefinition<"string"> = {
 	name: "SUBSTR",
-	argumentTypes: ["TEXT", "FLOAT", "FLOAT"],
-	returnType: "TEXT",
+	argumentTypes: ["string", "number", "number"],
+	returnType: "string",
 	toJS: (args) => {
 		if (args.length !== 3) throw new Error("SUBSTR function expects exactly 3 arguments");
 		ensureText(args[0]);
@@ -307,10 +310,10 @@ const substringFunction: FunctionDefinition<"TEXT"> = {
 	},
 };
 
-const replaceFunction: FunctionDefinition<"TEXT"> = {
+const replaceFunction: FunctionDefinition<"string"> = {
 	name: "REPLACE",
-	argumentTypes: ["TEXT", "TEXT", "TEXT"],
-	returnType: "TEXT",
+	argumentTypes: ["string", "string", "string"],
+	returnType: "string",
 	toJS: (args) => {
 		if (args.length !== 3) throw new Error("REPLACE function expects exactly 3 arguments");
 		ensureText(args[0]);
@@ -322,13 +325,13 @@ const replaceFunction: FunctionDefinition<"TEXT"> = {
 };
 
 // Date/time functions (9.9 / https://www.postgresql.org/docs/current/functions-datetime.html)
-const nowFunction: FunctionDefinition<"TIMESTAMP"> = {
+const nowFunction: FunctionDefinition<"datetime"> = {
 	name: "NOW",
 	argumentTypes: [],
-	returnType: "TIMESTAMP",
+	returnType: "datetime",
 	toSQL: (_, dialect) => {
 		if (dialect === "postgresql") return "NOW()";
-		if (dialect === "sqlite-minimal") return "DATETIME()";
+		if (dialect === "sqlite-3.44-minimal") return "DATETIME()";
 		return "DATETIME('now', 'subsec')";
 	},
 	toJS: (args) => {
@@ -338,10 +341,10 @@ const nowFunction: FunctionDefinition<"TIMESTAMP"> = {
 	},
 };
 
-const currentDateFunction: FunctionDefinition<"DATE"> = {
+const currentDateFunction: FunctionDefinition<"date"> = {
 	name: "CURRENT_DATE",
 	argumentTypes: [],
-	returnType: "DATE",
+	returnType: "date",
 	toSQL: (_, dialect) => {
 		if (dialect === "postgresql") return "CURRENT_DATE";
 		return "DATE()";
@@ -356,14 +359,14 @@ const currentDateFunction: FunctionDefinition<"DATE"> = {
 	},
 };
 
-const extractYearFunction: FunctionDefinition<"FLOAT"> = {
+const extractYearFunction: FunctionDefinition<"number"> = {
 	name: "EXTRACT_YEAR",
 	toSQL: (args: string[], dialect: Dialect) => {
 		if (dialect === "postgresql") return `EXTRACT(YEAR FROM ${args[0]})`;
 		return `CAST(STRFTIME('%Y', ${args[0]}) AS INTEGER)`;
 	},
-	argumentTypes: ["DATE"],
-	returnType: "FLOAT",
+	argumentTypes: ["date"],
+	returnType: "number",
 	toJS: (args) => {
 		if (args.length !== 1) throw new Error("EXTRACT_YEAR function expects exactly 1 argument");
 		ensureDateString(args[0]);
@@ -373,14 +376,14 @@ const extractYearFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const extractMonthFunction: FunctionDefinition<"FLOAT"> = {
+const extractMonthFunction: FunctionDefinition<"number"> = {
 	name: "EXTRACT_MONTH",
 	toSQL: (args: string[], dialect: Dialect) => {
 		if (dialect === "postgresql") return `EXTRACT(MONTH FROM ${args[0]})`;
 		return `CAST(STRFTIME('%m', ${args[0]}) AS INTEGER)`;
 	},
-	argumentTypes: ["DATE"],
-	returnType: "FLOAT",
+	argumentTypes: ["date"],
+	returnType: "number",
 	toJS: (args) => {
 		if (args.length !== 1) throw new Error("EXTRACT_MONTH function expects exactly 1 argument");
 		ensureDateString(args[0]);
@@ -390,14 +393,14 @@ const extractMonthFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const extractDayFunction: FunctionDefinition<"FLOAT"> = {
+const extractDayFunction: FunctionDefinition<"number"> = {
 	name: "EXTRACT_DAY",
 	toSQL: (args: string[], dialect: Dialect) => {
 		if (dialect === "postgresql") return `EXTRACT(DAY FROM ${args[0]})`;
 		return `CAST(STRFTIME('%d', ${args[0]}) AS INTEGER)`;
 	},
-	argumentTypes: ["DATE"],
-	returnType: "FLOAT",
+	argumentTypes: ["date"],
+	returnType: "number",
 	toJS: (args) => {
 		if (args.length !== 1) throw new Error("EXTRACT_DAY function expects exactly 1 argument");
 		ensureDateString(args[0]);
@@ -407,14 +410,14 @@ const extractDayFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const extractHourFunction: FunctionDefinition<"FLOAT"> = {
+const extractHourFunction: FunctionDefinition<"number"> = {
 	name: "EXTRACT_HOUR",
 	toSQL: (args: string[], dialect: Dialect) => {
 		if (dialect === "postgresql") return `EXTRACT(HOUR FROM ${args[0]})`;
 		return `CAST(STRFTIME('%H', ${args[0]}) AS INTEGER)`;
 	},
-	argumentTypes: ["TIMESTAMP"],
-	returnType: "FLOAT",
+	argumentTypes: ["datetime"],
+	returnType: "number",
 	toJS: (args) => {
 		if (args.length !== 1) throw new Error("EXTRACT_HOUR function expects exactly 1 argument");
 		ensureTimestampString(args[0]);
@@ -424,14 +427,14 @@ const extractHourFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const extractMinuteFunction: FunctionDefinition<"FLOAT"> = {
+const extractMinuteFunction: FunctionDefinition<"number"> = {
 	name: "EXTRACT_MINUTE",
 	toSQL: (args: string[], dialect: Dialect) => {
 		if (dialect === "postgresql") return `EXTRACT(MINUTE FROM ${args[0]})`;
 		return `CAST(STRFTIME('%M', ${args[0]}) AS INTEGER)`;
 	},
-	argumentTypes: ["TIMESTAMP"],
-	returnType: "FLOAT",
+	argumentTypes: ["datetime"],
+	returnType: "number",
 	toJS: (args) => {
 		if (args.length !== 1) throw new Error("EXTRACT_MINUTE function expects exactly 1 argument");
 		ensureTimestampString(args[0]);
@@ -441,14 +444,14 @@ const extractMinuteFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const extractEpochFunction: FunctionDefinition<"FLOAT"> = {
+const extractEpochFunction: FunctionDefinition<"number"> = {
 	name: "EXTRACT_EPOCH",
 	toSQL: (args: string[], dialect: Dialect) => {
 		if (dialect === "postgresql") return `EXTRACT(EPOCH FROM ${args[0]})`;
 		return `CAST(STRFTIME('%s', ${args[0]}) AS INTEGER)`;
 	},
-	argumentTypes: ["TIMESTAMP"],
-	returnType: "FLOAT",
+	argumentTypes: ["datetime"],
+	returnType: "number",
 	toJS: (args) => {
 		if (args.length !== 1) throw new Error("EXTRACT_EPOCH function expects exactly 1 argument");
 		ensureTimestampString(args[0]);
@@ -459,10 +462,10 @@ const extractEpochFunction: FunctionDefinition<"FLOAT"> = {
 };
 
 // UUID functions (9.14 / https://www.postgresql.org/docs/current/functions-uuid.html)
-const genRandomUuidFunction: FunctionDefinition<"UUID"> = {
+const genRandomUuidFunction: FunctionDefinition<"uuid"> = {
 	name: "GEN_RANDOM_UUID",
 	argumentTypes: [],
-	returnType: "UUID",
+	returnType: "uuid",
 	toSQL: (_, dialect: Dialect) => {
 		if (dialect === "postgresql") return "GEN_RANDOM_UUID()";
 		throw new Error(`GEN_RANDOM_UUID function is not supported in ${dialect}`);
@@ -474,14 +477,14 @@ const genRandomUuidFunction: FunctionDefinition<"UUID"> = {
 };
 
 // Conditional expressions (9.18 / https://www.postgresql.org/docs/current/functions-conditional.html)
-const greatestStringFunction: FunctionDefinition<"TEXT"> = {
+const greatestStringFunction: FunctionDefinition<"string"> = {
 	name: "GREATEST_STRING",
 	toSQL: (args: string[], dialect: Dialect) => {
 		if (dialect === "postgresql") return `GREATEST(${args.join(", ")})`;
 		return `MAX(${args.join(", ")})`;
 	},
-	argumentTypes: ["TEXT", "TEXT"],
-	returnType: "TEXT",
+	argumentTypes: ["string", "string"],
+	returnType: "string",
 	variadic: true,
 	toJS: (args) => {
 		if (args.length < 2) throw new Error("GREATEST_STRING function expects at least 2 arguments");
@@ -492,14 +495,14 @@ const greatestStringFunction: FunctionDefinition<"TEXT"> = {
 	},
 };
 
-const greatestNumberFunction: FunctionDefinition<"FLOAT"> = {
+const greatestNumberFunction: FunctionDefinition<"number"> = {
 	name: "GREATEST_NUMBER",
 	toSQL: (args: string[], dialect: Dialect) => {
 		if (dialect === "postgresql") return `GREATEST(${args.join(", ")})`;
 		return `MAX(${args.join(", ")})`;
 	},
-	argumentTypes: ["FLOAT", "FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number", "number"],
+	returnType: "number",
 	variadic: true,
 	toJS: (args) => {
 		if (args.length < 2) throw new Error("GREATEST_NUMBER function expects at least 2 arguments");
@@ -510,14 +513,14 @@ const greatestNumberFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const leastStringFunction: FunctionDefinition<"TEXT"> = {
+const leastStringFunction: FunctionDefinition<"string"> = {
 	name: "LEAST_STRING",
 	toSQL: (args: string[], dialect: Dialect) => {
 		if (dialect === "postgresql") return `LEAST(${args.join(", ")})`;
 		return `MIN(${args.join(", ")})`;
 	},
-	argumentTypes: ["TEXT", "TEXT"],
-	returnType: "TEXT",
+	argumentTypes: ["string", "string"],
+	returnType: "string",
 	variadic: true,
 	toJS: (args) => {
 		if (args.length < 2) throw new Error("LEAST_STRING function expects at least 2 arguments");
@@ -528,14 +531,14 @@ const leastStringFunction: FunctionDefinition<"TEXT"> = {
 	},
 };
 
-const leastNumberFunction: FunctionDefinition<"FLOAT"> = {
+const leastNumberFunction: FunctionDefinition<"number"> = {
 	name: "LEAST_NUMBER",
 	toSQL: (args: string[], dialect: Dialect) => {
 		if (dialect === "postgresql") return `LEAST(${args.join(", ")})`;
 		return `MIN(${args.join(", ")})`;
 	},
-	argumentTypes: ["FLOAT", "FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number", "number"],
+	returnType: "number",
 	variadic: true,
 	toJS: (args) => {
 		if (args.length < 2) throw new Error("LEAST_NUMBER function expects at least 2 arguments");
@@ -546,11 +549,11 @@ const leastNumberFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const coalesceStringFunction: FunctionDefinition<"TEXT"> = {
+const coalesceStringFunction: FunctionDefinition<"string"> = {
 	name: "COALESCE_STRING",
 	toSQL: (args: string[]) => `COALESCE(${args.join(", ")})`,
-	argumentTypes: ["TEXT", "TEXT"],
-	returnType: "TEXT",
+	argumentTypes: ["string", "string"],
+	returnType: "string",
 	variadic: true,
 	toJS: (args) => {
 		if (args.length < 2) throw new Error("COALESCE_STRING function expects at least 2 arguments");
@@ -559,11 +562,11 @@ const coalesceStringFunction: FunctionDefinition<"TEXT"> = {
 	},
 };
 
-const coalesceNumberFunction: FunctionDefinition<"FLOAT"> = {
+const coalesceNumberFunction: FunctionDefinition<"number"> = {
 	name: "COALESCE_NUMBER",
 	toSQL: (args: string[]) => `COALESCE(${args.join(", ")})`,
-	argumentTypes: ["FLOAT", "FLOAT"],
-	returnType: "FLOAT",
+	argumentTypes: ["number", "number"],
+	returnType: "number",
 	variadic: true,
 	toJS: (args) => {
 		if (args.length < 2) throw new Error("COALESCE_NUMBER function expects at least 2 arguments");
@@ -572,11 +575,11 @@ const coalesceNumberFunction: FunctionDefinition<"FLOAT"> = {
 	},
 };
 
-const coalesceBooleanFunction: FunctionDefinition<"BOOLEAN"> = {
+const coalesceBooleanFunction: FunctionDefinition<"boolean"> = {
 	name: "COALESCE_BOOLEAN",
 	toSQL: (args: string[]) => `COALESCE(${args.join(", ")})`,
-	argumentTypes: ["BOOLEAN", "BOOLEAN"],
-	returnType: "BOOLEAN",
+	argumentTypes: ["boolean", "boolean"],
+	returnType: "boolean",
 	variadic: true,
 	toJS: (args) => {
 		if (args.length < 2) throw new Error("COALESCE_BOOLEAN function expects at least 2 arguments");

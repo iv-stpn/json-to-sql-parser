@@ -234,11 +234,9 @@ describe("Parser - Complex Queries and Expressions", () => {
 			);
 
 			const sql = compileSelectQuery(query);
-
-			expect(sql).toContain("CONCAT");
-			expect(sql).toContain("LOWER");
-			expect(sql).toContain("LENGTH");
-			expect(sql).toContain("/");
+			expect(sql).toBe(
+				'SELECT users.id AS "id", (users.name || \' (\' || users.email || \')\') AS "full_name", (\'age_\' || (users.age)::TEXT) AS "age_group", LOWER(users.email) AS "normalized_email", posts.title AS "posts.title", LENGTH(posts.title) AS "posts.title_length", (posts.view_count / 100) AS "posts.view_ratio" FROM users LEFT JOIN posts ON users.id = posts.user_id',
+			);
 		});
 
 		it("should parse and compile complex nested relationship queries", () => {
@@ -509,7 +507,7 @@ describe("Parser - Complex Queries and Expressions", () => {
 									UPPER: [
 										{
 											$func: {
-												CONCAT: [{ $func: { SUBSTRING: ["users.email", 1, 5] } }, "_USER"],
+												CONCAT: [{ $func: { SUBSTR: ["users.email", 1, 5] } }, "_USER"],
 											},
 										},
 									],
@@ -522,10 +520,9 @@ describe("Parser - Complex Queries and Expressions", () => {
 
 			const sql = extractSelectWhereClause(condition, testConfig, "users");
 
-			expect(sql).toContain("*");
-			expect(sql).toContain("+");
-			expect(sql).toContain("UPPER");
-			expect(sql).toContain("CONCAT");
+			expect(sql).toBe(
+				"(users.balance > ((users.age + 10) * 100) AND users.name = UPPER(SUBSTR('users.email', 1, 5) || '_USER'))",
+			);
 		});
 
 		it("should parse string manipulation functions", () => {
@@ -544,7 +541,7 @@ describe("Parser - Complex Queries and Expressions", () => {
 						"users.name": {
 							$eq: {
 								$func: {
-									UPPER: [{ $func: { SUBSTRING: ["users.email", 1, 10] } }],
+									UPPER: [{ $func: { SUBSTR: ["users.email", 1, 10] } }],
 								},
 							},
 						},
@@ -553,11 +550,9 @@ describe("Parser - Complex Queries and Expressions", () => {
 			};
 
 			const sql = extractSelectWhereClause(condition, testConfig, "users");
-
-			expect(sql).toContain("LOWER");
-			expect(sql).toContain("UPPER");
-			expect(sql).toContain("CONCAT");
-			expect(sql).toContain("SUBSTRING");
+			expect(sql).toBe(
+				"(users.email LIKE (LOWER('%' || 'users.name' || '@%'))::TEXT AND users.name = UPPER(SUBSTR('users.email', 1, 10)))",
+			);
 		});
 
 		it("should parse aggregation functions in expressions", () => {
@@ -617,7 +612,7 @@ describe("Parser - Complex Queries and Expressions", () => {
 							"tags->primary": true,
 							comments: {
 								id: true,
-								short_content: { $func: { SUBSTRING: ["comments.content", 1, 50] } },
+								short_content: { $func: { SUBSTR: ["comments.content", 1, 50] } },
 							},
 						},
 						orders: {
@@ -656,17 +651,9 @@ describe("Parser - Complex Queries and Expressions", () => {
 			const sql = compileSelectQuery(query);
 
 			// Verify all features are present
-			expect(sql).toContain("SELECT");
-			expect(sql).toContain("UPPER");
-			expect(sql).toContain("LENGTH");
-			expect(sql).toContain("SUBSTRING");
-			expect(sql).toContain("LEFT JOIN");
-			expect(sql).toContain("WHERE");
-			expect(sql).toContain("AND");
-			expect(sql).toContain("OR");
-			expect(sql).toContain("EXISTS");
-			expect(sql).toContain("NOT");
-			expect(sql).toContain("IN");
+			expect(sql).toBe(
+				'SELECT users.id AS "id", UPPER(\'users.name\') AS "display_name", (\'category_\' || \'users.age\') AS "age_category", users.metadata->>\'profile\' AS "metadata->profile", posts.id AS "posts.id", posts.title AS "posts.title", LENGTH(\'posts.content\') AS "posts.word_count", posts.tags->>\'primary\' AS "posts.tags->primary", comments.id AS "comments.id", SUBSTR(\'comments.content\', 1, 50) AS "comments.short_content", orders.id AS "orders.id", orders.total_amount AS "orders.total_amount", orders.shipping_address->>\'city\' AS "orders.shipping_address->city", orders.shipping_address->>\'country\' AS "orders.shipping_address->country" FROM users LEFT JOIN posts ON users.id = posts.user_id LEFT JOIN comments ON posts.id = comments.post_id LEFT JOIN orders ON users.id = orders.user_id WHERE (users.active = TRUE AND (users.age >= 18 AND users.age <= 80) AND (users.status IN (\'premium\', \'vip\') OR users.balance > 1000) AND EXISTS (SELECT 1 FROM posts WHERE (posts.published = TRUE AND posts.view_count > 100)) AND NOT ((users.metadata->\'flags\'->>\'restricted\')::BOOLEAN = TRUE))',
+			);
 		});
 	});
 
@@ -711,7 +698,7 @@ describe("Parser - Complex Queries and Expressions", () => {
 				};
 
 				const sql = extractSelectWhereClause(condition, testConfig, "users");
-				expect(sql).toBe("users.name = CONCAT(users.name, ' (', '123', ')')");
+				expect(sql).toBe("users.name = (users.name || ' (' || '123' || ')')");
 			});
 
 			it("should parse function calls with nested expression arguments", () => {
@@ -738,7 +725,7 @@ describe("Parser - Complex Queries and Expressions", () => {
 				};
 
 				const sql = extractSelectWhereClause(condition, testConfig, "users");
-				expect(sql).toBe("users.name = CONCAT('Hello', 'World')");
+				expect(sql).toBe("users.name = ('Hello' || 'World')");
 			});
 
 			it("should parse numeric literals in expressions correctly", () => {

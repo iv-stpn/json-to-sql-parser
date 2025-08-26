@@ -849,16 +849,9 @@ describe("Integration - Complex Aggregations with Multi-Type Casting", () => {
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify string functions in SQL
-				expect(sql).toContain("LENGTH");
-				expect(sql).toContain("UPPER");
-				expect(sql).toContain("CONCAT");
-				expect(sql).toContain("COALESCE");
-				expect(sql).toContain("STRING_AGG");
-
-				// Verify type casting for different operations
-				expect(sql).toContain("MAX");
-				expect(sql).toContain("AVG");
-				expect(sql).toContain("CASE WHEN");
+				expect(sql).toBe(
+					"SELECT users.email AS \"email\", COUNT(*) AS \"user_count\", AVG(LENGTH(users.name)) AS \"avg_name_length\", STRING_AGG(UPPER(users.name) || ' (' || COALESCE(users.status, 'unknown') || ')', ',') AS \"all_names\", MAX(CASE WHEN users.status = 'premium' THEN 1 ELSE 0 END) AS \"has_premium_users\", STRING_AGG(users.name || ':' || COALESCE((users.age)::TEXT, 'unknown'), ',') AS \"age_stats\" FROM users GROUP BY users.email",
+				);
 			});
 		});
 	});
@@ -905,7 +898,7 @@ describe("Integration - Complex Aggregations with Multi-Type Casting", () => {
 								$func: {
 									CONCAT: [
 										"Order#",
-										{ $func: { SUBSTRING: [{ $field: "orders.id" }, 1, 8] } },
+										{ $func: { SUBSTR: [{ $field: "orders.id" }, 1, 8] } },
 										" ($",
 										{
 											$func: {
@@ -980,13 +973,9 @@ describe("Integration - Complex Aggregations with Multi-Type Casting", () => {
 				// Verify complex nested expressions in SQL
 				expect(sql).toContain("CASE WHEN");
 				expect(sql.split("CASE WHEN").length).toBeGreaterThanOrEqual(3); // Multiple CASE statements
-				expect(sql).toContain("*");
-				expect(sql).toContain("/");
-				expect(sql).toContain("-");
-				expect(sql).toContain("+");
-				expect(sql).toContain("SUBSTRING");
-				expect(sql).toContain("CONCAT");
-				expect(sql).toContain("STRING_AGG");
+				expect(sql).toBe(
+					"SELECT orders.status AS \"status\", COUNT(*) AS \"order_count\", SUM(orders.amount * (1 + (500 / 2592000))) AS \"weighted_revenue\", STRING_AGG('Order#' || SUBSTR((orders.id)::TEXT, 1, 8) || ' ($' || (orders.amount * (CASE WHEN orders.status = 'completed' THEN 1 ELSE 0.8 END))::TEXT || ')', ',') AS \"order_summary\", AVG(CASE WHEN (orders.shipped_at IS NOT NULL AND orders.status IN ('shipped', 'completed')) THEN (orders.amount / (((EXTRACT(EPOCH FROM orders.shipped_at) - EXTRACT(EPOCH FROM orders.created_at)) / 3600) + 1)) ELSE 0 END) AS \"efficiency_score\" FROM orders GROUP BY orders.status",
+				);
 			});
 		});
 	});

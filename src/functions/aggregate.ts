@@ -1,11 +1,11 @@
-import type { castTypes } from "../constants/cast-types";
+import type { ExpressionType, FieldType } from "../constants/cast-types";
 import type { Dialect } from "../constants/dialects";
 import { applyFunction } from "../utils/function-call";
 
 export type AggregationDefinition = {
 	name: string;
-	expressionType: (typeof castTypes)[number] | "ANY";
-	additionalArgumentTypes?: (typeof castTypes)[number][];
+	expressionType: ExpressionType;
+	additionalArgumentTypes?: FieldType[];
 	variadic?: boolean;
 	toSQL?: (expression: string, args: string[], dialect: Dialect) => string;
 };
@@ -13,27 +13,27 @@ export type AggregationDefinition = {
 const aggregationFunctions = [
 	{
 		name: "COUNT",
-		expressionType: "ANY",
+		expressionType: "any",
 	},
 	{
 		name: "SUM",
-		expressionType: "FLOAT",
+		expressionType: "number",
 	},
 	{
 		name: "AVG",
-		expressionType: "FLOAT",
+		expressionType: "number",
 	},
 	{
 		name: "MIN",
-		expressionType: "FLOAT",
+		expressionType: "number",
 	},
 	{
 		name: "MAX",
-		expressionType: "FLOAT",
+		expressionType: "number",
 	},
 	{
 		name: "STDDEV",
-		expressionType: "FLOAT",
+		expressionType: "number",
 		toSQL: (expression, _, dialect) => {
 			if (dialect === "postgresql") return `STDDEV(${expression})`;
 			return `SQRT(AVG(POW(${expression}, 2))-POW(AVG(${expression}),2))`;
@@ -41,7 +41,7 @@ const aggregationFunctions = [
 	},
 	{
 		name: "VARIANCE",
-		expressionType: "FLOAT",
+		expressionType: "number",
 		toSQL: (expression, _, dialect) => {
 			if (dialect === "postgresql") return `VARIANCE(${expression})`;
 			return `AVG(POW(${expression}, 2))-POW(AVG(${expression}),2)`;
@@ -49,14 +49,17 @@ const aggregationFunctions = [
 	},
 	{
 		name: "COUNT_DISTINCT",
-		expressionType: "ANY",
+		expressionType: "any",
 		toSQL: (expression) => `COUNT(DISTINCT ${expression})`,
 	},
 	{
 		name: "STRING_AGG",
-		expressionType: "TEXT",
-		additionalArgumentTypes: ["TEXT"],
-		toSQL: (expression, args) => applyFunction("STRING_AGG", [expression, ...args]),
+		expressionType: "string",
+		additionalArgumentTypes: ["string"],
+		toSQL: (expression, args, dialect) => {
+			if (dialect === "postgresql") return applyFunction("STRING_AGG", [expression, ...args]);
+			return applyFunction("GROUP_CONCAT", [expression, ...args]);
+		},
 	},
 ] satisfies AggregationDefinition[];
 

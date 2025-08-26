@@ -210,7 +210,9 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 				expect(Array.isArray(rows)).toBe(true);
 
 				// Verify string operations
-				expect(sql).toContain("CONCAT");
+				expect(sql).toBe(
+					"SELECT users.name AS \"name\", users.age AS \"age\", (users.name || ' (Age: ' || (users.age)::TEXT || ')') AS \"name_with_age\" FROM users WHERE users.name != ''",
+				);
 			});
 		});
 	});
