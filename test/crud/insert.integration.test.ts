@@ -16,6 +16,7 @@ describe("Integration - INSERT Operations and Data Persistence", () => {
 		await db.connect();
 
 		config = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [

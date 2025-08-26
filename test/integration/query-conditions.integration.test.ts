@@ -18,6 +18,7 @@ describe("Integration - Complex Query Condition Processing", () => {
 		await db.connect();
 
 		config = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [

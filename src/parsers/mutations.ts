@@ -252,7 +252,7 @@ function evaluateExpression(expression: AnyExpression, context: EvaluationContex
 		const { args, definition } = resolveFunction(expression.$func);
 		const evaluatedArgs = args.map((arg) => evaluateExpression(arg, context));
 		if (!argumentsDoesNotHaveUnresolvedExpression(evaluatedArgs)) return { $func: { [definition.name]: evaluatedArgs } };
-		return definition.toJS({ config: context.config, args: evaluatedArgs });
+		return definition.toJS(evaluatedArgs);
 	}
 
 	if ("$cond" in expression) {

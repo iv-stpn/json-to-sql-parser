@@ -37,3 +37,6 @@ export const FORBIDDEN_EXISTING_ROW_EVALUATION_ON_INSERT_ERROR =
 	"Evaluations on existing rows are not allowed during INSERT. Use 'NEW_ROW' as a prefix for evaluating new row values, or $exists to apply a condition on existing rows.";
 
 export const NON_EMPTY_CONDITION_ARRAY_ERROR = (operator: string) => `${operator} condition should be a non-empty array.`;
+
+export const MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR = (operator: string, dialect: string) =>
+	`Advanced mathematical operators (such as '${operator}') are not supported in dialect '${dialect}'`;

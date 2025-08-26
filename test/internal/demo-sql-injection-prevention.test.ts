@@ -21,6 +21,7 @@ describe("Security - SQL Injection Prevention and Input Validation", () => {
 
 	beforeEach(() => {
 		testConfig = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [

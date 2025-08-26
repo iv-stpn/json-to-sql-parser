@@ -14,6 +14,7 @@ describe("Parser - Complex Queries and Expressions", () => {
 
 	beforeEach(() => {
 		testConfig = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [

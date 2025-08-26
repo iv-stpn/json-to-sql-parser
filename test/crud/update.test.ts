@@ -8,6 +8,7 @@ import type { Config, Field } from "../../src/types";
 
 // Test configuration for mixed conditions tests
 const mockConfig: Config = {
+	dialect: "postgresql",
 	tables: {
 		users: {
 			allowedFields: [
@@ -29,6 +30,7 @@ let testConfig: Config;
 
 beforeEach(() => {
 	testConfig = {
+		dialect: "postgresql",
 		tables: {
 			users: {
 				allowedFields: [

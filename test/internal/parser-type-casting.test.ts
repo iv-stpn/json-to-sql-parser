@@ -12,6 +12,7 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 
 	beforeEach(() => {
 		testConfig = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [

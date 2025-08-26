@@ -9,6 +9,7 @@ describe("Integration - Advanced Aggregations with Type Casting and Inference", 
 	let db: DatabaseHelper;
 
 	const config: Config = {
+		dialect: "postgresql",
 		variables: {},
 		tables: {
 			users: {
@@ -442,6 +443,7 @@ describe("Integration - Complex Aggregations with Multi-Type Casting", () => {
 		await db.connect();
 
 		config = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [

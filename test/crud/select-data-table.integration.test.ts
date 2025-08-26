@@ -18,6 +18,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 		await db.connect();
 
 		config = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [

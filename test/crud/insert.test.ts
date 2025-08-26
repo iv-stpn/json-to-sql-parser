@@ -5,6 +5,7 @@ import type { InsertQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 
 const testConfig: Config = {
+	dialect: "postgresql",
 	tables: {
 		users: {
 			allowedFields: [

@@ -17,6 +17,7 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 			maxResults: 100,
 			score_threshold: 85.5,
 		},
+		dialect: "postgresql",
 		tables: {
 			users: {
 				allowedFields: [

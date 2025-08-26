@@ -9,6 +9,7 @@ let testConfig: Config;
 
 beforeEach(() => {
 	testConfig = {
+		dialect: "postgresql",
 		tables: {
 			sales: {
 				allowedFields: [
@@ -222,6 +223,7 @@ describe("Regular table aggregation", () => {
 
 	beforeEach(() => {
 		regularConfig = {
+			dialect: "postgresql",
 			tables: {
 				sales: {
 					allowedFields: [

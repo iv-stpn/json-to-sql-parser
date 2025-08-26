@@ -11,7 +11,7 @@ type SelectState = ParserState & { joins: string[]; select: string[]; processedT
 function processField(fieldName: string, selection: FieldSelection, table: string, state: SelectState): void {
 	if (selection === true) {
 		const { select } = parseField(fieldName, state);
-		state.select.push(aliasValue(castValue(select.field, select.cast), select.alias));
+		state.select.push(aliasValue(castValue(select.field, select.cast, state.config.dialect), select.alias));
 		return;
 	}
 

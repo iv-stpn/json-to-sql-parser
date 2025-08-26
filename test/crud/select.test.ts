@@ -16,6 +16,7 @@ let testConfig: Config;
 
 beforeEach(() => {
 	testConfig = {
+		dialect: "postgresql",
 		tables: {
 			users: {
 				allowedFields: [
@@ -472,6 +473,7 @@ describe("Error Handling", () => {
 describe("UUID Support", () => {
 	it("should handle UUID fields with proper casting in joins", () => {
 		const uuidConfig: Config = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [
@@ -519,6 +521,7 @@ describe("UUID Support", () => {
 
 	it("should handle mixed UUID and other types in joins", () => {
 		const mixedConfig: Config = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [

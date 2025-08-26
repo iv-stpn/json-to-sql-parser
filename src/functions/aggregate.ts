@@ -1,4 +1,5 @@
 import type { castTypes } from "../constants/cast-types";
+import type { Dialect } from "../constants/dialects";
 import { applyFunction } from "../utils/function-call";
 
 export type AggregationDefinition = {
@@ -6,7 +7,7 @@ export type AggregationDefinition = {
 	expressionType: (typeof castTypes)[number] | "ANY";
 	additionalArgumentTypes?: (typeof castTypes)[number][];
 	variadic?: boolean;
-	toSQL?: (expression: string, args: string[]) => string;
+	toSQL?: (expression: string, args: string[], dialect: Dialect) => string;
 };
 
 const aggregationFunctions = [
@@ -33,10 +34,18 @@ const aggregationFunctions = [
 	{
 		name: "STDDEV",
 		expressionType: "FLOAT",
+		toSQL: (expression, _, dialect) => {
+			if (dialect === "postgresql") return `STDDEV(${expression})`;
+			return `SQRT(AVG(POW(${expression}, 2))-POW(AVG(${expression}),2))`;
+		},
 	},
 	{
 		name: "VARIANCE",
 		expressionType: "FLOAT",
+		toSQL: (expression, _, dialect) => {
+			if (dialect === "postgresql") return `VARIANCE(${expression})`;
+			return `AVG(POW(${expression}, 2))-POW(AVG(${expression}),2)`;
+		},
 	},
 	{
 		name: "COUNT_DISTINCT",

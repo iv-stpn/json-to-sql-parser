@@ -19,6 +19,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 		await db.connect();
 
 		config = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [

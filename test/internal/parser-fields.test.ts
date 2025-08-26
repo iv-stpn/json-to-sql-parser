@@ -15,6 +15,7 @@ describe("Parser - Field Path Validation and Processing", () => {
 
 	beforeEach(() => {
 		testConfig = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [
@@ -108,8 +109,9 @@ describe("Parser - Field Path Validation and Processing", () => {
 			const usersTable = testConfig.tables.users;
 			if (!usersTable) throw new Error("Users table not found in config");
 
-			const extendedConfig = {
+			const extendedConfig: Config = {
 				...testConfig,
+				dialect: "postgresql",
 				tables: {
 					...testConfig.tables,
 					users: {

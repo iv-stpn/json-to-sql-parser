@@ -1,5 +1,5 @@
 import type { CastType } from "../constants/cast-types";
-import { castMap } from "../constants/cast-types";
+import { baseCastMap } from "../constants/cast-types";
 import { aliasValue, castValue } from "../parsers";
 import type { Config, Relationship } from "../types";
 
@@ -27,14 +27,14 @@ export function buildJoinClause(
 		const tableConfig = config.tables[tableName];
 		if (!tableConfig) return null;
 		const fieldConfig = tableConfig.allowedFields.find((field) => field.name === fieldName);
-		return fieldConfig ? castMap[fieldConfig.type] : null;
+		return fieldConfig ? baseCastMap[fieldConfig.type] : null;
 	};
 
 	// Helper function to cast field if needed
 	const castField = (tableName: string, fieldName: string): string => {
 		const fieldType = getFieldType(tableName, fieldName);
 		const fieldRef = `${tableName}.${fieldName}`;
-		return castValue(fieldRef, fieldType);
+		return castValue(fieldRef, fieldType, config.dialect);
 	};
 
 	const leftField = castField(table, relationship.table === table ? relationship.field : relationship.toField);

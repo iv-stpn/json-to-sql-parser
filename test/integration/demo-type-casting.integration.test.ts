@@ -20,6 +20,7 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 		await db.connect();
 
 		config = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [

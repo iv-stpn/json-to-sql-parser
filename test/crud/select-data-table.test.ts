@@ -15,6 +15,7 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 	beforeEach(() => {
 		// Configuration without data table (regular tables)
 		regularConfig = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [
@@ -56,6 +57,7 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 
 		// Configuration with data table (JSON-based storage)
 		dataTableConfig = {
+			dialect: "postgresql",
 			tables: {
 				users: {
 					allowedFields: [

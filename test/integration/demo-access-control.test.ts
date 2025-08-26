@@ -16,6 +16,7 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 		await db.connect();
 
 		config = {
+			dialect: "postgresql",
 			tables: {
 				// Core user table
 				users: {

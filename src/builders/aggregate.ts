@@ -1,4 +1,5 @@
-import { type CastType, castMap } from "../constants/cast-types";
+import { baseCastMap, type CastType } from "../constants/cast-types";
+import type { Dialect } from "../constants/dialects";
 import { FUNCTION_TYPE_MISMATCH_ERROR, INVALID_ARGUMENT_COUNT_ERROR, MISSING_AGGREGATION_FIELD_ERROR } from "../constants/errors";
 import { type AggregationDefinition, allowedAggregationFunctions } from "../functions/aggregate";
 import { aliasValue, castValue, getExpressionCastType, parseExpression, parseField } from "../parsers";
@@ -39,22 +40,29 @@ function processJoins(fields: string[], rootTable: string, state: AggregationSta
 function parseAggregationField(aggregation: AggregatedField, expressionType: CastType | "ANY", state: ParserState): string {
 	if (typeof aggregation.field === "string") {
 		const { select, fieldPath } = parseField(aggregation.field, state);
-		const fieldCastType = castMap[fieldPath.fieldConfig.type];
+		const fieldCastType = baseCastMap[fieldPath.fieldConfig.type];
 		if (fieldCastType !== expressionType && expressionType !== "ANY") {
-			if (expressionType === "TEXT") return castValue(select.field, "TEXT"); // Every type can be cast to TEXT, automatically cast in this case
+			// Every type can be cast to TEXT, automatically cast in this case
+			if (expressionType === "TEXT") return castValue(select.field, "TEXT", state.config.dialect);
 			throw new Error(FUNCTION_TYPE_MISMATCH_ERROR(aggregation.function, fieldCastType, expressionType));
 		}
 
 		// For COUNT operations, we don't need to cast the field
 		if (aggregation.function === "COUNT") return select.field;
-		return castValue(select.field, select.cast);
+		return castValue(select.field, select.cast, state.config.dialect);
 	}
 
 	return parseExpression(aggregation.field, state);
 }
 
-function applyAggregationOperator(operator: AggregationDefinition, alias: string, expression: string, args: string[]): string {
-	if (operator.toSQL) return aliasValue(operator.toSQL(expression, args), alias);
+function applyAggregationOperator(
+	operator: AggregationDefinition,
+	alias: string,
+	expression: string,
+	args: string[],
+	dialect: Dialect,
+): string {
+	if (operator.toSQL) return aliasValue(operator.toSQL(expression, args, dialect), alias);
 	return aliasValue(applyFunction(operator.name, [expression, ...args]), alias);
 }
 
@@ -94,20 +102,21 @@ function parseAggregation(alias: string, aggregation: AggregatedField, state: Pa
 
 			const actualType = getExpressionCastType(arg, state);
 			if (actualType !== expectedType && actualType !== null) {
-				if (expectedType === "TEXT") return castValue(argumentExpression, "TEXT"); // Every type can be cast to TEXT, automatically cast in this case
+				// Every type can be cast to TEXT, automatically cast in this case
+				if (expectedType === "TEXT") return castValue(argumentExpression, "TEXT", state.config.dialect);
 				throw new Error(FUNCTION_TYPE_MISMATCH_ERROR(name, expectedType, actualType));
 			}
 
 			return argumentExpression;
 		});
 
-		return applyAggregationOperator(aggregationFunction, alias, expression, resolvedArguments);
+		return applyAggregationOperator(aggregationFunction, alias, expression, resolvedArguments, state.config.dialect);
 	}
 
 	if (aggregation.additionalArguments && aggregation.additionalArguments.length > 0)
 		throw new Error(`Aggregation function '${operator}' does not support additional arguments.`);
 
-	return applyAggregationOperator(aggregationFunction, alias, expression, []);
+	return applyAggregationOperator(aggregationFunction, alias, expression, [], state.config.dialect);
 }
 
 type ParsedAggregationQuery = {
@@ -147,7 +156,7 @@ export function parseAggregationQuery(query: AggregationQuery, config: Config): 
 	// Process group by fields
 	for (const fieldName of groupBy) {
 		const { select } = parseField(fieldName, state);
-		selectFields.push(aliasValue(castValue(select.field, select.cast), select.alias));
+		selectFields.push(aliasValue(castValue(select.field, select.cast, state.config.dialect), select.alias));
 		groupByFields.push(select.field);
 	}
 
