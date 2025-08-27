@@ -2,6 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
 import { buildSelectQuery } from "../../src/builders/select";
+import { Dialect } from "../../src/constants/dialects";
 import type { Condition, SelectQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment } from "../_helpers";
@@ -17,7 +18,7 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 			maxResults: 100,
 			score_threshold: 85.5,
 		},
-		dialect: "postgresql",
+		dialect: Dialect.POSTGRESQL,
 		tables: {
 			users: {
 				allowedFields: [

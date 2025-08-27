@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
 import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
+import { Dialect } from "../../src/constants/dialects";
 import type { Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { quote } from "../../src/utils";
@@ -21,7 +22,7 @@ describe("Security - SQL Injection Prevention and Input Validation", () => {
 
 	beforeEach(() => {
 		testConfig = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				users: {
 					allowedFields: [

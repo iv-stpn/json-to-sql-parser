@@ -2,7 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
 import { buildSelectQuery, compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
-
+import { Dialect } from "../../src/constants/dialects";
 import type { AggregationQuery, Condition, SelectQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, extractSelectWhereClause, setupTestEnvironment, teardownTestEnvironment } from "../_helpers";
@@ -19,7 +19,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 		await db.connect();
 
 		config = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				users: {
 					allowedFields: [
@@ -514,7 +514,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 													"posts.title": {
 														$like: {
 															$func: {
-																CONCAT: ["%", { $func: { UPPER: ["PostgreSQL"] } }, "%"],
+																CONCAT: ["%", { $func: { UPPER: ["postgresql"] } }, "%"],
 															},
 														},
 													},
@@ -598,7 +598,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 
 				// Verify complex EXISTS conditions
 				expect(sql).toBe(
-					"SELECT users.id AS \"id\", users.name AS \"name\", users.email AS \"email\" FROM users WHERE (EXISTS (SELECT 1 FROM posts WHERE (posts.user_id = users.id AND posts.published = TRUE AND (posts.title LIKE ('%' || UPPER('PostgreSQL') || '%')::TEXT OR (posts.tags)::TEXT LIKE '%\"database\"%' OR posts.content LIKE '%PostgreSQL%'))) AND EXISTS (SELECT 1 FROM orders WHERE (orders.customer_id = users.id AND orders.status = 'completed' AND orders.amount >= (200 * (CASE WHEN users.status = 'premium' THEN 0.8 ELSE 1 END)))) AND NOT (EXISTS (SELECT 1 FROM orders WHERE (orders.customer_id = users.id AND orders.status = 'cancelled' AND (orders.created_at)::DATE >= ('2024-01-01')::DATE))))",
+					"SELECT users.id AS \"id\", users.name AS \"name\", users.email AS \"email\" FROM users WHERE (EXISTS (SELECT 1 FROM posts WHERE (posts.user_id = users.id AND posts.published = TRUE AND (posts.title LIKE ('%' || UPPER('postgresql') || '%')::TEXT OR (posts.tags)::TEXT LIKE '%\"database\"%' OR posts.content LIKE '%PostgreSQL%'))) AND EXISTS (SELECT 1 FROM orders WHERE (orders.customer_id = users.id AND orders.status = 'completed' AND orders.amount >= (200 * (CASE WHEN users.status = 'premium' THEN 0.8 ELSE 1 END)))) AND NOT (EXISTS (SELECT 1 FROM orders WHERE (orders.customer_id = users.id AND orders.status = 'cancelled' AND (orders.created_at)::DATE >= ('2024-01-01')::DATE))))",
 				);
 			});
 		});

@@ -1,6 +1,7 @@
 /** biome-ignore-all lint/suspicious/noThenProperty: then is a proper keyword in our expression schema */
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
+import { Dialect } from "../../src/constants/dialects";
 import type { AggregationQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "../_helpers";
@@ -9,7 +10,7 @@ describe("Integration - Advanced Aggregations with Type Casting and Inference", 
 	let db: DatabaseHelper;
 
 	const config: Config = {
-		dialect: "postgresql",
+		dialect: Dialect.POSTGRESQL,
 		variables: {},
 		tables: {
 			users: {
@@ -443,7 +444,7 @@ describe("Integration - Complex Aggregations with Multi-Type Casting", () => {
 		await db.connect();
 
 		config = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				users: {
 					allowedFields: [

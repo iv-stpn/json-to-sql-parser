@@ -2,6 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { buildAggregationQuery } from "../../src/builders/aggregate";
 import { buildSelectQuery } from "../../src/builders/select";
+import { Dialect } from "../../src/constants/dialects";
 import type { AggregationQuery, Condition, SelectQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { uuidRegex } from "../../src/utils/validators";
@@ -20,7 +21,7 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 		await db.connect();
 
 		config = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				users: {
 					allowedFields: [

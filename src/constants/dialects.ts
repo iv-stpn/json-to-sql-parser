@@ -1,2 +1,5 @@
-export const availableDialects = ["postgresql", "sqlite-3.44-minimal", "sqlite-3.44-extensions"] as const;
-export type Dialect = (typeof availableDialects)[number];
+export enum Dialect {
+	POSTGRESQL = "postgresql",
+	SQLITE_MINIMAL = "sqlite-3.44-minimal",
+	SQLITE_EXTENSIONS = "sqlite-3.44-extensions",
+}

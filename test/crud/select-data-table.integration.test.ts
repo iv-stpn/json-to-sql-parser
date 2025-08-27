@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
 import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
-
+import { Dialect } from "../../src/constants/dialects";
 import type { AggregationQuery, Condition } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, extractSelectWhereClause, setupTestEnvironment, teardownTestEnvironment } from "../_helpers";
@@ -18,7 +18,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 		await db.connect();
 
 		config = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				users: {
 					allowedFields: [

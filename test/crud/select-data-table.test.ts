@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
 import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
+import { Dialect } from "../../src/constants/dialects";
 import { parseExpression } from "../../src/parsers";
-
 import type { AggregationQuery, Condition } from "../../src/schemas";
 import type { Config, ParserState } from "../../src/types";
 import { ExpressionTypeMap } from "../../src/utils/expression-map";
@@ -15,7 +15,7 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 	beforeEach(() => {
 		// Configuration without data table (regular tables)
 		regularConfig = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				users: {
 					allowedFields: [
@@ -57,7 +57,7 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 
 		// Configuration with data table (JSON-based storage)
 		dataTableConfig = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				users: {
 					allowedFields: [

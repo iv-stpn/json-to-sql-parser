@@ -3,6 +3,7 @@
 import { Database } from "bun:sqlite";
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
+import { Dialect } from "../../src/constants/dialects";
 import type { AggregationQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 
@@ -217,7 +218,7 @@ describe("Integration - Aggregation Queries and Statistical Operations (SQLite)"
 		setupSQLiteDatabase(db);
 
 		config = {
-			dialect: "sqlite-3.44-extensions",
+			dialect: Dialect.SQLITE_EXTENSIONS,
 			tables: {
 				users: {
 					allowedFields: [

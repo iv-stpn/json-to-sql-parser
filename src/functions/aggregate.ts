@@ -1,5 +1,5 @@
 import type { ExpressionType, FieldType } from "../constants/cast-types";
-import type { Dialect } from "../constants/dialects";
+import { Dialect } from "../constants/dialects";
 import { applyFunction } from "../utils/function-call";
 
 export type AggregationDefinition = {
@@ -35,7 +35,7 @@ const aggregationFunctions = [
 		name: "STDDEV",
 		expressionType: "number",
 		toSQL: (expression, _, dialect) => {
-			if (dialect === "postgresql") return `STDDEV(${expression})`;
+			if (dialect === Dialect.POSTGRESQL) return `STDDEV(${expression})`;
 			return `SQRT(AVG(POW(${expression}, 2))-POW(AVG(${expression}),2))`;
 		},
 	},
@@ -43,7 +43,7 @@ const aggregationFunctions = [
 		name: "VARIANCE",
 		expressionType: "number",
 		toSQL: (expression, _, dialect) => {
-			if (dialect === "postgresql") return `VARIANCE(${expression})`;
+			if (dialect === Dialect.POSTGRESQL) return `VARIANCE(${expression})`;
 			return `AVG(POW(${expression}, 2))-POW(AVG(${expression}),2)`;
 		},
 	},
@@ -57,7 +57,7 @@ const aggregationFunctions = [
 		expressionType: "string",
 		additionalArgumentTypes: ["string"],
 		toSQL: (expression, args, dialect) => {
-			if (dialect === "postgresql") return applyFunction("STRING_AGG", [expression, ...args]);
+			if (dialect === Dialect.POSTGRESQL) return applyFunction("STRING_AGG", [expression, ...args]);
 			return applyFunction("GROUP_CONCAT", [expression, ...args]);
 		},
 	},

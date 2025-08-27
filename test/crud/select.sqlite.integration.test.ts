@@ -4,7 +4,7 @@ import { Database } from "bun:sqlite";
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
 import { buildSelectQuery, compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
-
+import { Dialect } from "../../src/constants/dialects";
 import type { AggregationQuery, Condition, SelectQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { extractSelectWhereClause } from "../_helpers";
@@ -162,7 +162,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries (SQLit
 		setupSQLiteDatabase(db);
 
 		config = {
-			dialect: "sqlite-3.44-extensions",
+			dialect: Dialect.SQLITE_EXTENSIONS,
 			tables: {
 				users: {
 					allowedFields: [

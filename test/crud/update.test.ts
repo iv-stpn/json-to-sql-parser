@@ -2,13 +2,14 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: using any for complex type testing scenarios */
 import { beforeEach, describe, expect, it, test } from "bun:test";
 import { buildUpdateQuery } from "../../src/builders/update";
+import { Dialect } from "../../src/constants/dialects";
 import { parseNewRow, parseNewRowValue } from "../../src/parsers/mutations";
 import type { UpdateQuery } from "../../src/schemas";
 import type { Config, Field } from "../../src/types";
 
 // Test configuration for mixed conditions tests
 const mockConfig: Config = {
-	dialect: "postgresql",
+	dialect: Dialect.POSTGRESQL,
 	tables: {
 		users: {
 			allowedFields: [
@@ -30,7 +31,7 @@ let testConfig: Config;
 
 beforeEach(() => {
 	testConfig = {
-		dialect: "postgresql",
+		dialect: Dialect.POSTGRESQL,
 		tables: {
 			users: {
 				allowedFields: [

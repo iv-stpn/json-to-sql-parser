@@ -38,7 +38,7 @@
 		"build:types": "tsc --project tsconfig.build.json",
 		"clean": "rm -rf dist",
 		"pretest": "bun run scripts/check-postgres.ts",
-		"test": "bun test",
+		"test": "bun pretest && bun test",
 		"test:watch": "bun test --watch",
 		"typecheck": "tsc --noEmit --pretty",
 		"lint": "biome check .",

@@ -2,6 +2,7 @@
 
 import { beforeEach, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
+import { Dialect } from "../../src/constants/dialects";
 import type { AggregationQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 
@@ -9,7 +10,7 @@ let testConfig: Config;
 
 beforeEach(() => {
 	testConfig = {
-		dialect: "postgresql",
+		dialect: Dialect.POSTGRESQL,
 		tables: {
 			sales: {
 				allowedFields: [
@@ -223,7 +224,7 @@ describe("Regular table aggregation", () => {
 
 	beforeEach(() => {
 		regularConfig = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				sales: {
 					allowedFields: [

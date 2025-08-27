@@ -2,6 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
 import { buildSelectQuery } from "../../src/builders/select";
+import { Dialect } from "../../src/constants/dialects";
 import type { AggregationQuery, Condition, SelectQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, extractSelectWhereClause, setupTestEnvironment, teardownTestEnvironment } from "../_helpers";
@@ -16,7 +17,7 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 		await db.connect();
 
 		config = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				// Core user table
 				users: {

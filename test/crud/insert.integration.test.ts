@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { buildInsertQuery } from "../../src/builders/insert";
+import { Dialect } from "../../src/constants/dialects";
 import type { InsertQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 import { DatabaseHelper, setupTestEnvironment, teardownTestEnvironment } from "../_helpers";
@@ -16,7 +17,7 @@ describe("Integration - INSERT Operations and Data Persistence", () => {
 		await db.connect();
 
 		config = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				users: {
 					allowedFields: [

@@ -1,5 +1,5 @@
 import type { ExpressionType } from "../constants/cast-types";
-import type { Dialect } from "../constants/dialects";
+import { Dialect } from "../constants/dialects";
 import {
 	COMPARISON_TYPE_MISMATCH_ERROR,
 	FUNCTION_TYPE_MISMATCH_ERROR,
@@ -150,21 +150,11 @@ export function getExpressionType(expression: AnyExpression, state: ParserState)
 	throw new Error(`Invalid expression object: ${JSON.stringify(expression)}`);
 }
 
-export const baseCastMap = {
-	string: "TEXT",
-	number: "NUMERIC",
-	boolean: "BOOLEAN",
-	object: "JSONB",
-	date: "DATE",
-	datetime: "TIMESTAMP",
-	uuid: "UUID",
-} as const;
-
 function getCastType(targetType: ExpressionType, dialect: Dialect): string | null {
 	if (targetType === null || targetType === "any") return null;
 
 	// PostgreSQL
-	if (dialect === "postgresql") {
+	if (dialect === Dialect.POSTGRESQL) {
 		if (targetType === "string") return "TEXT";
 		if (targetType === "number") return "FLOAT";
 		if (targetType === "boolean") return "BOOLEAN";
@@ -185,7 +175,7 @@ export const castValue = (value: string, targetType: ExpressionType, dialect: Di
 	if (!castType) return value;
 
 	// PostgreSQL
-	if (dialect === "postgresql") return `(${removeAllWrappingParens(value)})::${castType}`;
+	if (dialect === Dialect.POSTGRESQL) return `(${removeAllWrappingParens(value)})::${castType}`;
 
 	// SQLite
 	return `CAST(${value} AS ${castType})`;
@@ -460,7 +450,8 @@ function parseFieldConditions(condition: AnyFieldCondition, state: ParserState, 
 	if (condition.$ilike !== undefined) fieldConditions.push(parseStringCondition(condition.$ilike, state, "ILIKE", field));
 
 	if (condition.$regex !== undefined) {
-		if (state.config.dialect === "postgresql") fieldConditions.push(parseStringCondition(condition.$regex, state, "~", field));
+		if (state.config.dialect === Dialect.POSTGRESQL)
+			fieldConditions.push(parseStringCondition(condition.$regex, state, "~", field));
 		else throw new Error("Operator 'REGEXP' is not supported by default in SQLite");
 	}
 

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import { Dialect } from "../../src/constants/dialects";
 import { parseFieldPath } from "../../src/parsers";
 import type { Config, ParserState } from "../../src/types";
 import { ExpressionTypeMap } from "../../src/utils/expression-map";
@@ -15,7 +16,7 @@ describe("Parser - Field Path Validation and Processing", () => {
 
 	beforeEach(() => {
 		testConfig = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				users: {
 					allowedFields: [
@@ -111,7 +112,7 @@ describe("Parser - Field Path Validation and Processing", () => {
 
 			const extendedConfig: Config = {
 				...testConfig,
-				dialect: "postgresql",
+				dialect: Dialect.POSTGRESQL,
 				tables: {
 					...testConfig.tables,
 					users: {

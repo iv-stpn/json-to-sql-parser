@@ -2,6 +2,7 @@
 
 import { beforeEach, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
+import { Dialect } from "../../src/constants/dialects";
 import type { AggregationQuery } from "../../src/schemas";
 import type { Config } from "../../src/types";
 
@@ -9,7 +10,7 @@ let testConfig: Config;
 
 beforeEach(() => {
 	testConfig = {
-		dialect: "sqlite-3.44-extensions",
+		dialect: Dialect.SQLITE_EXTENSIONS,
 		tables: {
 			sales: {
 				allowedFields: [
@@ -285,7 +286,7 @@ describe("Regular table aggregation (SQLite)", () => {
 
 	beforeEach(() => {
 		regularConfig = {
-			dialect: "sqlite-3.44-extensions",
+			dialect: Dialect.SQLITE_EXTENSIONS,
 			tables: {
 				sales: {
 					allowedFields: [
@@ -364,7 +365,7 @@ describe("SQLite minimal dialect", () => {
 
 	beforeEach(() => {
 		minimalConfig = {
-			dialect: "sqlite-3.44-minimal",
+			dialect: Dialect.SQLITE_MINIMAL,
 			tables: {
 				sales: {
 					allowedFields: [

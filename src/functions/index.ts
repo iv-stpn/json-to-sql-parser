@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import type { ExpressionType, FieldType } from "../constants/cast-types";
-import type { Dialect } from "../constants/dialects";
+import { Dialect } from "../constants/dialects";
 import { MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR } from "../constants/errors";
 import { isNotNull } from "../utils";
 import { removeAllWrappingParens } from "../utils/function-call";
@@ -330,8 +330,8 @@ const nowFunction: FunctionDefinition<"datetime"> = {
 	argumentTypes: [],
 	returnType: "datetime",
 	toSQL: (_, dialect) => {
-		if (dialect === "postgresql") return "NOW()";
-		if (dialect === "sqlite-3.44-minimal") return "DATETIME()";
+		if (dialect === Dialect.POSTGRESQL) return "NOW()";
+		if (dialect === Dialect.SQLITE_MINIMAL) return "DATETIME()";
 		return "DATETIME('now', 'subsec')";
 	},
 	toJS: (args) => {
@@ -346,7 +346,7 @@ const currentDateFunction: FunctionDefinition<"date"> = {
 	argumentTypes: [],
 	returnType: "date",
 	toSQL: (_, dialect) => {
-		if (dialect === "postgresql") return "CURRENT_DATE";
+		if (dialect === Dialect.POSTGRESQL) return "CURRENT_DATE";
 		return "DATE()";
 	},
 	toJS: (args) => {
@@ -362,7 +362,7 @@ const currentDateFunction: FunctionDefinition<"date"> = {
 const extractYearFunction: FunctionDefinition<"number"> = {
 	name: "EXTRACT_YEAR",
 	toSQL: (args: string[], dialect: Dialect) => {
-		if (dialect === "postgresql") return `EXTRACT(YEAR FROM ${args[0]})`;
+		if (dialect === Dialect.POSTGRESQL) return `EXTRACT(YEAR FROM ${args[0]})`;
 		return `CAST(STRFTIME('%Y', ${args[0]}) AS INTEGER)`;
 	},
 	argumentTypes: ["date"],
@@ -379,7 +379,7 @@ const extractYearFunction: FunctionDefinition<"number"> = {
 const extractMonthFunction: FunctionDefinition<"number"> = {
 	name: "EXTRACT_MONTH",
 	toSQL: (args: string[], dialect: Dialect) => {
-		if (dialect === "postgresql") return `EXTRACT(MONTH FROM ${args[0]})`;
+		if (dialect === Dialect.POSTGRESQL) return `EXTRACT(MONTH FROM ${args[0]})`;
 		return `CAST(STRFTIME('%m', ${args[0]}) AS INTEGER)`;
 	},
 	argumentTypes: ["date"],
@@ -396,7 +396,7 @@ const extractMonthFunction: FunctionDefinition<"number"> = {
 const extractDayFunction: FunctionDefinition<"number"> = {
 	name: "EXTRACT_DAY",
 	toSQL: (args: string[], dialect: Dialect) => {
-		if (dialect === "postgresql") return `EXTRACT(DAY FROM ${args[0]})`;
+		if (dialect === Dialect.POSTGRESQL) return `EXTRACT(DAY FROM ${args[0]})`;
 		return `CAST(STRFTIME('%d', ${args[0]}) AS INTEGER)`;
 	},
 	argumentTypes: ["date"],
@@ -413,7 +413,7 @@ const extractDayFunction: FunctionDefinition<"number"> = {
 const extractHourFunction: FunctionDefinition<"number"> = {
 	name: "EXTRACT_HOUR",
 	toSQL: (args: string[], dialect: Dialect) => {
-		if (dialect === "postgresql") return `EXTRACT(HOUR FROM ${args[0]})`;
+		if (dialect === Dialect.POSTGRESQL) return `EXTRACT(HOUR FROM ${args[0]})`;
 		return `CAST(STRFTIME('%H', ${args[0]}) AS INTEGER)`;
 	},
 	argumentTypes: ["datetime"],
@@ -430,7 +430,7 @@ const extractHourFunction: FunctionDefinition<"number"> = {
 const extractMinuteFunction: FunctionDefinition<"number"> = {
 	name: "EXTRACT_MINUTE",
 	toSQL: (args: string[], dialect: Dialect) => {
-		if (dialect === "postgresql") return `EXTRACT(MINUTE FROM ${args[0]})`;
+		if (dialect === Dialect.POSTGRESQL) return `EXTRACT(MINUTE FROM ${args[0]})`;
 		return `CAST(STRFTIME('%M', ${args[0]}) AS INTEGER)`;
 	},
 	argumentTypes: ["datetime"],
@@ -447,7 +447,7 @@ const extractMinuteFunction: FunctionDefinition<"number"> = {
 const extractEpochFunction: FunctionDefinition<"number"> = {
 	name: "EXTRACT_EPOCH",
 	toSQL: (args: string[], dialect: Dialect) => {
-		if (dialect === "postgresql") return `EXTRACT(EPOCH FROM ${args[0]})`;
+		if (dialect === Dialect.POSTGRESQL) return `EXTRACT(EPOCH FROM ${args[0]})`;
 		return `CAST(STRFTIME('%s', ${args[0]}) AS INTEGER)`;
 	},
 	argumentTypes: ["datetime"],
@@ -467,7 +467,7 @@ const genRandomUuidFunction: FunctionDefinition<"uuid"> = {
 	argumentTypes: [],
 	returnType: "uuid",
 	toSQL: (_, dialect: Dialect) => {
-		if (dialect === "postgresql") return "GEN_RANDOM_UUID()";
+		if (dialect === Dialect.POSTGRESQL) return "GEN_RANDOM_UUID()";
 		throw new Error(`GEN_RANDOM_UUID function is not supported in ${dialect}`);
 	},
 	toJS: (args) => {
@@ -480,7 +480,7 @@ const genRandomUuidFunction: FunctionDefinition<"uuid"> = {
 const greatestStringFunction: FunctionDefinition<"string"> = {
 	name: "GREATEST_STRING",
 	toSQL: (args: string[], dialect: Dialect) => {
-		if (dialect === "postgresql") return `GREATEST(${args.join(", ")})`;
+		if (dialect === Dialect.POSTGRESQL) return `GREATEST(${args.join(", ")})`;
 		return `MAX(${args.join(", ")})`;
 	},
 	argumentTypes: ["string", "string"],
@@ -498,7 +498,7 @@ const greatestStringFunction: FunctionDefinition<"string"> = {
 const greatestNumberFunction: FunctionDefinition<"number"> = {
 	name: "GREATEST_NUMBER",
 	toSQL: (args: string[], dialect: Dialect) => {
-		if (dialect === "postgresql") return `GREATEST(${args.join(", ")})`;
+		if (dialect === Dialect.POSTGRESQL) return `GREATEST(${args.join(", ")})`;
 		return `MAX(${args.join(", ")})`;
 	},
 	argumentTypes: ["number", "number"],
@@ -516,7 +516,7 @@ const greatestNumberFunction: FunctionDefinition<"number"> = {
 const leastStringFunction: FunctionDefinition<"string"> = {
 	name: "LEAST_STRING",
 	toSQL: (args: string[], dialect: Dialect) => {
-		if (dialect === "postgresql") return `LEAST(${args.join(", ")})`;
+		if (dialect === Dialect.POSTGRESQL) return `LEAST(${args.join(", ")})`;
 		return `MIN(${args.join(", ")})`;
 	},
 	argumentTypes: ["string", "string"],
@@ -534,7 +534,7 @@ const leastStringFunction: FunctionDefinition<"string"> = {
 const leastNumberFunction: FunctionDefinition<"number"> = {
 	name: "LEAST_NUMBER",
 	toSQL: (args: string[], dialect: Dialect) => {
-		if (dialect === "postgresql") return `LEAST(${args.join(", ")})`;
+		if (dialect === Dialect.POSTGRESQL) return `LEAST(${args.join(", ")})`;
 		return `MIN(${args.join(", ")})`;
 	},
 	argumentTypes: ["number", "number"],

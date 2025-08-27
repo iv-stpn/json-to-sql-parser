@@ -3,8 +3,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { compileAggregationQuery, parseAggregationQuery } from "../../src/builders/aggregate";
 import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
+import { Dialect } from "../../src/constants/dialects";
 import { parseExpression } from "../../src/parsers";
-
 import type { AggregationQuery, AnyExpression, Condition } from "../../src/schemas";
 import type { Config, ParserState } from "../../src/types";
 import { quote } from "../../src/utils";
@@ -16,7 +16,7 @@ let testConfig: Config;
 
 beforeEach(() => {
 	testConfig = {
-		dialect: "postgresql",
+		dialect: Dialect.POSTGRESQL,
 		tables: {
 			users: {
 				allowedFields: [
@@ -473,7 +473,7 @@ describe("Error Handling", () => {
 describe("UUID Support", () => {
 	it("should handle UUID fields with proper casting in joins", () => {
 		const uuidConfig: Config = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				users: {
 					allowedFields: [
@@ -521,7 +521,7 @@ describe("UUID Support", () => {
 
 	it("should handle mixed UUID and other types in joins", () => {
 		const mixedConfig: Config = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				users: {
 					allowedFields: [

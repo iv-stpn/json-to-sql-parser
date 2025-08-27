@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { compileSelectQuery, parseSelectQuery } from "../../src/builders/select";
+import { Dialect } from "../../src/constants/dialects";
 import { parseExpression } from "../../src/parsers";
 import type { Condition } from "../../src/schemas";
 import type { Config, ParserState } from "../../src/types";
@@ -12,7 +13,7 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 
 	beforeEach(() => {
 		testConfig = {
-			dialect: "postgresql",
+			dialect: Dialect.POSTGRESQL,
 			tables: {
 				users: {
 					allowedFields: [

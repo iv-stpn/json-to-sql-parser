@@ -4,9 +4,12 @@ export { buildInsertQuery, compileInsertQuery, parseInsertQuery } from "./builde
 export { buildSelectQuery, compileSelectQuery, parseSelectQuery } from "./builders/select";
 export { buildUpdateQuery, compileUpdateQuery, parseUpdateQuery } from "./builders/update";
 export { buildDataTableWhereClause, buildWhereClause } from "./builders/where";
-export { allowedFunctions, functionNames } from "./functions";
+
+// Constants
+export { Dialect } from "./constants/dialects";
 
 // Allowed functions
+export { allowedFunctions, functionNames } from "./functions";
 export { aggregationFunctionNames, allowedAggregationFunctions } from "./functions/aggregate";
 
 // Expression and field parsing
