@@ -4,8 +4,10 @@ export { buildInsertQuery, compileInsertQuery, parseInsertQuery } from "./builde
 export { buildSelectQuery, compileSelectQuery, parseSelectQuery } from "./builders/select";
 export { buildUpdateQuery, compileUpdateQuery, parseUpdateQuery } from "./builders/update";
 export { buildDataTableWhereClause, buildWhereClause } from "./builders/where";
+
 // Constants
 export { Dialect } from "./constants/dialects";
+
 // Field types
 export { fieldTypes } from "./constants/field-types";
 
@@ -13,8 +15,8 @@ export { fieldTypes } from "./constants/field-types";
 export { allowedFunctions, functionNames } from "./functions";
 export { aggregationFunctionNames, allowedAggregationFunctions } from "./functions/aggregate";
 
-// Expression and field parsing
-export { parseExpression, parseFieldPath } from "./parsers";
+// Parsers
+export { parseCondition, parseExpression, parseFieldPath } from "./parsers";
 
 // Issues
 export { findIssueInConditionSchema, findIssueInExpressionSchema } from "./parsers/issues";
@@ -57,3 +59,6 @@ export type {
 	ParserState,
 	Relationship,
 } from "./types";
+
+// Utils
+export { ExpressionTypeMap } from "./utils/expression-map";
