@@ -1,5 +1,13 @@
 # json-to-sql-parser
 
+## 3.1.1
+
+### Patch Changes
+
+- [`036e385`](https://github.com/iv-stpn/json-to-sql-parser/commit/036e3859cdadf595f7397674fe09ca145792a8cc) Thanks [@iv-stpn](https://github.com/iv-stpn)! - expose fieldTypes in index, rename cast-types -> field-types
+
+- [`78865b0`](https://github.com/iv-stpn/json-to-sql-parser/commit/78865b0f3246b7755996e168624476643b220847) Thanks [@iv-stpn](https://github.com/iv-stpn)! - Simplify Dialect as enum
+
 ## 3.1.0
 
 ### Minor Changes
