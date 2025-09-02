@@ -5,6 +5,9 @@ export { buildSelectQuery, compileSelectQuery, parseSelectQuery } from "./builde
 export { buildUpdateQuery, compileUpdateQuery, parseUpdateQuery } from "./builders/update";
 export { buildDataTableWhereClause, buildWhereClause } from "./builders/where";
 
+// Field types
+export { fieldTypes } from "./constants/field-types";
+
 // Constants
 export { Dialect } from "./constants/dialects";
 

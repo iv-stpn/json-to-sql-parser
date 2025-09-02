@@ -1,4 +1,4 @@
-import type { ExpressionType } from "../constants/cast-types";
+import type { ExpressionType } from "../constants/field-types";
 import type { ExpressionObject } from "../schemas";
 import { objectKeys } from ".";
 

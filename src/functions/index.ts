@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import type { ExpressionType, FieldType } from "../constants/cast-types";
+import type { ExpressionType, FieldType } from "../constants/field-types";
 import { Dialect } from "../constants/dialects";
 import { MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR } from "../constants/errors";
 import { isNotNull } from "../utils";

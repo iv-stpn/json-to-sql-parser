@@ -1,4 +1,4 @@
-import type { ExpressionType, FieldType } from "../constants/cast-types";
+import type { ExpressionType, FieldType } from "../constants/field-types";
 import { Dialect } from "../constants/dialects";
 import { applyFunction } from "../utils/function-call";
 

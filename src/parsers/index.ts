@@ -1,4 +1,4 @@
-import type { ExpressionType } from "../constants/cast-types";
+import type { ExpressionType } from "../constants/field-types";
 import { Dialect } from "../constants/dialects";
 import {
 	COMPARISON_TYPE_MISMATCH_ERROR,

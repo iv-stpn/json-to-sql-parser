@@ -1,4 +1,4 @@
-import type { ExpressionType as Type } from "./cast-types";
+import type { ExpressionType as Type } from "./field-types";
 
 export const JSON_ACCESS_TYPE_ERROR = (path: string, field: string, type: Type): string =>
 	`JSON path access '${path}' is only allowed on JSON fields, but field '${field}' is of type '${type}'`;
