@@ -72,8 +72,8 @@ describe("Integration - Type Casting with UUID, Timestamp and Date Operations", 
 				system_user_id: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
 			},
 			relationships: [
-				{ table: "users", field: "id", toTable: "orders", toField: "customer_id", type: "one-to-many" },
-				{ table: "users", field: "id", toTable: "posts", toField: "user_id", type: "one-to-many" },
+				{ table: "orders", field: "customer_id", toTable: "users", toField: "id", type: "many-to-one" },
+				{ table: "posts", field: "user_id", toTable: "users", toField: "id", type: "many-to-one" },
 			],
 		};
 	});

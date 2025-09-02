@@ -54,11 +54,11 @@ beforeEach(() => {
 		},
 		relationships: [
 			{
-				table: "users",
-				field: "id",
-				toTable: "posts",
-				toField: "user_id",
-				type: "one-to-many",
+				table: "posts",
+				field: "user_id",
+				toTable: "users",
+				toField: "id",
+				type: "many-to-one",
 			},
 		],
 	};

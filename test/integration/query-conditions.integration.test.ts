@@ -61,8 +61,8 @@ describe("Integration - Complex Query Condition Processing", () => {
 				score_threshold: 85.5,
 			},
 			relationships: [
-				{ table: "users", field: "id", toTable: "posts", toField: "user_id", type: "one-to-many" },
-				{ table: "users", field: "id", toTable: "orders", toField: "customer_id", type: "one-to-many" },
+				{ table: "posts", field: "user_id", toTable: "users", toField: "id", type: "many-to-one" },
+				{ table: "orders", field: "customer_id", toTable: "users", toField: "id", type: "many-to-one" },
 			],
 		};
 	});

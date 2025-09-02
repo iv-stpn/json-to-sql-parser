@@ -69,8 +69,6 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 			relationships: [
 				{ table: "posts", field: "user_id", toTable: "users", toField: "id", type: "many-to-one" },
 				{ table: "orders", field: "customer_id", toTable: "users", toField: "id", type: "many-to-one" },
-				{ table: "users", field: "id", toTable: "posts", toField: "user_id", type: "one-to-many" },
-				{ table: "users", field: "id", toTable: "orders", toField: "customer_id", type: "one-to-many" },
 			],
 		};
 	});

@@ -35,13 +35,18 @@ function processField(fieldName: string, selection: FieldSelection, table: strin
 	processRelationship(targetTable, selection, table, state);
 }
 
-const isRelationship = (relationshipName: string, table: string, fromTable: string, toTable: string): boolean =>
-	(relationshipName === fromTable && table === toTable) || (relationshipName === toTable && table === fromTable);
+const isRelationship = (relationshipTable: string, targetTable: string, fromTable: string, toTable: string): boolean => {
+	// Check if this relationship connects fromTable to targetTable
+	// The relationship can work in either direction
+	return (
+		(relationshipTable === fromTable && toTable === targetTable) || (relationshipTable === targetTable && toTable === fromTable)
+	);
+};
 
 type Selection = Record<FieldName, FieldSelection>;
 function processRelationship(table: string, selection: Selection, fromTable: string, state: SelectState): void {
 	const relationship = state.config.relationships.find(({ table: relationshipTable, toTable }) =>
-		isRelationship(table, relationshipTable, fromTable, toTable),
+		isRelationship(relationshipTable, table, fromTable, toTable),
 	);
 	if (!relationship) throw new Error(`No relationship found between '${fromTable}' and '${table}'`);
 

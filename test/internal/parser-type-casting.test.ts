@@ -47,11 +47,11 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 			},
 			relationships: [
 				{
-					table: "users",
-					field: "id",
-					toTable: "events",
-					toField: "user_id",
-					type: "one-to-many",
+					table: "events",
+					field: "user_id",
+					toTable: "users",
+					toField: "id",
+					type: "many-to-one",
 				},
 			],
 		};

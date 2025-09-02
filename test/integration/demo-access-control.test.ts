@@ -133,32 +133,7 @@ describe("Integration - Row-Level Security (RLS) Access Control Simulation", () 
 				viewer_role_level: 10,
 			},
 			relationships: [
-				// Organization -> Teams
-				{ table: "organizations", field: "id", toTable: "teams", toField: "organization_id", type: "one-to-many" },
-				// Teams -> Team Members
-				{ table: "teams", field: "id", toTable: "team_members", toField: "team_id", type: "one-to-many" },
-				// Users -> Team Members
-				{ table: "users", field: "id", toTable: "team_members", toField: "user_id", type: "one-to-many" },
-				// Roles -> Team Members
-				{ table: "roles", field: "id", toTable: "team_members", toField: "role_id", type: "one-to-many" },
-				// Teams -> Projects
-				{ table: "teams", field: "id", toTable: "projects", toField: "team_id", type: "one-to-many" },
-				// Users -> Projects (owner)
-				{ table: "users", field: "id", toTable: "projects", toField: "owner_id", type: "one-to-many" },
-				// Projects -> Project Access
-				{ table: "projects", field: "id", toTable: "project_access", toField: "project_id", type: "one-to-many" },
-				// Users -> Project Access
-				{ table: "users", field: "id", toTable: "project_access", toField: "user_id", type: "one-to-many" },
-				// Roles -> Project Access
-				{ table: "roles", field: "id", toTable: "project_access", toField: "role_id", type: "one-to-many" },
-				// Projects -> Tasks
-				{ table: "projects", field: "id", toTable: "tasks", toField: "project_id", type: "one-to-many" },
-				// Users -> Tasks (assignee)
-				{ table: "users", field: "id", toTable: "tasks", toField: "assignee_id", type: "one-to-many" },
-				// Users -> Tasks (reporter)
-				{ table: "users", field: "id", toTable: "tasks", toField: "reporter_id", type: "one-to-many" },
-
-				// Reverse relationships for joins (needed for nested selections)
+				// Many-to-one relationships only
 				{ table: "teams", field: "organization_id", toTable: "organizations", toField: "id", type: "many-to-one" },
 				{ table: "team_members", field: "team_id", toTable: "teams", toField: "id", type: "many-to-one" },
 				{ table: "team_members", field: "user_id", toTable: "users", toField: "id", type: "many-to-one" },
