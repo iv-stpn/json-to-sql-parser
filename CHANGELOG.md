@@ -1,5 +1,15 @@
 # json-to-sql-parser
 
+## 3.2.0
+
+### Minor Changes
+
+- [`ef74d11`](https://github.com/iv-stpn/json-to-sql-parser/commit/ef74d1165ab9d8acff4d678519a615df9aff2f0b) Thanks [@iv-stpn](https://github.com/iv-stpn)! - fix relationships: only limit to one-to-one and many-to-one to avoid redundancy; remove wrong "many-to-many" relation type
+
+### Patch Changes
+
+- [`8d3ff1b`](https://github.com/iv-stpn/json-to-sql-parser/commit/8d3ff1b6b0a300d8fdcc20abf3bc9dafd7956f92) Thanks [@iv-stpn](https://github.com/iv-stpn)! - expose more internal apis
+
 ## 3.1.1
 
 ### Patch Changes
