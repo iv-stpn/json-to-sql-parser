@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
-import type { ExpressionType, FieldType } from "../constants/field-types";
 import { Dialect } from "../constants/dialects";
 import { MATHEMATICAL_OPERATORS_NOT_SUPPORTED_IN_DIALECT_ERROR } from "../constants/errors";
+import type { ExpressionType, FieldType } from "../constants/field-types";
 import { isNotNull } from "../utils";
 import { removeAllWrappingParens } from "../utils/function-call";
 import { parseDate, parseTimestamp } from "../utils/parse-values";

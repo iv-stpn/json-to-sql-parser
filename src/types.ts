@@ -1,5 +1,5 @@
-import type { FieldType } from "./constants/field-types";
 import type { Dialect } from "./constants/dialects";
+import type { FieldType } from "./constants/field-types";
 import type { AnyExpression, AnyScalar } from "./schemas";
 import type { ExpressionTypeMap } from "./utils/expression-map";
 

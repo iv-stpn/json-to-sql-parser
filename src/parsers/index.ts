@@ -1,4 +1,3 @@
-import type { ExpressionType } from "../constants/field-types";
 import { Dialect } from "../constants/dialects";
 import {
 	COMPARISON_TYPE_MISMATCH_ERROR,
@@ -8,6 +7,7 @@ import {
 	JSON_ACCESS_TYPE_ERROR,
 	NON_EMPTY_CONDITION_ARRAY_ERROR,
 } from "../constants/errors";
+import type { ExpressionType } from "../constants/field-types";
 import { allowedFunctions, type FunctionDefinition } from "../functions";
 import { parseJsonAccess } from "../parsers/parse-json-access";
 import type {

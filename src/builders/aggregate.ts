@@ -1,6 +1,6 @@
-import type { ExpressionType } from "../constants/field-types";
 import type { Dialect } from "../constants/dialects";
 import { FUNCTION_TYPE_MISMATCH_ERROR, INVALID_ARGUMENT_COUNT_ERROR, MISSING_AGGREGATION_FIELD_ERROR } from "../constants/errors";
+import type { ExpressionType } from "../constants/field-types";
 import { type AggregationDefinition, allowedAggregationFunctions } from "../functions/aggregate";
 import { aliasValue, castValue, getExpressionType, parseExpression, parseField } from "../parsers";
 import type { AggregatedField, AggregationQuery } from "../schemas";

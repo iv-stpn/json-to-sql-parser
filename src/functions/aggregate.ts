@@ -1,5 +1,5 @@
-import type { ExpressionType, FieldType } from "../constants/field-types";
 import { Dialect } from "../constants/dialects";
+import type { ExpressionType, FieldType } from "../constants/field-types";
 import { applyFunction } from "../utils/function-call";
 
 export type AggregationDefinition = {
