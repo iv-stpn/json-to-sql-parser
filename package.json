@@ -1,7 +1,7 @@
 {
 	"name": "json-to-sql-parser",
 	"type": "module",
-	"version": "3.2.0",
+	"version": "3.2.1",
 	"description": "A TypeScript library that converts JSON-based query specifications into safe SQL queries",
 	"keywords": [
 		"sql",
