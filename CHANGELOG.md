@@ -1,5 +1,11 @@
 # json-to-sql-parser
 
+## 3.2.1
+
+### Patch Changes
+
+- [`765ac99`](https://github.com/iv-stpn/json-to-sql-parser/commit/765ac991338fd75b597d82498f6b2d51a77b9882) Thanks [@iv-stpn](https://github.com/iv-stpn)! - add pagination to select builder
+
 ## 3.2.0
 
 ### Minor Changes
