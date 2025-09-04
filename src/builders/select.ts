@@ -62,9 +62,9 @@ function processRelationship(table: string, selection: Selection, fromTable: str
 }
 
 // Result of parsing a SELECT query
-type ParsedSelectQuery = { select: string[]; from: string; where?: string; joins: string[] };
+type ParsedSelectQuery = { select: string[]; from: string; where?: string; joins: string[]; limit?: number; offset?: number };
 export function parseSelectQuery(selectQuery: SelectQuery, config: Config): ParsedSelectQuery {
-	const { rootTable, selection, condition } = selectQuery;
+	const { rootTable, selection, condition, pagination } = selectQuery;
 
 	// Validate root table
 	if (!config.tables[rootTable] && !config.dataTable) throw new Error(`Table '${rootTable}' is not allowed`);
@@ -82,7 +82,10 @@ export function parseSelectQuery(selectQuery: SelectQuery, config: Config): Pars
 	const from = config.dataTable ? aliasValue(config.dataTable.table, rootTable) : rootTable;
 	const where = buildWhereClause(condition, state);
 
-	return { select: state.select, from, where, joins: state.joins };
+	const limit = pagination?.limit;
+	const offset = pagination?.offset;
+
+	return { select: state.select, from, where, joins: state.joins, limit, offset };
 }
 
 export function compileSelectQuery(query: ParsedSelectQuery): string {
@@ -90,6 +93,8 @@ export function compileSelectQuery(query: ParsedSelectQuery): string {
 	let sql = `SELECT ${query.select.join(", ")} FROM ${query.from}`;
 	if (query.joins.length > 0) sql += ` ${query.joins.join(" ")}`;
 	if (query.where) sql += ` WHERE ${query.where}`;
+	if (query.limit !== undefined) sql += ` LIMIT ${query.limit}`;
+	if (query.offset !== undefined) sql += ` OFFSET ${query.offset}`;
 	return sql;
 }
 

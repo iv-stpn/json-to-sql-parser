@@ -100,10 +100,19 @@ export const fieldSelectionSchema: z.ZodType<FieldSelection> = z.union([
 	),
 ]);
 
+// Pagination schema
+export const paginationSchema = z.strictObject({
+	limit: z.number().int().positive().optional(),
+	offset: z.number().int().nonnegative().optional(),
+});
+
+export type Pagination = z.infer<typeof paginationSchema>;
+
 export const selectQuerySchema = z.strictObject({
 	rootTable: z.string(),
 	selection: z.record(z.string(), fieldSelectionSchema),
 	condition: conditionSchema.optional(),
+	pagination: paginationSchema.optional(),
 });
 
 export type SelectQuery = z.infer<typeof selectQuerySchema>;
