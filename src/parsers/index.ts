@@ -170,7 +170,9 @@ function getCastType(targetType: ExpressionType, dialect: Dialect): string | nul
 	return targetType === "number" ? "REAL" : "TEXT";
 }
 
-export const castValue = (value: string, targetType: ExpressionType, dialect: Dialect): string => {
+export function castValue(value: string, targetType: ExpressionType, dialect: Dialect) {
+	if (targetType === "uuid" && dialect !== Dialect.POSTGRESQL) return value;
+
 	const castType = getCastType(targetType, dialect);
 	if (!castType) return value;
 
@@ -179,7 +181,7 @@ export const castValue = (value: string, targetType: ExpressionType, dialect: Di
 
 	// SQLite
 	return `CAST(${value} AS ${castType})`;
-};
+}
 
 export const aliasValue = (expression: string, alias: string): string => `${expression} AS "${alias}"`;
 

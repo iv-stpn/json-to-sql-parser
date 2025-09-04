@@ -149,7 +149,7 @@ describe("Parser - Complex Queries and Expressions", () => {
 				testConfig,
 			);
 
-			const sql = compileSelectQuery(query);
+			const sql = compileSelectQuery(query, Dialect.POSTGRESQL);
 
 			expect(sql).toContain("SELECT");
 			expect(sql).toContain("FROM users");
@@ -199,7 +199,7 @@ describe("Parser - Complex Queries and Expressions", () => {
 				testConfig,
 			);
 
-			const sql = compileSelectQuery(query);
+			const sql = compileSelectQuery(query, Dialect.POSTGRESQL);
 
 			expect(sql).toContain("metadata");
 			expect(sql).toContain("profile");
@@ -228,7 +228,7 @@ describe("Parser - Complex Queries and Expressions", () => {
 				testConfig,
 			);
 
-			const sql = compileSelectQuery(query);
+			const sql = compileSelectQuery(query, Dialect.POSTGRESQL);
 			expect(sql).toBe(
 				'SELECT users.id AS "id", (users.name || \' (\' || users.email || \')\') AS "full_name", (\'age_\' || (users.age)::TEXT) AS "age_group", LOWER(users.email) AS "normalized_email", posts.title AS "posts.title", LENGTH(posts.title) AS "posts.title_length", (posts.view_count / 100) AS "posts.view_ratio" FROM users LEFT JOIN posts ON users.id = posts.user_id',
 			);
@@ -279,7 +279,7 @@ describe("Parser - Complex Queries and Expressions", () => {
 				testConfig,
 			);
 
-			const sql = compileSelectQuery(query);
+			const sql = compileSelectQuery(query, Dialect.POSTGRESQL);
 
 			expect(sql).toContain("categories");
 			expect(sql).toContain("posts");
@@ -643,7 +643,7 @@ describe("Parser - Complex Queries and Expressions", () => {
 				testConfig,
 			);
 
-			const sql = compileSelectQuery(query);
+			const sql = compileSelectQuery(query, Dialect.POSTGRESQL);
 
 			// Verify all features are present
 			expect(sql).toBe(

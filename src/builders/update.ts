@@ -11,8 +11,8 @@ import { buildWhereClause } from "./where";
 type UpdateState = ParserState & { updates: string[] };
 type ParsedUpdateQuery = { table: string; updates: Record<string, unknown>; where?: string };
 
-export function parseUpdateQuery(updateQuery: UpdateQuery, config: Config | ConfigWithForeignKeys): ParsedUpdateQuery {
-	const normalizedConfig = ensureNormalizedConfig(config);
+export function parseUpdateQuery(updateQuery: UpdateQuery, baseConfig: Config | ConfigWithForeignKeys): ParsedUpdateQuery {
+	const config = ensureNormalizedConfig(baseConfig);
 
 	const { table, updates, condition } = updateQuery;
 
@@ -23,24 +23,19 @@ export function parseUpdateQuery(updateQuery: UpdateQuery, config: Config | Conf
 	config.tables.NEW_ROW = tableConfig;
 
 	const fields = tableConfig.allowedFields;
-	const newRow = parseNewRow(table, updates, fields);
+
+	const expressions = new ExpressionTypeMap();
+	const newRow = parseNewRow({ config, rootTable: table, fields, mutationType: "UPDATE" }, expressions, updates);
 
 	// Initialize state
-	const expressions = new ExpressionTypeMap();
-	const state: UpdateState = { config: normalizedConfig, rootTable: table, expressions, updates: [] };
+	const state: UpdateState = { config, rootTable: table, expressions, updates: [] };
 
 	// Process update fields and generate WHERE clause
 	const processedFields = processMutationFields(updates, state);
 
 	let conditionResult: Condition = true;
 	if (condition) {
-		const evaluationContext: EvaluationContext = {
-			newRow,
-			fields,
-			rootTable: table,
-			config: normalizedConfig,
-			mutationType: "UPDATE",
-		};
+		const evaluationContext: EvaluationContext = { newRow, fields, rootTable: table, config, mutationType: "UPDATE" };
 		conditionResult = evaluateCondition(ensureConditionObject(condition), evaluationContext);
 	}
 

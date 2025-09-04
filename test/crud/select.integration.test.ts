@@ -166,7 +166,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 		it("should execute basic select query", async () => {
 			await db.executeInTransaction(async () => {
 				const selection = { id: true, name: true, email: true };
-				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection }, config));
+				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection }, config), Dialect.POSTGRESQL);
 
 				const rows = await db.query(sql);
 
@@ -181,7 +181,10 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 			await db.executeInTransaction(async () => {
 				const selection = { id: true, name: true, status: true };
 				const condition: Condition = { "users.status": "premium" };
-				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection, condition }, config));
+				const sql = compileSelectQuery(
+					parseSelectQuery({ rootTable: "users", selection, condition }, config),
+					Dialect.POSTGRESQL,
+				);
 
 				const rows = await db.query(sql);
 
@@ -202,7 +205,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries", () =
 					name: true,
 					department: { $field: "users.metadata->department" },
 				};
-				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection }, config));
+				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection }, config), Dialect.POSTGRESQL);
 
 				const rows = await db.query(sql);
 

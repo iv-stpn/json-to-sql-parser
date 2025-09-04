@@ -3,9 +3,8 @@
 import { beforeEach, describe, expect, it, test } from "bun:test";
 import { buildUpdateQuery } from "../../src/builders/update";
 import { Dialect } from "../../src/constants/dialects";
-import { parseNewRow, parseNewRowValue } from "../../src/parsers/mutations";
 import type { UpdateQuery } from "../../src/schemas";
-import type { Config, Field } from "../../src/types";
+import type { Config } from "../../src/types";
 
 // Test configuration for mixed conditions tests
 const mockConfig: Config = {
@@ -358,38 +357,6 @@ describe("CRUD - UPDATE Query Complex Operations", () => {
 
 			// Should short-circuit the $or since first condition is true
 			expect(sql).toBe('UPDATE users SET "active" = FALSE');
-		});
-	});
-});
-
-describe("CRUD - UPDATE Evaluation Utilities", () => {
-	const mockStringField: Field = { name: "name", type: "string", nullable: false };
-	const mockUuidField: Field = { name: "id", type: "uuid", nullable: false };
-	const mockNumberField: Field = { name: "age", type: "number", nullable: true };
-
-	describe("autoConvertValue", () => {
-		it("should auto-convert UUID strings for UUID fields", () => {
-			const result = parseNewRowValue("123e4567-e89b-12d3-a456-426614174000", mockUuidField);
-			expect(result).toEqual({ $uuid: "123e4567-e89b-12d3-a456-426614174000" });
-		});
-
-		it("should keep regular strings as strings", () => {
-			const result = parseNewRowValue("regular string", mockStringField);
-			expect(result).toBe("regular string");
-		});
-	});
-
-	describe("validateFieldsExist", () => {
-		const allowedFields: Field[] = [mockStringField, mockUuidField, mockNumberField];
-
-		it("should validate that all fields exist", () => {
-			const newRow = { name: "test", id: "123e4567-e89b-12d3-a456-426614174000" };
-			expect(() => parseNewRow("users", newRow, allowedFields)).not.toThrow();
-		});
-
-		it("should throw for non-existent fields", () => {
-			const newRow = { nonexistent: "test" };
-			expect(() => parseNewRow("users", newRow, allowedFields)).toThrow("Field 'nonexistent' is not allowed for table 'users'");
 		});
 	});
 });

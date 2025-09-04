@@ -530,7 +530,7 @@ describe("Integration - Complex Query Condition Processing", () => {
 					config,
 				);
 
-				const sql = compileSelectQuery(query);
+				const sql = compileSelectQuery(query, config.dialect);
 				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();
@@ -630,7 +630,7 @@ describe("Integration - Complex Query Condition Processing", () => {
 					config,
 				);
 
-				const sql = compileSelectQuery(query);
+				const sql = compileSelectQuery(query, config.dialect);
 				const rows = await db.query(sql);
 
 				expect(rows).toBeDefined();

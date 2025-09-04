@@ -1,5 +1,6 @@
 // Main parsers
 export { buildAggregationQuery, compileAggregationQuery, parseAggregationQuery } from "./builders/aggregate";
+export { buildDeleteQuery, compileDeleteQuery, parseDeleteQuery } from "./builders/delete";
 export { buildInsertQuery, compileInsertQuery, parseInsertQuery } from "./builders/insert";
 export { buildSelectQuery, compileSelectQuery, parseSelectQuery } from "./builders/select";
 export { buildUpdateQuery, compileUpdateQuery, parseUpdateQuery } from "./builders/update";
@@ -29,6 +30,7 @@ export type {
 	Condition,
 	ConditionExpression,
 	ConditionFieldName,
+	DeleteQuery,
 	ExpressionObject,
 	FieldCondition,
 	FieldSelection,
@@ -44,6 +46,7 @@ export {
 	aggregationQuerySchema,
 	anyExpressionSchema,
 	conditionSchema,
+	deleteQuerySchema,
 	expressionObjectSchema,
 	fieldSelectionSchema,
 	insertQuerySchema,
@@ -54,6 +57,7 @@ export {
 // Types
 export type {
 	Config,
+	ConfigWithForeignKeys,
 	Field,
 	FieldPath,
 	ParserState,

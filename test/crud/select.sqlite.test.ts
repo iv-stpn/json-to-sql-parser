@@ -194,7 +194,7 @@ describe("CRUD - SELECT Field Selection and Projections (SQLite)", () => {
 		it("should parse simple field selection", () => {
 			const selection = { id: true, name: true, email: true };
 			const result = parseSelectQuery({ rootTable: "users", selection }, testConfig);
-			const sql = compileSelectQuery(result);
+			const sql = compileSelectQuery(result, testConfig.dialect);
 
 			expect(sql).toContain('users.id AS "id"');
 			expect(sql).toContain('users.name AS "name"');
@@ -206,7 +206,10 @@ describe("CRUD - SELECT Field Selection and Projections (SQLite)", () => {
 			const selection = { id: true, name: true };
 			const condition: Condition = { "users.active": { $eq: true } };
 
-			const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection, condition }, testConfig));
+			const sql = compileSelectQuery(
+				parseSelectQuery({ rootTable: "users", selection, condition }, testConfig),
+				testConfig.dialect,
+			);
 			expect(sql).toBe('SELECT users.id AS "id", users.name AS "name" FROM users WHERE users.active = TRUE');
 		});
 	});
@@ -219,7 +222,7 @@ describe("CRUD - SELECT Field Selection and Projections (SQLite)", () => {
 			};
 
 			const result = parseSelectQuery({ rootTable: "users", selection }, testConfig);
-			const sql = compileSelectQuery(result);
+			const sql = compileSelectQuery(result, testConfig.dialect);
 
 			expect(sql).toContain('users.id AS "id"');
 			expect(sql).toContain("(users.name || ' - ' || users.email) AS \"display_name\"");
@@ -238,7 +241,7 @@ describe("CRUD - SELECT Field Selection and Projections (SQLite)", () => {
 			};
 
 			const result = parseSelectQuery({ rootTable: "users", selection }, testConfig);
-			const sql = compileSelectQuery(result);
+			const sql = compileSelectQuery(result, testConfig.dialect);
 
 			expect(result.joins).toContain("LEFT JOIN posts ON users.id = posts.user_id");
 			expect(sql).toContain('users.id AS "id"');
@@ -255,7 +258,7 @@ describe("CRUD - SELECT Field Selection and Projections (SQLite)", () => {
 			};
 
 			const result = parseSelectQuery({ rootTable: "users", selection }, testConfig);
-			const sql = compileSelectQuery(result);
+			const sql = compileSelectQuery(result, testConfig.dialect);
 
 			expect(sql).toContain("users.metadata->'profile'->>'name' AS \"metadata->profile->name\"");
 		});
@@ -492,7 +495,7 @@ describe("SQLite-specific Features", () => {
 		};
 
 		const result = parseSelectQuery({ rootTable: "users", selection }, testConfig);
-		const sql = compileSelectQuery(result);
+		const sql = compileSelectQuery(result, testConfig.dialect);
 
 		expect(sql).toContain("users.metadata->>'department' AS \"dept\"");
 	});

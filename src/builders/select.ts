@@ -7,6 +7,7 @@ import { ensureNormalizedConfig } from "../utils/normalize-config";
 import { isExpressionObject, isScalarExpression } from "../utils/validators";
 import { buildJoinClause } from "./joins";
 import { buildWhereClause } from "./where";
+import { Dialect } from "../constants/dialects";
 
 type SelectState = ParserState & { joins: string[]; select: string[]; processedTables: Set<string> };
 function processField(fieldName: string, selection: FieldSelection, table: string, state: SelectState): void {
@@ -64,12 +65,12 @@ function processRelationship(table: string, selection: Selection, fromTable: str
 
 // Result of parsing a SELECT query
 type ParsedSelectQuery = { select: string[]; from: string; where?: string; joins: string[]; limit?: number; offset?: number };
-export function parseSelectQuery(selectQuery: SelectQuery, config: Config | ConfigWithForeignKeys): ParsedSelectQuery {
-	const normalizedConfig = ensureNormalizedConfig(config);
+export function parseSelectQuery(selectQuery: SelectQuery, baseConfig: Config | ConfigWithForeignKeys): ParsedSelectQuery {
+	const config = ensureNormalizedConfig(baseConfig);
 	const { rootTable, selection, condition, pagination } = selectQuery;
 
 	// Validate root table
-	if (!normalizedConfig.tables[rootTable] && !normalizedConfig.dataTable) throw new Error(`Table '${rootTable}' is not allowed`);
+	if (!config.tables[rootTable] && !config.dataTable) throw new Error(`Table '${rootTable}' is not allowed`);
 
 	// Validate selection is not empty
 	if (objectSize(selection) === 0) throw new Error("Selection cannot be empty");
@@ -78,10 +79,10 @@ export function parseSelectQuery(selectQuery: SelectQuery, config: Config | Conf
 	const processedTables = new Set([rootTable]);
 	const expressions = new ExpressionTypeMap();
 
-	const state: SelectState = { config: normalizedConfig, rootTable, expressions, select: [], joins: [], processedTables };
+	const state: SelectState = { config, rootTable, expressions, select: [], joins: [], processedTables };
 	for (const [fieldName, fieldValue] of Object.entries(selection)) processField(fieldName, fieldValue, rootTable, state);
 
-	const from = normalizedConfig.dataTable ? aliasValue(normalizedConfig.dataTable.table, rootTable) : rootTable;
+	const from = config.dataTable ? aliasValue(config.dataTable.table, rootTable) : rootTable;
 	const where = buildWhereClause(condition, state);
 
 	const limit = pagination?.limit;
@@ -90,18 +91,32 @@ export function parseSelectQuery(selectQuery: SelectQuery, config: Config | Conf
 	return { select: state.select, from, where, joins: state.joins, limit, offset };
 }
 
-export function compileSelectQuery(query: ParsedSelectQuery): string {
+export function compileSelectQuery(query: ParsedSelectQuery, dialect: Dialect): string {
 	// Convert alias quoting from single quotes to double quotes
 	let sql = `SELECT ${query.select.join(", ")} FROM ${query.from}`;
 	if (query.joins.length > 0) sql += ` ${query.joins.join(" ")}`;
 	if (query.where) sql += ` WHERE ${query.where}`;
-	if (query.limit !== undefined) sql += ` LIMIT ${query.limit}`;
-	if (query.offset !== undefined) sql += ` OFFSET ${query.offset}`;
+
+	// Handle pagination with dialect-specific behavior
+	const isSQLite = dialect === Dialect.SQLITE_MINIMAL || dialect === Dialect.SQLITE_EXTENSIONS;
+
+	if (query.limit !== undefined) {
+		sql += ` LIMIT ${query.limit}`;
+	} else if (query.offset !== undefined && isSQLite) {
+		// SQLite requires LIMIT when using OFFSET, use -1 for unlimited
+		sql += ` LIMIT -1`;
+	}
+
+	if (query.offset !== undefined) {
+		sql += ` OFFSET ${query.offset}`;
+	}
+
 	return sql;
 }
 
 export function buildSelectQuery(selectQuery: SelectQuery, config: Config | ConfigWithForeignKeys): string {
 	const parsedQuery = parseSelectQuery(selectQuery, config);
-	const sql = compileSelectQuery(parsedQuery);
+	const normalizedConfig = ensureNormalizedConfig(config);
+	const sql = compileSelectQuery(parsedQuery, normalizedConfig.dialect);
 	return sql;
 }

@@ -218,14 +218,8 @@ describe("Security - SQL Injection Prevention and Input Validation", () => {
 			};
 
 			expect(() => {
-				const query = parseSelectQuery(
-					{
-						rootTable: "users",
-						selection: maliciousSelections,
-					},
-					testConfig,
-				);
-				compileSelectQuery(query);
+				const query = parseSelectQuery({ rootTable: "users", selection: maliciousSelections }, testConfig);
+				compileSelectQuery(query, testConfig.dialect);
 			}).toThrow();
 		});
 
@@ -237,14 +231,8 @@ describe("Security - SQL Injection Prevention and Input Validation", () => {
 			};
 
 			expect(() => {
-				const query = parseSelectQuery(
-					{
-						rootTable: "users",
-						selection: maliciousAliases,
-					},
-					testConfig,
-				);
-				compileSelectQuery(query);
+				const query = parseSelectQuery({ rootTable: "users", selection: maliciousAliases }, testConfig);
+				compileSelectQuery(query, testConfig.dialect);
 			}).toThrow();
 		});
 	});

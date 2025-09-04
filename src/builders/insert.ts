@@ -14,21 +14,23 @@ type ParsedInsertQuery = {
 	conditionResult?: Condition;
 };
 
-export function parseInsertQuery(insertQuery: InsertQuery, config: Config | ConfigWithForeignKeys): ParsedInsertQuery {
-	const normalizedConfig = ensureNormalizedConfig(config);
+export function parseInsertQuery(insertQuery: InsertQuery, baseConfig: Config | ConfigWithForeignKeys): ParsedInsertQuery {
+	const config = ensureNormalizedConfig(baseConfig);
 	const { table, newRow: newRowData, condition } = insertQuery;
 
-	const tableConfig = normalizedConfig.tables[table];
+	const tableConfig = config.tables[table];
 	if (!tableConfig) throw new Error(`Table '${table}' is not allowed or does not exist`);
 
-	normalizedConfig.tables.NEW_ROW = tableConfig;
+	config.tables.NEW_ROW = tableConfig;
 
 	const fields = tableConfig.allowedFields;
-	const newRow = parseNewRowWithDefaults(table, newRowData, normalizedConfig, fields);
 
 	// Initialize state
 	const expressions = new ExpressionTypeMap();
-	const state: ParserState = { config: normalizedConfig, rootTable: table, expressions };
+	const state: ParserState = { config: config, rootTable: table, expressions };
+
+	// Parse new row and apply defaults
+	const newRow = parseNewRowWithDefaults({ config, rootTable: table, fields, mutationType: "INSERT" }, expressions, newRowData);
 
 	// Process parsed newRow fields
 	const processedFields = processMutationFields(newRow, state);
@@ -36,13 +38,7 @@ export function parseInsertQuery(insertQuery: InsertQuery, config: Config | Conf
 	// Evaluate condition if present
 	let conditionResult: Condition = true;
 	if (condition) {
-		const evaluationContext: EvaluationContext = {
-			rootTable: table,
-			newRow,
-			fields,
-			config: normalizedConfig,
-			mutationType: "INSERT",
-		};
+		const evaluationContext: EvaluationContext = { rootTable: table, newRow, fields, config, mutationType: "INSERT" };
 		conditionResult = evaluateCondition(ensureConditionObject(condition), evaluationContext);
 	}
 

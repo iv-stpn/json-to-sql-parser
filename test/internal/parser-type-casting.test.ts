@@ -131,7 +131,7 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				},
 			};
 
-			const sql = compileSelectQuery(parseSelectQuery(query, testConfig));
+			const sql = compileSelectQuery(parseSelectQuery(query, testConfig), Dialect.POSTGRESQL);
 			expect(sql).toBe(
 				'SELECT users.id AS "id", users.name AS "name" FROM users WHERE users.profile_id = (\'6ba7b810-9dad-11d1-80b4-00c04fd430c8\')::UUID',
 			);
@@ -332,7 +332,7 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 				},
 			};
 
-			const sql = compileSelectQuery(parseSelectQuery(query, testConfig));
+			const sql = compileSelectQuery(parseSelectQuery(query, testConfig), Dialect.POSTGRESQL);
 			expect(sql).toBe(
 				'SELECT events.id AS "id", events.user_id AS "user_id", events.occurred_at AS "occurred_at", events.scheduled_date AS "scheduled_date" FROM events WHERE ((events.user_id)::TEXT = \'550e8400-e29b-41d4-a716-446655440000\' AND events.occurred_at >= (\'2024-01-01 00:00:00\')::TIMESTAMP)',
 			);

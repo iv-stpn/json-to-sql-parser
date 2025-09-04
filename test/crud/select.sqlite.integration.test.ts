@@ -309,7 +309,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries (SQLit
 		it("should execute basic select query", async () => {
 			await db.executeInTransaction(() => {
 				const selection = { id: true, name: true, email: true };
-				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection }, config));
+				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection }, config), config.dialect);
 
 				const rows = db.query(sql);
 
@@ -324,7 +324,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries (SQLit
 			await db.executeInTransaction(() => {
 				const selection = { id: true, name: true, status: true };
 				const condition: Condition = { "users.status": "premium" };
-				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection, condition }, config));
+				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection, condition }, config), config.dialect);
 
 				const rows = db.query(sql);
 
@@ -345,7 +345,7 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries (SQLit
 					name: true,
 					department: { $field: "users.metadata->department" },
 				};
-				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection }, config));
+				const sql = compileSelectQuery(parseSelectQuery({ rootTable: "users", selection }, config), config.dialect);
 
 				const rows = db.query(sql);
 

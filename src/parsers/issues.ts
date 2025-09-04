@@ -126,7 +126,11 @@ export function findIssueInConditionSchema(condition: unknown, path = ""): strin
 
 	for (const [key, value] of Object.entries(condition)) {
 		if (!isField(key)) return invalid("expression", `invalid field name at ${path}: ${key}`);
-		if (isAnyScalar(value) || isExpressionObject(value)) findIssueInExpressionSchema(value, `${path}.${key}`);
+		if (isAnyScalar(value) || isExpressionObject(value)) {
+			findIssueInExpressionSchema(value, `${path}.${key}`);
+			continue;
+		}
+
 		if (!isNonNullObject(value))
 			return invalid(
 				"expression",

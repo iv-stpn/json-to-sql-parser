@@ -18,6 +18,7 @@ import { objectEntries, objectSize } from "../utils";
 import {
 	ensureTimestampString,
 	ensureUUID,
+	isAnyScalar,
 	isExpressionObject,
 	isField,
 	isNonNullObject,
@@ -28,6 +29,7 @@ import {
 	uuidRegex,
 } from "../utils/validators";
 import { parseExpressionObject, parseFieldPath, parseScalarExpression, parseScalarValue, resolveFunction } from ".";
+import type { ExpressionTypeMap } from "../utils/expression-map";
 
 function getScalarExpressionValue(value: unknown, key: "$date" | "$uuid" | "$timestamp"): string {
 	if (isNonNullObject(value)) {
@@ -41,10 +43,47 @@ function getScalarExpressionValue(value: unknown, key: "$date" | "$uuid" | "$tim
 	throw new Error(`Field should be an object containing '${key}' or a string representation, got: ${JSON.stringify(value)}`);
 }
 
-export function parseNewRowValue(value: unknown, fieldConfig: Field): AnyScalar {
+export function parseNewRowValue(
+	value: unknown,
+	fieldConfig: Field,
+	context: EvaluationContext,
+	expressions: ExpressionTypeMap,
+): AnyScalar | UnresolvedExpression {
 	if (value === null) {
 		if (!fieldConfig.nullable) throw new Error(`Field '${fieldConfig.name}' cannot be null`);
 		return null;
+	}
+
+	if (isExpressionObject(value)) {
+		const evaluationResult = evaluateExpression(value, context);
+		if (isUnresolvedExpression(evaluationResult)) {
+			parseExpressionObject(value, { config: context.config, rootTable: context.rootTable, expressions });
+
+			const expressionType = expressions.get(value);
+			if (expressionType === null) {
+				if (!fieldConfig.nullable) throw new Error(`Field '${fieldConfig.name}' cannot be null`);
+				return null;
+			}
+
+			if (fieldConfig.type === "date" && expressionType !== "date")
+				throw new Error(`Field '${fieldConfig.name}' expects a date, got: ${JSON.stringify(value)}`);
+			if (fieldConfig.type === "datetime" && expressionType !== "datetime")
+				throw new Error(`Field '${fieldConfig.name}' expects a datetime, got: ${JSON.stringify(value)}`);
+			if (fieldConfig.type === "number" && expressionType !== "number")
+				throw new Error(`Field '${fieldConfig.name}' expects a number, got: ${JSON.stringify(value)}`);
+			if (fieldConfig.type === "boolean" && expressionType !== "boolean")
+				throw new Error(`Field '${fieldConfig.name}' expects a boolean, got: ${JSON.stringify(value)}`);
+			if (fieldConfig.type === "string" && expressionType !== "string")
+				throw new Error(`Field '${fieldConfig.name}' expects a string, got: ${JSON.stringify(value)}`);
+			if (fieldConfig.type === "uuid" && expressionType !== "uuid")
+				throw new Error(`Field '${fieldConfig.name}' expects a uuid, got: ${JSON.stringify(value)}`);
+			if (fieldConfig.type === "object" && expressionType !== "object")
+				throw new Error(`Field '${fieldConfig.name}' expects an object, got: ${JSON.stringify(value)}`);
+
+			return evaluationResult;
+		}
+
+		return evaluationResult;
 	}
 
 	if (fieldConfig.type === "date") {
@@ -93,13 +132,18 @@ export function parseNewRowValue(value: unknown, fieldConfig: Field): AnyScalar 
 	throw new Error(`Field '${fieldConfig.name}' has unsupported type '${fieldConfig.type}'`);
 }
 
-type ParsedRow = Record<string, AnyScalar>;
-export function parseNewRow(tableName: string, newRow: Record<string, unknown>, fields: Field[]): ParsedRow {
+type ParsedRow = Record<string, AnyScalar | UnresolvedExpression>;
+export function parseNewRow(
+	context: Omit<EvaluationContext, "newRow">,
+	expressions: ExpressionTypeMap,
+	newRow: Record<string, unknown>,
+): ParsedRow {
 	const parsedRow: ParsedRow = {};
 	for (const [fieldName, value] of Object.entries(newRow)) {
-		const fieldConfig = fields.find((field) => field.name === fieldName);
-		if (!fieldConfig) throw new Error(`Field '${fieldName}' is not allowed for table '${tableName}'`);
-		parsedRow[fieldName] = parseNewRowValue(value, fieldConfig);
+		const fieldConfig = context.fields.find((field) => field.name === fieldName);
+		if (!fieldConfig) throw new Error(`Field '${fieldName}' is not allowed for table '${context.rootTable}'`);
+
+		parsedRow[fieldName] = parseNewRowValue(value, fieldConfig, { ...context, newRow: parsedRow }, expressions);
 	}
 	return parsedRow;
 }
@@ -128,14 +172,20 @@ function isUnresolvedExpression(value: unknown): value is UnresolvedExpression {
 	return parse.success;
 }
 
-export function parseNewRowWithDefaults(table: string, newRow: ParsedRow, config: Config, fields: Field[]): ParsedRow {
-	const parsedRow = parseNewRow(table, newRow, fields);
-	const missingFields = fields.filter((field) => parsedRow[field.name] === undefined);
+export function parseNewRowWithDefaults(
+	context: Omit<EvaluationContext, "newRow">,
+	expressions: ExpressionTypeMap,
+	newRow: ParsedRow,
+): ParsedRow {
+	const parsedRow = parseNewRow(context, expressions, newRow);
+	const missingFields = context.fields.filter((field) => parsedRow[field.name] === undefined);
 	const remainingDefaults: { [key: string]: AnyExpression } = {};
+
+	const table = context.rootTable;
 
 	// First pass - resolve null values and ensure defaults
 	for (const field of missingFields) {
-		const resolveDefaultField = fields.find(({ name }) => name === field.name);
+		const resolveDefaultField = context.fields.find(({ name }) => name === field.name);
 		if (!resolveDefaultField) throw new Error(`Field '${field.name}' does not exist in '${table}'`);
 
 		// Default value for nullable fields
@@ -153,7 +203,7 @@ export function parseNewRowWithDefaults(table: string, newRow: ParsedRow, config
 	while (objectSize(remainingDefaults) > 0 && objectSize(remainingDefaults) !== lastRemainingDefaultsCount) {
 		lastRemainingDefaultsCount = objectSize(remainingDefaults);
 		for (const [fieldName, defaultValue] of Object.entries(remainingDefaults)) {
-			const evaluation = evaluateExpression(defaultValue, { newRow: parsedRow, table, rootTable: table, fields: fields, config });
+			const evaluation = evaluateExpression(defaultValue, { ...context, newRow: parsedRow });
 			if (isUnresolvedExpression(evaluation)) {
 				remainingDefaults[fieldName] = defaultValue;
 			} else {
@@ -171,7 +221,7 @@ export function parseNewRowWithDefaults(table: string, newRow: ParsedRow, config
 // First pass of resolving the default value of a field
 export type EvaluationContext = {
 	table?: string;
-	mutationType?: "INSERT" | "UPDATE";
+	mutationType?: "INSERT" | "UPDATE" | "DELETE";
 	rootTable: string;
 	newRow: ParsedRow;
 	fields: Field[];
@@ -184,7 +234,7 @@ function argumentsDoesNotHaveUnresolvedExpression(args: EvaluationResult[]): arg
 	return true;
 }
 
-function resolveField(field: string, context: EvaluationContext): AnyScalar | undefined {
+function resolveField(field: string, context: EvaluationContext): AnyScalar | UnresolvedExpression | undefined {
 	const fieldPath = parseFieldPath(field, context.table ?? context.rootTable, context.config);
 	if (context.mutationType === "INSERT" && !context.table && fieldPath.table === context.rootTable)
 		throw new Error(FORBIDDEN_EXISTING_ROW_EVALUATION_ON_INSERT_ERROR);
@@ -333,6 +383,7 @@ export function evaluateCondition(condition: Condition, context: EvaluationConte
 	for (const [field, fieldCondition] of objectEntries(condition)) {
 		const resolvedField = resolveField(field, context);
 		const conditionResult = evaluateFieldCondition(resolvedField, fieldCondition, context);
+
 		if (conditionResult === false) return false;
 		if (conditionResult !== true) {
 			const fieldName = resolvedField === undefined && context.mutationType === "UPDATE" ? field.replace("NEW_ROW.", "") : field;
@@ -372,14 +423,19 @@ const comparisonFunctions: Record<
 
 class ExpressionFalseAbort extends Error {}
 
-function evalutationComparison(
+function evaluateComparison(
 	evaluation: EvaluationResult,
-	fieldValue: AnyScalar | undefined,
+	fieldValue: AnyScalar | UnresolvedExpression | undefined,
 	fieldCondition: FieldCondition,
 	comparisonType: keyof typeof comparisonOperators,
 ) {
 	if (isUnresolvedExpression(evaluation) || fieldValue === undefined) {
 		fieldCondition[comparisonType] = evaluation;
+		return;
+	}
+
+	if (isUnresolvedExpression(fieldValue)) {
+		fieldCondition[comparisonType] = fieldValue;
 		return;
 	}
 
@@ -415,13 +471,17 @@ function getRegexFromStringOperator(value: string, operator: keyof typeof string
 
 function evaluateTextCondition(
 	evaluation: EvaluationResult,
-	fieldValue: AnyScalar | undefined,
+	fieldValue: AnyScalar | UnresolvedExpression | undefined,
 	fieldCondition: FieldCondition,
 	stringOperator: keyof typeof stringOperators,
 ) {
 	if (evaluation === null || fieldValue === null) throw new ExpressionFalseAbort();
 	if (isUnresolvedExpression(evaluation) || fieldValue === undefined) {
 		fieldCondition[stringOperator] = evaluation;
+		return;
+	}
+	if (isUnresolvedExpression(fieldValue)) {
+		fieldCondition[stringOperator] = fieldValue;
 		return;
 	}
 	if (typeof evaluation !== "string")
@@ -437,7 +497,7 @@ function evaluateTextCondition(
 
 function evaluateArrayCondition(
 	items: AnyExpression[],
-	fieldValue: AnyScalar | undefined,
+	fieldValue: AnyScalar | UnresolvedExpression | undefined,
 	fieldCondition: FieldCondition,
 	evaluationContext: EvaluationContext,
 	notIn: boolean = false,
@@ -450,7 +510,7 @@ function evaluateArrayCondition(
 
 	const hasValue = evaluatedItems.some((item) => {
 		if (isScalarPrimitive(item)) return item === fieldValue;
-		if (isNonNullObject(fieldValue)) {
+		if (isNonNullObject(fieldValue) && !isUnresolvedExpression(fieldValue)) {
 			if ("$uuid" in item) return "$uuid" in fieldValue && fieldValue.$uuid === item.$uuid;
 			if ("$date" in item) return "$date" in fieldValue && fieldValue.$date === item.$date;
 			if ("$timestamp" in item) return "$timestamp" in fieldValue && fieldValue.$timestamp === item.$timestamp;
@@ -463,7 +523,7 @@ function evaluateArrayCondition(
 }
 
 function evaluateFieldCondition(
-	fieldValue: AnyScalar | undefined,
+	fieldValue: AnyScalar | UnresolvedExpression | undefined,
 	condition: AnyFieldCondition,
 	context: EvaluationContext,
 ): boolean | FieldCondition {
@@ -471,18 +531,18 @@ function evaluateFieldCondition(
 	const evaluate = (condition: AnyExpression) => evaluateExpression(condition, context);
 
 	try {
-		if (isScalarPrimitive(condition) || isExpressionObject(condition)) {
+		if (isAnyScalar(condition) || isExpressionObject(condition)) {
 			// Handle direct value comparison
-			evalutationComparison(evaluate(condition), fieldValue, fieldCondition, "$eq");
+			evaluateComparison(evaluate(condition), fieldValue, fieldCondition, "$eq");
 		} else {
 			// Handle field conditions
-			if (condition.$eq !== undefined) evalutationComparison(evaluate(condition.$eq), fieldValue, fieldCondition, "$eq");
-			if (condition.$ne !== undefined) evalutationComparison(evaluate(condition.$ne), fieldValue, fieldCondition, "$ne");
+			if (condition.$eq !== undefined) evaluateComparison(evaluate(condition.$eq), fieldValue, fieldCondition, "$eq");
+			if (condition.$ne !== undefined) evaluateComparison(evaluate(condition.$ne), fieldValue, fieldCondition, "$ne");
 
-			if (condition.$gt !== undefined) evalutationComparison(evaluate(condition.$gt), fieldValue, fieldCondition, "$gt");
-			if (condition.$gte !== undefined) evalutationComparison(evaluate(condition.$gte), fieldValue, fieldCondition, "$gte");
-			if (condition.$lt !== undefined) evalutationComparison(evaluate(condition.$lt), fieldValue, fieldCondition, "$lt");
-			if (condition.$lte !== undefined) evalutationComparison(evaluate(condition.$lte), fieldValue, fieldCondition, "$lte");
+			if (condition.$gt !== undefined) evaluateComparison(evaluate(condition.$gt), fieldValue, fieldCondition, "$gt");
+			if (condition.$gte !== undefined) evaluateComparison(evaluate(condition.$gte), fieldValue, fieldCondition, "$gte");
+			if (condition.$lt !== undefined) evaluateComparison(evaluate(condition.$lt), fieldValue, fieldCondition, "$lt");
+			if (condition.$lte !== undefined) evaluateComparison(evaluate(condition.$lte), fieldValue, fieldCondition, "$lte");
 			if (condition.$like !== undefined) evaluateTextCondition(evaluate(condition.$like), fieldValue, fieldCondition, "$like");
 			if (condition.$ilike !== undefined) evaluateTextCondition(evaluate(condition.$ilike), fieldValue, fieldCondition, "$ilike");
 			if (condition.$regex !== undefined) evaluateTextCondition(evaluate(condition.$regex), fieldValue, fieldCondition, "$regex");

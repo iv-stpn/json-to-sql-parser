@@ -77,7 +77,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(10);
 			expect(parsed.offset).toBeUndefined();
@@ -92,7 +92,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBeUndefined();
 			expect(parsed.offset).toBe(20);
@@ -107,7 +107,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(10);
 			expect(parsed.offset).toBe(20);
@@ -122,7 +122,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(queryWithZeroOffset, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(5);
 			expect(parsed.offset).toBe(0);
@@ -137,7 +137,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(1000);
 			expect(parsed.offset).toBe(50000);
@@ -160,7 +160,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(15);
 			expect(parsed.offset).toBe(30);
@@ -184,7 +184,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(25);
 			expect(parsed.where).toContain("users.status = 'premium'");
@@ -212,7 +212,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(50);
 			expect(parsed.offset).toBe(100);
@@ -236,7 +236,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.joins).toContain("LEFT JOIN posts ON users.id = posts.user_id");
 			expect(parsed.limit).toBe(10);
@@ -265,7 +265,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.joins).toContain("LEFT JOIN posts ON users.id = posts.user_id");
 			expect(parsed.joins).toContain("LEFT JOIN orders ON users.id = orders.customer_id");
@@ -303,7 +303,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.joins).toContain("LEFT JOIN posts ON users.id = posts.user_id");
 			expect(parsed.where).toContain("EXISTS");
@@ -330,7 +330,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.select).toContain("(users.name || ' (' || users.status || ')') AS \"display_name\"");
 			expect(parsed.limit).toBe(12);
@@ -356,7 +356,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.select.some((s) => s.includes("CASE WHEN"))).toBe(true);
 			expect(parsed.limit).toBe(8);
@@ -380,7 +380,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.where).toContain("'123'"); // Variable value
 			expect(parsed.limit).toBe(1);
@@ -397,7 +397,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(20);
 			expect(parsed.offset).toBe(0);
@@ -416,7 +416,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(25);
 			expect(parsed.offset).toBe(0);
@@ -435,7 +435,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(25);
 			expect(parsed.offset).toBe(50);
@@ -454,7 +454,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(10);
 			expect(parsed.offset).toBeUndefined();
@@ -479,7 +479,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 				};
 
 				const parsed = parseSelectQuery(query, testConfig);
-				const sql = compileSelectQuery(parsed);
+				const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 				expect(parsed.limit).toBe(20);
 				expect(parsed.offset).toBe(index * 20);
@@ -497,7 +497,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(999999);
 			expect(sql).toBe('SELECT users.id AS "id", users.name AS "name" FROM users LIMIT 999999');
@@ -511,7 +511,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.offset).toBe(1000000);
 			expect(sql).toBe('SELECT users.id AS "id", users.name AS "name" FROM users OFFSET 1000000');
@@ -525,7 +525,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(1);
 			expect(parsed.offset).toBe(5);
@@ -540,7 +540,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(100);
 			expect(parsed.where).toBeUndefined();
@@ -566,7 +566,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			// Verify SQL clause order
 			const selectIndex = sql.indexOf("SELECT");
@@ -594,7 +594,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			// Small limits should be straightforward
 			expect(parsed.limit).toBe(5);
@@ -609,7 +609,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(100);
 			expect(parsed.offset).toBe(200);
@@ -647,7 +647,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBeUndefined();
 			expect(parsed.offset).toBeUndefined();
@@ -662,7 +662,7 @@ describe("CRUD - SELECT Pagination Operations", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBeUndefined();
 			expect(parsed.offset).toBeUndefined();
@@ -753,7 +753,7 @@ describe("Pagination Error Handling", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(Number.MAX_SAFE_INTEGER);
 			expect(parsed.offset).toBe(Number.MAX_SAFE_INTEGER);
@@ -769,7 +769,7 @@ describe("Pagination Error Handling", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(1);
 			expect(parsed.offset).toBe(0);
@@ -799,7 +799,7 @@ describe("Pagination Integration Patterns", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.where).toContain("ILIKE");
 			expect(parsed.limit).toBe(20);
@@ -929,7 +929,7 @@ describe("Pagination Integration Patterns", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(15);
 			expect(parsed.offset).toBe(30);
@@ -950,7 +950,7 @@ describe("Pagination Integration Patterns", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(20);
 			expect(parsed.offset).toBe(0);
@@ -977,7 +977,7 @@ describe("Pagination Integration Patterns", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(25);
 			expect(parsed.offset).toBe(50);
@@ -1002,7 +1002,7 @@ describe("Pagination Integration Patterns", () => {
 			};
 
 			const parsed = parseSelectQuery(query, testConfig);
-			const sql = compileSelectQuery(parsed);
+			const sql = compileSelectQuery(parsed, testConfig.dialect);
 
 			expect(parsed.limit).toBe(10);
 			expect(parsed.offset).toBeUndefined();

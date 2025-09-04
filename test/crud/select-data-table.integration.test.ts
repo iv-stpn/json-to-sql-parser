@@ -83,7 +83,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 				const condition: Condition = { "users.active": true };
 
 				const selectQuery = parseSelectQuery({ rootTable: "users", selection, condition }, config);
-				const sql = compileSelectQuery(selectQuery);
+				const sql = compileSelectQuery(selectQuery, config.dialect);
 
 				const rows = await db.query(sql);
 
@@ -99,7 +99,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 				};
 
 				const selectQuery = parseSelectQuery({ rootTable: "users", selection, condition }, config);
-				const sql = compileSelectQuery(selectQuery);
+				const sql = compileSelectQuery(selectQuery, config.dialect);
 				const rows = await db.query(sql);
 
 				expect(rows.length).toBe(2); // John (30) and Charlie (32)
@@ -114,7 +114,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 				};
 
 				const selectQuery = parseSelectQuery({ rootTable: "users", selection, condition }, config);
-				const sql = compileSelectQuery(selectQuery);
+				const sql = compileSelectQuery(selectQuery, config.dialect);
 
 				const rows = await db.query(sql);
 
@@ -128,7 +128,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 				const condition: Condition = { "users.active": true };
 
 				const selectQuery = parseSelectQuery({ rootTable: "users", selection, condition }, config);
-				const sql = compileSelectQuery(selectQuery);
+				const sql = compileSelectQuery(selectQuery, config.dialect);
 				const rows = await db.query(sql);
 
 				// Should only return current_tenant users (4), not other_tenant users
@@ -142,7 +142,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 				const condition: Condition = { "users.active": { $in: [true, false] } };
 
 				const selectQuery = parseSelectQuery({ rootTable: "users", selection, condition }, config);
-				const sql = compileSelectQuery(selectQuery);
+				const sql = compileSelectQuery(selectQuery, config.dialect);
 				const rows = await db.query(sql);
 
 				// Should return 5 users (excludes soft-deleted records due to dataTable config)
@@ -156,7 +156,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 			await db.executeInTransaction(async () => {
 				const selection = { id: true, name: true, email: true };
 				const result = parseSelectQuery({ rootTable: "users", selection }, config);
-				const sql = compileSelectQuery(result);
+				const sql = compileSelectQuery(result, config.dialect);
 
 				const rows = await db.query(sql);
 
@@ -172,7 +172,7 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 				const selection = { id: true, name: true, status: true };
 				const condition: Condition = { "users.status": "premium" };
 				const result = parseSelectQuery({ rootTable: "users", selection, condition }, config);
-				const sql = compileSelectQuery(result);
+				const sql = compileSelectQuery(result, config.dialect);
 
 				const rows = await db.query(sql);
 
@@ -251,8 +251,8 @@ describe("Integration - Data Table Configuration and Multi-Tenant Architecture",
 			const regularSelectResult = parseSelectQuery({ rootTable: "users", selection: regularSelection }, regularConfig);
 			const dataTableSelectResult = parseSelectQuery({ rootTable: "users", selection: regularSelection }, config);
 
-			const regularSQL = compileSelectQuery(regularSelectResult);
-			const dataTableSQL = compileSelectQuery(dataTableSelectResult);
+			const regularSQL = compileSelectQuery(regularSelectResult, config.dialect);
+			const dataTableSQL = compileSelectQuery(dataTableSelectResult, config.dialect);
 
 			expect(regularSQL).toContain("FROM users");
 			expect(dataTableSQL).toContain('FROM data_storage AS "users"');

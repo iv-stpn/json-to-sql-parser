@@ -183,13 +183,13 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 
 		it("should build select query without data table", () => {
 			const result = parseSelectQuery({ rootTable: "users", selection }, regularConfig);
-			const sql = compileSelectQuery(result);
+			const sql = compileSelectQuery(result, regularConfig.dialect);
 			expect(sql).toBe('SELECT users.id AS "id", users.name AS "name", users.email AS "email" FROM users');
 		});
 
 		it("should build select query with data table", () => {
 			const result = parseSelectQuery({ rootTable: "users", selection }, dataTableConfig);
-			const sql = compileSelectQuery(result);
+			const sql = compileSelectQuery(result, dataTableConfig.dialect);
 			expect(sql).toBe(
 				"SELECT (users.data->>'id')::UUID AS \"id\", users.data->>'name' AS \"name\", users.data->>'email' AS \"email\" FROM data_storage AS \"users\" WHERE (users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL)",
 			);
@@ -202,13 +202,13 @@ describe("CRUD - SELECT Data Table Configuration and Schema-less Storage", () =>
 
 		it("should build select with condition without data table", () => {
 			const result = parseSelectQuery({ rootTable: "users", selection, condition }, regularConfig);
-			const sql = compileSelectQuery(result);
+			const sql = compileSelectQuery(result, regularConfig.dialect);
 			expect(sql).toBe('SELECT users.id AS "id", users.name AS "name" FROM users WHERE users.active = TRUE');
 		});
 
 		it("should build select with condition with data table", () => {
 			const result = parseSelectQuery({ rootTable: "users", selection, condition }, dataTableConfig);
-			const sql = compileSelectQuery(result);
+			const sql = compileSelectQuery(result, dataTableConfig.dialect);
 			expect(sql).toBe(
 				"SELECT (users.data->>'id')::UUID AS \"id\", users.data->>'name' AS \"name\" FROM data_storage AS \"users\" WHERE (users.table_name = 'users' AND users.tenant_id = 'current_tenant' AND users.deleted_at IS NULL AND (users.data->>'active')::BOOLEAN = TRUE)",
 			);

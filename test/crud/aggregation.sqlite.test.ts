@@ -120,7 +120,7 @@ describe("CRUD - AGGREGATION Query Operations (SQLite)", () => {
 			const sql = compileAggregationQuery(result);
 
 			expect(sql).toBe(
-				"SELECT sales.data->>'region' AS \"region\", SUM(CAST(sales.data->>'amount' AS REAL)) AS \"total\", AVG(CAST(sales.data->>'amount' AS REAL)) AS \"average\", MAX(CAST(sales.data->>'amount' AS REAL)) AS \"maximum\", MIN(CAST(sales.data->>'amount' AS REAL)) AS \"minimum\", COUNT(*) AS \"count\", COUNT(DISTINCT CAST(sales.data->>'customer_id' AS TEXT)) AS \"unique_customers\", GROUP_CONCAT(sales.data->>'region', ',') AS \"regions_list\" FROM raw_data AS \"sales\" WHERE sales.table_name = 'sales' GROUP BY sales.data->>'region'",
+				"SELECT sales.data->>'region' AS \"region\", SUM(CAST(sales.data->>'amount' AS REAL)) AS \"total\", AVG(CAST(sales.data->>'amount' AS REAL)) AS \"average\", MAX(CAST(sales.data->>'amount' AS REAL)) AS \"maximum\", MIN(CAST(sales.data->>'amount' AS REAL)) AS \"minimum\", COUNT(*) AS \"count\", COUNT(DISTINCT sales.data->>'customer_id') AS \"unique_customers\", GROUP_CONCAT(sales.data->>'region', ',') AS \"regions_list\" FROM raw_data AS \"sales\" WHERE sales.table_name = 'sales' GROUP BY sales.data->>'region'",
 			);
 		});
 	});
@@ -499,8 +499,8 @@ describe("SQLite Edge Cases", () => {
 			const result = parseAggregationQuery(query, testConfig);
 			const sql = compileAggregationQuery(result);
 
-			expect(sql).toContain(
-				"SELECT sales.data->>'region' AS \"region\", GROUP_CONCAT('ID:' || CAST(CAST(sales.data->>'id' AS TEXT) AS TEXT), ',') AS \"concatenated_ids\" FROM raw_data AS \"sales\" WHERE sales.table_name = 'sales' GROUP BY sales.data->>'region'",
+			expect(sql).toBe(
+				"SELECT sales.data->>'region' AS \"region\", GROUP_CONCAT('ID:' || CAST(sales.data->>'id' AS TEXT), ',') AS \"concatenated_ids\" FROM raw_data AS \"sales\" WHERE sales.table_name = 'sales' GROUP BY sales.data->>'region'",
 			);
 		});
 	});

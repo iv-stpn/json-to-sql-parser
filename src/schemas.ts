@@ -152,8 +152,16 @@ export type InsertQuery = z.infer<typeof insertQuerySchema>;
 // Update query schema
 export const updateQuerySchema = z.strictObject({
 	table: z.string(),
-	updates: z.record(z.string(), anyScalarSchema),
+	updates: z.record(z.string(), anyExpressionSchema),
 	condition: conditionSchema.optional(),
 });
 
 export type UpdateQuery = z.infer<typeof updateQuerySchema>;
+
+// Delete query schema
+export const deleteQuerySchema = z.strictObject({
+	table: z.string(),
+	condition: conditionSchema.optional(),
+});
+
+export type DeleteQuery = z.infer<typeof deleteQuerySchema>;
