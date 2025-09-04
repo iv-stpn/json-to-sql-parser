@@ -66,7 +66,7 @@ export function isValidTimestamp(value: string): boolean {
 	return true;
 }
 
-export const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-9][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function ensureBoolean(value: unknown): asserts value is boolean | null {
 	if (typeof value !== "boolean" && value !== null) throw new Error("Expected a boolean or null value");
