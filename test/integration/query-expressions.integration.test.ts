@@ -59,8 +59,8 @@ describe("Integration - Complex Expression Processing and Type Casting", () => {
 			},
 		},
 		relationships: [
-			{ table: "posts", field: "user_id", toTable: "users", toField: "id", type: "many-to-one" },
-			{ table: "orders", field: "customer_id", toTable: "users", toField: "id", type: "many-to-one" },
+			{ table: "posts", field: "user_id", toTable: "users", toField: "id" },
+			{ table: "orders", field: "customer_id", toTable: "users", toField: "id" },
 		],
 	};
 

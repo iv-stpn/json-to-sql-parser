@@ -49,8 +49,8 @@ describe("Integration - Advanced Aggregations with Type Casting and Inference", 
 			},
 		},
 		relationships: [
-			{ table: "posts", field: "user_id", toTable: "users", toField: "id", type: "many-to-one" },
-			{ table: "orders", field: "user_id", toTable: "users", toField: "id", type: "many-to-one" },
+			{ table: "posts", field: "user_id", toTable: "users", toField: "id" },
+			{ table: "orders", field: "user_id", toTable: "users", toField: "id" },
 		],
 	};
 
@@ -490,8 +490,8 @@ describe("Integration - Complex Aggregations with Multi-Type Casting", () => {
 				"NOW()": "2024-01-01T00:00:00Z",
 			},
 			relationships: [
-				{ table: "orders", field: "customer_id", toTable: "users", toField: "id", type: "many-to-one" },
-				{ table: "posts", field: "user_id", toTable: "users", toField: "id", type: "many-to-one" },
+				{ table: "orders", field: "customer_id", toTable: "users", toField: "id" },
+				{ table: "posts", field: "user_id", toTable: "users", toField: "id" },
 			],
 		};
 	});

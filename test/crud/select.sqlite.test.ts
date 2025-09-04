@@ -58,7 +58,6 @@ beforeEach(() => {
 				field: "user_id",
 				toTable: "users",
 				toField: "id",
-				type: "many-to-one",
 			},
 		],
 	};

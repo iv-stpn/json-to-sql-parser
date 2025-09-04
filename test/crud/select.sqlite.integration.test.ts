@@ -210,8 +210,8 @@ describe("Integration - SELECT Multi-Table Operations and Complex Queries (SQLit
 				admin_role: "admin",
 			},
 			relationships: [
-				{ table: "posts", field: "user_id", toTable: "users", toField: "id", type: "many-to-one" },
-				{ table: "orders", field: "customer_id", toTable: "users", toField: "id", type: "many-to-one" },
+				{ table: "posts", field: "user_id", toTable: "users", toField: "id" },
+				{ table: "orders", field: "customer_id", toTable: "users", toField: "id" },
 			],
 		};
 	});

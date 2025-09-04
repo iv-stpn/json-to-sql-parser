@@ -2,15 +2,18 @@ import { ensureConditionObject } from "../parsers/issues";
 import type { EvaluationContext } from "../parsers/mutations";
 import { evaluateCondition, parseNewRow, processMutationFields } from "../parsers/mutations";
 import type { Condition, UpdateQuery } from "../schemas";
-import type { Config, ParserState } from "../types";
+import type { Config, ConfigWithForeignKeys, ParserState } from "../types";
 import { doubleQuote } from "../utils";
 import { ExpressionTypeMap } from "../utils/expression-map";
+import { ensureNormalizedConfig } from "../utils/normalize-config";
 import { buildWhereClause } from "./where";
 
 type UpdateState = ParserState & { updates: string[] };
 type ParsedUpdateQuery = { table: string; updates: Record<string, unknown>; where?: string };
 
-export function parseUpdateQuery(updateQuery: UpdateQuery, config: Config): ParsedUpdateQuery {
+export function parseUpdateQuery(updateQuery: UpdateQuery, config: Config | ConfigWithForeignKeys): ParsedUpdateQuery {
+	const normalizedConfig = ensureNormalizedConfig(config);
+
 	const { table, updates, condition } = updateQuery;
 
 	// Validate table and updates using reusable utilities
@@ -24,14 +27,20 @@ export function parseUpdateQuery(updateQuery: UpdateQuery, config: Config): Pars
 
 	// Initialize state
 	const expressions = new ExpressionTypeMap();
-	const state: UpdateState = { config, rootTable: table, expressions, updates: [] };
+	const state: UpdateState = { config: normalizedConfig, rootTable: table, expressions, updates: [] };
 
 	// Process update fields and generate WHERE clause
 	const processedFields = processMutationFields(updates, state);
 
 	let conditionResult: Condition = true;
 	if (condition) {
-		const evaluationContext: EvaluationContext = { newRow, rootTable: table, fields, config, mutationType: "UPDATE" };
+		const evaluationContext: EvaluationContext = {
+			newRow,
+			fields,
+			rootTable: table,
+			config: normalizedConfig,
+			mutationType: "UPDATE",
+		};
 		conditionResult = evaluateCondition(ensureConditionObject(condition), evaluationContext);
 	}
 
@@ -50,7 +59,7 @@ export function compileUpdateQuery(query: ParsedUpdateQuery): string {
 	return sql;
 }
 
-export function buildUpdateQuery(updateQuery: UpdateQuery, config: Config): string {
+export function buildUpdateQuery(updateQuery: UpdateQuery, config: Config | ConfigWithForeignKeys): string {
 	const parsedQuery = parseUpdateQuery(updateQuery, config);
 	const sql = compileUpdateQuery(parsedQuery);
 	return sql;

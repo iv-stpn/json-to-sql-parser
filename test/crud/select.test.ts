@@ -58,7 +58,6 @@ beforeEach(() => {
 				field: "user_id",
 				toTable: "users",
 				toField: "id",
-				type: "many-to-one",
 			},
 		],
 	};
@@ -496,7 +495,6 @@ describe("UUID Support", () => {
 					field: "user_id",
 					toTable: "users",
 					toField: "id",
-					type: "many-to-one",
 				},
 			],
 		};
@@ -544,7 +542,6 @@ describe("UUID Support", () => {
 					field: "user_id",
 					toTable: "users",
 					toField: "id",
-					type: "many-to-one",
 				},
 			],
 		};
@@ -1021,7 +1018,6 @@ describe("Edge Case Tests", () => {
 						field: "user_id",
 						toTable: "users",
 						toField: "id",
-						type: "many-to-one" as const,
 					},
 				],
 			};

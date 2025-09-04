@@ -4,10 +4,11 @@ import type { ExpressionType } from "../constants/field-types";
 import { type AggregationDefinition, allowedAggregationFunctions } from "../functions/aggregate";
 import { aliasValue, castValue, getExpressionType, parseExpression, parseField } from "../parsers";
 import type { AggregatedField, AggregationQuery } from "../schemas";
-import type { Config, ParserState } from "../types";
+import type { Config, ConfigWithForeignKeys, ParserState } from "../types";
 import { objectEntries } from "../utils";
 import { ExpressionTypeMap } from "../utils/expression-map";
 import { applyFunction } from "../utils/function-call";
+import { ensureNormalizedConfig } from "../utils/normalize-config";
 import { buildJoinClause } from "./joins";
 import { buildWhereClause } from "./where";
 
@@ -125,17 +126,18 @@ type ParsedAggregationQuery = {
 	groupBy: string[];
 	joins: string[];
 };
-export function parseAggregationQuery(query: AggregationQuery, config: Config): ParsedAggregationQuery {
+export function parseAggregationQuery(query: AggregationQuery, config: Config | ConfigWithForeignKeys): ParsedAggregationQuery {
+	const normalizedConfig = ensureNormalizedConfig(config);
 	const expressions = new ExpressionTypeMap();
 	const processedTables = new Set<string>([query.table]);
 
-	const state: AggregationState = { config, expressions, rootTable: query.table, joins: [], processedTables };
+	const state: AggregationState = { config: normalizedConfig, expressions, rootTable: query.table, joins: [], processedTables };
 	const { table, groupBy, aggregatedFields } = query;
 
 	const aggregatedFieldEntries = objectEntries(aggregatedFields ?? {});
 	if (aggregatedFieldEntries.length === 0 && groupBy.length === 0) throw new Error(MISSING_AGGREGATION_FIELD_ERROR);
 
-	const tableConfig = config.tables[table];
+	const tableConfig = normalizedConfig.tables[table];
 	if (!tableConfig) throw new Error(`Table '${table}' is not allowed`);
 
 	const selectFields: string[] = [];
@@ -155,7 +157,7 @@ export function parseAggregationQuery(query: AggregationQuery, config: Config): 
 	// Process group by fields
 	for (const fieldName of groupBy) {
 		const { select } = parseField(fieldName, state);
-		selectFields.push(aliasValue(castValue(select.field, select.targetType, state.config.dialect), select.alias));
+		selectFields.push(aliasValue(castValue(select.field, select.targetType, normalizedConfig.dialect), select.alias));
 		groupByFields.push(select.field);
 	}
 
@@ -164,7 +166,7 @@ export function parseAggregationQuery(query: AggregationQuery, config: Config): 
 		selectFields.push(parseAggregation(alias, aggregatedField, state));
 	}
 
-	const from = config.dataTable ? aliasValue(config.dataTable.table, table) : table;
+	const from = normalizedConfig.dataTable ? aliasValue(normalizedConfig.dataTable.table, table) : table;
 	const where = buildWhereClause(query.condition, state);
 	return { select: selectFields, from, where, groupBy: groupByFields, joins: state.joins };
 }
@@ -177,7 +179,7 @@ export function compileAggregationQuery(query: ParsedAggregationQuery): string {
 	return sql;
 }
 
-export function buildAggregationQuery(query: AggregationQuery, config: Config): string {
+export function buildAggregationQuery(query: AggregationQuery, config: Config | ConfigWithForeignKeys): string {
 	const parsedQuery = parseAggregationQuery(query, config);
 	const sql = compileAggregationQuery(parsedQuery);
 	return sql;

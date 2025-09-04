@@ -51,7 +51,6 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 					field: "user_id",
 					toTable: "users",
 					toField: "id",
-					type: "many-to-one",
 				},
 			],
 		};

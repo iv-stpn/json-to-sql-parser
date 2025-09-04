@@ -1,8 +1,9 @@
 import { aliasValue, castValue, parseExpressionObject, parseField, parseScalarExpression } from "../parsers";
 import type { FieldName, FieldSelection, SelectQuery } from "../schemas";
-import type { Config, ParserState } from "../types";
+import type { Config, ConfigWithForeignKeys, ParserState } from "../types";
 import { objectSize } from "../utils";
 import { ExpressionTypeMap } from "../utils/expression-map";
+import { ensureNormalizedConfig } from "../utils/normalize-config";
 import { isExpressionObject, isScalarExpression } from "../utils/validators";
 import { buildJoinClause } from "./joins";
 import { buildWhereClause } from "./where";
@@ -63,11 +64,12 @@ function processRelationship(table: string, selection: Selection, fromTable: str
 
 // Result of parsing a SELECT query
 type ParsedSelectQuery = { select: string[]; from: string; where?: string; joins: string[]; limit?: number; offset?: number };
-export function parseSelectQuery(selectQuery: SelectQuery, config: Config): ParsedSelectQuery {
+export function parseSelectQuery(selectQuery: SelectQuery, config: Config | ConfigWithForeignKeys): ParsedSelectQuery {
+	const normalizedConfig = ensureNormalizedConfig(config);
 	const { rootTable, selection, condition, pagination } = selectQuery;
 
 	// Validate root table
-	if (!config.tables[rootTable] && !config.dataTable) throw new Error(`Table '${rootTable}' is not allowed`);
+	if (!normalizedConfig.tables[rootTable] && !normalizedConfig.dataTable) throw new Error(`Table '${rootTable}' is not allowed`);
 
 	// Validate selection is not empty
 	if (objectSize(selection) === 0) throw new Error("Selection cannot be empty");
@@ -76,10 +78,10 @@ export function parseSelectQuery(selectQuery: SelectQuery, config: Config): Pars
 	const processedTables = new Set([rootTable]);
 	const expressions = new ExpressionTypeMap();
 
-	const state: SelectState = { config, rootTable, expressions, select: [], joins: [], processedTables };
+	const state: SelectState = { config: normalizedConfig, rootTable, expressions, select: [], joins: [], processedTables };
 	for (const [fieldName, fieldValue] of Object.entries(selection)) processField(fieldName, fieldValue, rootTable, state);
 
-	const from = config.dataTable ? aliasValue(config.dataTable.table, rootTable) : rootTable;
+	const from = normalizedConfig.dataTable ? aliasValue(normalizedConfig.dataTable.table, rootTable) : rootTable;
 	const where = buildWhereClause(condition, state);
 
 	const limit = pagination?.limit;
@@ -98,7 +100,7 @@ export function compileSelectQuery(query: ParsedSelectQuery): string {
 	return sql;
 }
 
-export function buildSelectQuery(selectQuery: SelectQuery, config: Config): string {
+export function buildSelectQuery(selectQuery: SelectQuery, config: Config | ConfigWithForeignKeys): string {
 	const parsedQuery = parseSelectQuery(selectQuery, config);
 	const sql = compileSelectQuery(parsedQuery);
 	return sql;

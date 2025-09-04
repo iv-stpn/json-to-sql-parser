@@ -2,9 +2,10 @@ import { ensureConditionObject } from "../parsers/issues";
 import type { EvaluationContext } from "../parsers/mutations";
 import { evaluateCondition, parseNewRowWithDefaults, processMutationFields } from "../parsers/mutations";
 import type { Condition, InsertQuery } from "../schemas";
-import type { Config, ParserState } from "../types";
+import type { Config, ConfigWithForeignKeys, ParserState } from "../types";
 import { doubleQuote } from "../utils";
 import { ExpressionTypeMap } from "../utils/expression-map";
+import { ensureNormalizedConfig } from "../utils/normalize-config";
 
 type ParsedInsertQuery = {
 	table: string;
@@ -13,20 +14,21 @@ type ParsedInsertQuery = {
 	conditionResult?: Condition;
 };
 
-export function parseInsertQuery(insertQuery: InsertQuery, config: Config): ParsedInsertQuery {
+export function parseInsertQuery(insertQuery: InsertQuery, config: Config | ConfigWithForeignKeys): ParsedInsertQuery {
+	const normalizedConfig = ensureNormalizedConfig(config);
 	const { table, newRow: newRowData, condition } = insertQuery;
 
-	const tableConfig = config.tables[table];
+	const tableConfig = normalizedConfig.tables[table];
 	if (!tableConfig) throw new Error(`Table '${table}' is not allowed or does not exist`);
 
-	config.tables.NEW_ROW = tableConfig;
+	normalizedConfig.tables.NEW_ROW = tableConfig;
 
 	const fields = tableConfig.allowedFields;
-	const newRow = parseNewRowWithDefaults(table, newRowData, config, fields);
+	const newRow = parseNewRowWithDefaults(table, newRowData, normalizedConfig, fields);
 
 	// Initialize state
 	const expressions = new ExpressionTypeMap();
-	const state: ParserState = { config, rootTable: table, expressions };
+	const state: ParserState = { config: normalizedConfig, rootTable: table, expressions };
 
 	// Process parsed newRow fields
 	const processedFields = processMutationFields(newRow, state);
@@ -34,7 +36,13 @@ export function parseInsertQuery(insertQuery: InsertQuery, config: Config): Pars
 	// Evaluate condition if present
 	let conditionResult: Condition = true;
 	if (condition) {
-		const evaluationContext: EvaluationContext = { rootTable: table, newRow, fields, config, mutationType: "INSERT" };
+		const evaluationContext: EvaluationContext = {
+			rootTable: table,
+			newRow,
+			fields,
+			config: normalizedConfig,
+			mutationType: "INSERT",
+		};
 		conditionResult = evaluateCondition(ensureConditionObject(condition), evaluationContext);
 	}
 
@@ -49,7 +57,7 @@ export function compileInsertQuery(query: ParsedInsertQuery): string {
 	return `INSERT INTO ${query.table} (${query.columns.map(doubleQuote).join(", ")}) VALUES (${query.values.join(", ")})`;
 }
 
-export function buildInsertQuery(insertQuery: InsertQuery, config: Config): string {
+export function buildInsertQuery(insertQuery: InsertQuery, config: Config | ConfigWithForeignKeys): string {
 	const parsedQuery = parseInsertQuery(insertQuery, config);
 	const sql = compileInsertQuery(parsedQuery);
 	return sql;

@@ -99,7 +99,6 @@ interface Relationship {
   field: string;
   toTable: string;
   toField: string;
-  type: "one-to-one" | "many-to-one";
 }
 ```
 

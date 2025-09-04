@@ -288,10 +288,10 @@ describe("Integration - Aggregation Queries and Statistical Operations (SQLite)"
 				min_rating: 4.0,
 			},
 			relationships: [
-				{ table: "posts", field: "user_id", toTable: "users", toField: "id", type: "many-to-one" },
-				{ table: "orders", field: "customer_id", toTable: "users", toField: "id", type: "many-to-one" },
-				{ table: "order_items", field: "order_id", toTable: "orders", toField: "id", type: "many-to-one" },
-				{ table: "order_items", field: "product_id", toTable: "products", toField: "id", type: "many-to-one" },
+				{ table: "posts", field: "user_id", toTable: "users", toField: "id" },
+				{ table: "orders", field: "customer_id", toTable: "users", toField: "id" },
+				{ table: "order_items", field: "order_id", toTable: "orders", toField: "id" },
+				{ table: "order_items", field: "product_id", toTable: "products", toField: "id" },
 			],
 		};
 	});

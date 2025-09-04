@@ -56,14 +56,12 @@ beforeEach(() => {
 				field: "user_id",
 				toTable: "users",
 				toField: "id",
-				type: "many-to-one",
 			},
 			{
 				table: "orders",
 				field: "customer_id",
 				toTable: "users",
 				toField: "id",
-				type: "many-to-one",
 			},
 		],
 	};
