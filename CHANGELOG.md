@@ -1,5 +1,11 @@
 # json-to-sql-parser
 
+## 3.2.2
+
+### Patch Changes
+
+- [`e7bff75`](https://github.com/iv-stpn/json-to-sql-parser/commit/e7bff75623984eed05be86bd0ffc474d38dfd93b) Thanks [@iv-stpn](https://github.com/iv-stpn)! - allow inline foreign keys in config, remove cardinality from relationships
+
 ## 3.2.1
 
 ### Patch Changes
