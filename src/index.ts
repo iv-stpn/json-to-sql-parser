@@ -66,3 +66,13 @@ export type {
 
 // Utils
 export { ExpressionTypeMap } from "./utils/expression-map";
+
+// Validators
+export {
+	isAnyScalar,
+	isExpressionObject,
+	isField,
+	isFieldOperator,
+	isScalarExpression,
+	isScalarPrimitive,
+} from "./utils/validators";
