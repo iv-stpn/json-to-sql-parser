@@ -1,5 +1,11 @@
 # json-to-sql-parser
 
+## 4.0.0
+
+### Major Changes
+
+- [`b8293ff`](https://github.com/iv-stpn/json-to-sql-parser/commit/b8293ff864d8ad2996e1336bdc4e36dcce3998bb) Thanks [@iv-stpn](https://github.com/iv-stpn)! - Major refactor: add delete parser; add order by to select; allow expressions in mutation fields; multiple fixes
+
 ## 3.2.2
 
 ### Patch Changes
