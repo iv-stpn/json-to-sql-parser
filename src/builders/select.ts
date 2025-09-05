@@ -1,3 +1,4 @@
+import { Dialect } from "../constants/dialects";
 import { aliasValue, castValue, parseExpressionObject, parseField, parseScalarExpression } from "../parsers";
 import type { FieldName, FieldSelection, OrderBy, SelectQuery } from "../schemas";
 import type { Config, ConfigWithForeignKeys, ParserState } from "../types";
@@ -7,7 +8,6 @@ import { ensureNormalizedConfig } from "../utils/normalize-config";
 import { isExpressionObject, isScalarExpression } from "../utils/validators";
 import { buildJoinClause } from "./joins";
 import { buildWhereClause } from "./where";
-import { Dialect } from "../constants/dialects";
 
 type SelectState = ParserState & { joins: string[]; select: string[]; processedTables: Set<string> };
 function processField(fieldName: string, selection: FieldSelection, table: string, state: SelectState): void {

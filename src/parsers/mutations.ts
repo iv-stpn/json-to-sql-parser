@@ -15,6 +15,7 @@ import type {
 import { anyScalarSchema, conditionSchema } from "../schemas";
 import type { Config, Field, ParserState } from "../types";
 import { objectEntries, objectSize } from "../utils";
+import type { ExpressionTypeMap } from "../utils/expression-map";
 import {
 	ensureTimestampString,
 	ensureUUID,
@@ -29,7 +30,6 @@ import {
 	uuidRegex,
 } from "../utils/validators";
 import { parseExpressionObject, parseFieldPath, parseScalarExpression, parseScalarValue, resolveFunction } from ".";
-import type { ExpressionTypeMap } from "../utils/expression-map";
 
 function getScalarExpressionValue(value: unknown, key: "$date" | "$uuid" | "$timestamp"): string {
 	if (isNonNullObject(value)) {
