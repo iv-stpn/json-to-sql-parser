@@ -100,6 +100,19 @@ export const fieldSelectionSchema: z.ZodType<FieldSelection> = z.union([
 	),
 ]);
 
+// Order by schema
+export const orderByDirectionSchema = z.enum(["ASC", "DESC", "asc", "desc"]);
+export type OrderByDirection = z.infer<typeof orderByDirectionSchema>;
+
+export const orderByFieldSchema = z.strictObject({
+	field: z.string(),
+	direction: orderByDirectionSchema.optional(),
+});
+export type OrderByField = z.infer<typeof orderByFieldSchema>;
+
+export const orderBySchema = z.array(orderByFieldSchema);
+export type OrderBy = z.infer<typeof orderBySchema>;
+
 // Pagination schema
 export const paginationSchema = z.strictObject({
 	limit: z.number().int().positive().optional(),
@@ -112,6 +125,7 @@ export const selectQuerySchema = z.strictObject({
 	rootTable: z.string(),
 	selection: z.record(z.string(), fieldSelectionSchema),
 	condition: conditionSchema.optional(),
+	orderBy: orderBySchema.optional(),
 	pagination: paginationSchema.optional(),
 });
 

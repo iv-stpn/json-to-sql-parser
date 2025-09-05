@@ -1,5 +1,5 @@
 import { aliasValue, castValue, parseExpressionObject, parseField, parseScalarExpression } from "../parsers";
-import type { FieldName, FieldSelection, SelectQuery } from "../schemas";
+import type { FieldName, FieldSelection, OrderBy, SelectQuery } from "../schemas";
 import type { Config, ConfigWithForeignKeys, ParserState } from "../types";
 import { objectSize } from "../utils";
 import { ExpressionTypeMap } from "../utils/expression-map";
@@ -63,11 +63,37 @@ function processRelationship(table: string, selection: Selection, fromTable: str
 	}
 }
 
+function buildOrderByClause(orderBy: OrderBy | undefined, state: ParserState): string[] {
+	if (!orderBy || orderBy.length === 0) return [];
+
+	const orderByParts: string[] = [];
+
+	for (const orderItem of orderBy) {
+		const { field, direction = "ASC" } = orderItem;
+
+		// Parse the field to ensure it's valid and properly quoted
+		const { select } = parseField(field, state);
+		const directionUpper = direction.toUpperCase() as "ASC" | "DESC";
+
+		orderByParts.push(`${select.field} ${directionUpper}`);
+	}
+
+	return orderByParts;
+}
+
 // Result of parsing a SELECT query
-type ParsedSelectQuery = { select: string[]; from: string; where?: string; joins: string[]; limit?: number; offset?: number };
+type ParsedSelectQuery = {
+	select: string[];
+	from: string;
+	where?: string;
+	joins: string[];
+	orderBy: string[];
+	limit?: number;
+	offset?: number;
+};
 export function parseSelectQuery(selectQuery: SelectQuery, baseConfig: Config | ConfigWithForeignKeys): ParsedSelectQuery {
 	const config = ensureNormalizedConfig(baseConfig);
-	const { rootTable, selection, condition, pagination } = selectQuery;
+	const { rootTable, selection, condition, orderBy, pagination } = selectQuery;
 
 	// Validate root table
 	if (!config.tables[rootTable] && !config.dataTable) throw new Error(`Table '${rootTable}' is not allowed`);
@@ -84,11 +110,12 @@ export function parseSelectQuery(selectQuery: SelectQuery, baseConfig: Config | 
 
 	const from = config.dataTable ? aliasValue(config.dataTable.table, rootTable) : rootTable;
 	const where = buildWhereClause(condition, state);
+	const orderByClause = buildOrderByClause(orderBy, state);
 
 	const limit = pagination?.limit;
 	const offset = pagination?.offset;
 
-	return { select: state.select, from, where, joins: state.joins, limit, offset };
+	return { select: state.select, from, where, joins: state.joins, orderBy: orderByClause, limit, offset };
 }
 
 export function compileSelectQuery(query: ParsedSelectQuery, dialect: Dialect): string {
@@ -96,6 +123,7 @@ export function compileSelectQuery(query: ParsedSelectQuery, dialect: Dialect): 
 	let sql = `SELECT ${query.select.join(", ")} FROM ${query.from}`;
 	if (query.joins.length > 0) sql += ` ${query.joins.join(" ")}`;
 	if (query.where) sql += ` WHERE ${query.where}`;
+	if (query.orderBy.length > 0) sql += ` ORDER BY ${query.orderBy.join(", ")}`;
 
 	// Handle pagination with dialect-specific behavior
 	const isSQLite = dialect === Dialect.SQLITE_MINIMAL || dialect === Dialect.SQLITE_EXTENSIONS;

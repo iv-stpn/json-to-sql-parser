@@ -925,7 +925,7 @@ describe("Integration - DELETE Operations with SQLite", () => {
 
 				const sql = buildDeleteQuery(deleteQuery, config);
 
-				expect(sql).toBe("DELETE FROM users WHERE users.id = CAST('019916f0-52bc-77c9-ab55-78b3dcfe36a3' AS TEXT)"); // Count before deletion (should be 0)
+				expect(sql).toBe("DELETE FROM users WHERE users.id = '019916f3-d359-7d38-a4b9-d9e118310d5b'"); // Count before deletion (should be 0)
 				const beforeCount = db.query("SELECT COUNT(*) as count FROM users WHERE id = 'non-existent-id-12345'");
 				expect((beforeCount[0] as Record<string, unknown>).count).toBe(0);
 
