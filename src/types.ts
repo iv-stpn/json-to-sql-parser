@@ -5,7 +5,7 @@ import type { ExpressionTypeMap } from "./utils/expression-map";
 
 export type Field = { name: string; type: FieldType; nullable: boolean; default?: AnyExpression };
 export type FieldWithForeignKey = Field & {
-	foreignKey: { table: string; field: string; onDelete?: "cascade" | "set_null" | "restrict" };
+	foreignKey?: { table: string; field: string; onDelete?: "cascade" | "set_null" | "restrict" };
 };
 
 export type FieldPath = { table: string; field: string; jsonAccess: string[]; jsonExtractText?: boolean; fieldConfig: Field };

@@ -149,11 +149,11 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 		});
 
 		it("should handle timestamp values with comparison operators", () => {
-			const conditions = [
-				{ "users.created_at": { $gt: { $timestamp: "2024-01-01T00:00:00" } } } as Condition,
-				{ "users.updated_at": { $lt: { $timestamp: "2024-12-31T23:59:59" } } } as Condition,
-				{ "users.last_login": { $gte: { $timestamp: "2024-06-15T12:00:00" } } } as Condition,
-				{ "users.last_login": { $lte: { $timestamp: "2024-06-15T18:00:00" } } } as Condition,
+			const conditions: Condition[] = [
+				{ "users.created_at": { $gt: { $timestamp: "2024-01-01T00:00:00" } } },
+				{ "users.updated_at": { $lt: { $timestamp: "2024-12-31T23:59:59" } } },
+				{ "users.last_login": { $gte: { $timestamp: "2024-06-15T12:00:00" } } },
+				{ "users.last_login": { $lte: { $timestamp: "2024-06-15T18:00:00" } } },
 			];
 
 			for (const condition of conditions) {
@@ -292,10 +292,10 @@ describe("Parser - Type Casting and Temporal Data Validation", () => {
 		});
 
 		it("should handle NULL comparisons with date types", () => {
-			const conditions = [
-				{ "users.birth_date": { $eq: null } } as Condition,
-				{ "users.last_login": { $ne: null } } as Condition,
-				{ "users.profile_id": { $eq: null } } as Condition,
+			const conditions: Condition[] = [
+				{ "users.birth_date": { $eq: null } },
+				{ "users.last_login": { $ne: null } },
+				{ "users.profile_id": { $eq: null } },
 			];
 
 			for (const condition of conditions) {
