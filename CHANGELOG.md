@@ -1,5 +1,11 @@
 # json-to-sql-parser
 
+## 4.0.2
+
+### Patch Changes
+
+- [`5022db0`](https://github.com/iv-stpn/json-to-sql-parser/commit/5022db0716176ff229ce3ac3e28e01f05a1859f8) Thanks [@iv-stpn](https://github.com/iv-stpn)! - expose more internal apis
+
 ## 4.0.1
 
 ### Patch Changes
