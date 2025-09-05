@@ -26,6 +26,7 @@ export { findIssueInConditionSchema, findIssueInExpressionSchema } from "./parse
 export type {
 	AggregationQuery,
 	AnyExpression,
+	AnyFieldCondition,
 	AnyScalar,
 	Condition,
 	ConditionExpression,
@@ -59,6 +60,7 @@ export type {
 	Config,
 	ConfigWithForeignKeys,
 	Field,
+	FieldWithForeignKey,
 	FieldPath,
 	ParserState,
 	Relationship,
